@@ -1,6 +1,6 @@
 import requests
 import time
-import google.generativeai as genai
+from google import genai
 import os
 from dotenv import load_dotenv
 import json
@@ -10,19 +10,21 @@ user_agent = os.getenv("STEAM_USER_AGENT")
 print(api_key)
 
 if api_key:
-    genai.configure(api_key=api_key)
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 else:
     print("Missing Gemini API Key")
+    exit()
 
 # Using Gemini 2.5 Flash-Lite as free tier is sufficient
-model = genai.GenerativeModel(
-    model_name="gemini-2.5-flash-lite",
+
+""" model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash-lite",
     generation_config={
         "temperature": 0.1,
         "response_mime_type": "application/json"
     },
     system_instruction="""
-    You are a CS2 skin trading assistant. Analyze price/float data to determine if a tradeup input is a good deal. 
+"""    You are a CS2 skin trading assistant. Analyze price/float data to determine if a tradeup input is a good deal. 
     IMPORTANT: Always classify skins based on these strict boundaries:
     Factory New (0 - 0.0699999), 
     Minimal Wear (0.07 - 0.149999), 
@@ -32,7 +34,9 @@ model = genai.GenerativeModel(
     Their float ranges are in the brackets and skins closer to the lower bounds of a range are more valuable.
     Within your reasoning, include, if relevant if the skin is close to the lower bounds. 
     """
-)
+""") """
+
+
 
 class Skin:
     def __init__(self, listingID, price, assetID, dID, float_val, market_pos):
@@ -44,7 +48,13 @@ class Skin:
         self.market_pos = market_pos
 # Tuple of Possible Wears
 wears = ("(Factory New)", "(Minimal Wear)", "(Field-Tested)", "(Well-Worn)", "(Battle-Scarred)")
-
+WEAR_RANGES = {
+    "(Factory New)": "(0 - 0.07)",
+    "(Minimal Wear)": "(0.07 - 0.15)",
+    "(Field-Tested)": "(0.15 - 0.38)",
+    "(Well-Worn)": "(0.38 - 0.45)",
+    "(Battle-Scarred)": "(0.45 - 1.00)"
+}
 # Header to let steam know this isn't a typical bot request
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
@@ -77,7 +87,7 @@ def scout(skin_name: str, wear: int, max_float: float):
 
     if scout_r.status_code == 200:
         total_listings = scout_r.json().get('total_count', 0)
-        scan_limit = min(int(total_listings * 0.2), 1000)
+        scan_limit = min(int(total_listings * 0.1), 1000)
         print(f"Total Listings: {total_listings}. Scanning top: {scan_limit} items")
     if scout_r.status_code == 429:
         print("Steam rate limit reached.")
@@ -153,7 +163,7 @@ def scout(skin_name: str, wear: int, max_float: float):
         # print(f"___________________{skin.market_pos}")
     return availableSkins
 
-def analyze_skin_value(scout_results, budget_multiplier: float, max_float: float):
+def analyze_skin_value(scout_results, budget_multiplier: float, max_float: float, wear_level: int, full_results):
     if not scout_results:
         return None
     
@@ -176,21 +186,30 @@ def analyze_skin_value(scout_results, budget_multiplier: float, max_float: float
     # It will return the listingID's of the should be purchased skins.
     market_context = ""
     for i, s in enumerate(top_5):
-        market_context += f"Candidate {i+1} has price of {s.price} CAD, float value of {s.float_val} and listingID of {s.listingID}"
+        market_context += f"Candidate {i+1} has price of {s.price} CAD, float value of {s.float_val} and listingID of {s.listingID}\n"
+
+    all_listings_context = ""
+    for i, s in enumerate(full_results):
+        all_listings_context += f"Listing {i+1} has price of {s.price} CAD, float value of {s.float_val} and listingID of {s.listingID}\n"
     
+    lower_bound = WEAR_RANGES[wears[wear_level]].strip("()").split("-")[0].strip()
+
     prompt = f"""
     Current Market Floor: ${base_price:.2f}
     Maximum float: {max_float}
+
+    All Market Listings including Candidates:
+    {all_listings_context}
 
     Candidates:
     {market_context}
 
     Decision Criteria:
-    1. Is the float much lower than other offerings at the same or a slightly higher price?
-    2. If it is greater than the maximum float, is it significantly cheaper?
-    3. How close is it to the lower bound of the float range? Ex: Field-tested skin that is close to 0.15 would be extremely valuable
+    1. Percentile: Where does the float sit within the {WEAR_RANGES[wears[wear_level]]}?
+    2. Value: Is the float significantly lower for a negligible price increase?
+    3. Floor proximity: How close is it to the absolute minimum of {lower_bound}?
 
-    Task: Provide me with the top 3 best value skins out of the 5 provided.
+    Task: Provide me with the top 3 best value skins out of the 5 provided. Numerical evidence required: price/float relationships
 
     Example JSON structure to return:
     [
@@ -213,8 +232,18 @@ def analyze_skin_value(scout_results, budget_multiplier: float, max_float: float
     """
     # instead i want the code to only mark ids off when they have been analyzed.
     try:
-        response = model.generate_content(prompt)
+        #print(prompt)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=prompt,
+            config={
+                'response_mime_type': 'application/json',
+                'temperature': 0.1  # Lower temperature = more consistent formatting
+            }
+        )
+        #print(response.text)
         jsonResult = json.loads(response.text)
+        #print(jsonResult)
 
         top3IDS = {s.get('listingID') for s in jsonResult}
         print(f"\nBest 3 skins of the Batch! ({len(jsonResult)}) skins found.")
@@ -222,13 +251,14 @@ def analyze_skin_value(scout_results, budget_multiplier: float, max_float: float
             print(f"At rank {skin.get('rank')}, is listing {skin.get('listingID')} because:\n   {skin.get('reasoning')}")
             for s in top_5:
                 if skin.get('listingID') == s.listingID:
-                    analyzed_listings[s.listingID] = s
-                    print(f"-----> [Price: {s.price} | Float Value: {s.float_val}]")
+                    analyzed_listings[str(s.listingID)] = s
+                    print(analyzed_listings)
+                    #print(f"-----> [Price: {s.price} | Float Value: {s.float_val}]")
         
         # Set the last analyzed time
         for skin in top_5:
             if skin.listingID not in top3IDS:
-                cooldown_listings[skin.listingID] = time.time()
+                cooldown_listings[str(skin.listingID)] = time.time()
     except Exception as e:
         print(f"Analysis Error: {e}")
 
@@ -244,8 +274,8 @@ test = "Dual Berettas | Polished Malachite"
 wlevel = 1
 while True:
     try:
-        scout_results = scout(test, wlevel, 0.08)
-
+        scout_results = scout(test, wlevel, 0.085)
+        print(f"THESE ARE THE ANALYZED LISTINGS {analyzed_listings}")
         if scout_results:
             existing_IDS = [s.listingID for s in scout_results]
 
@@ -257,13 +287,13 @@ while True:
 
             currentTime = time.time()
             # 2. Check for NEW, un-analyzed skins
-            new_candidates = [s for s in scout_results if s.listingID not in analyzed_listings and currentTime - cooldown_listings.get(s.listingID, 0) > 600]
+            new_candidates = [s for s in scout_results if (str(s.listingID) not in analyzed_listings and (currentTime - cooldown_listings.get(str(s.listingID), 0)) > 600)]
+            for s in new_candidates:
+                print(s.listingID)
 
             if new_candidates:
                 # 3. Call the Analysis function
-                # We pass ALL scout_results so the LLM knows the 'Market Floor'
-                # But we only enter some into the analyzed_listings.
-                analyze_skin_value(scout_results, 1.1, 0.08)
+                analyze_skin_value(new_candidates, 1.1, 0.08, wlevel, scout_results)
             else: 
                 print("No new skins this update")
         print("Loop complete. Resting to avoid rate limits...")
