@@ -87,7 +87,7 @@ def scout(skin_name: str, wear: int, max_float: float):
 
     if scout_r.status_code == 200:
         total_listings = scout_r.json().get('total_count', 0)
-        scan_limit = min(int(total_listings * 0.1), 1000)
+        scan_limit = min(int(total_listings * 0.2), 1000)
         print(f"Total Listings: {total_listings}. Scanning top: {scan_limit} items")
     if scout_r.status_code == 429:
         print("Steam rate limit reached.")
@@ -252,7 +252,7 @@ def analyze_skin_value(scout_results, budget_multiplier: float, max_float: float
             for s in top_5:
                 if skin.get('listingID') == s.listingID:
                     analyzed_listings[str(s.listingID)] = s
-                    print(analyzed_listings)
+                    #print(analyzed_listings)
                     #print(f"-----> [Price: {s.price} | Float Value: {s.float_val}]")
         
         # Set the last analyzed time
@@ -270,11 +270,21 @@ analyzed_listings = {}
 # Dictionary mapping cooldown times with the listingID
 cooldown_listings = {}
 
-test = "Dual Berettas | Polished Malachite"
-wlevel = 1
+def is_float(value):
+    return value.replace('.', '', 1).isdigit()
+
+user_input = input("Please input a skin's name (Gun Name | Finish Name):\n")
+skin_name = user_input.strip()
+while not user_input.isdigit():
+    user_input = input("\nPlease input a wear level 0-4:\n").strip()
+wlevel = int(user_input)
+user_input = ""
+while not is_float(user_input):
+    user_input = input("\nPlease enter the maximum float:\n").strip()
+maximum_float = float(user_input)
 while True:
     try:
-        scout_results = scout(test, wlevel, 0.085)
+        scout_results = scout(skin_name, wlevel, maximum_float)
         print(f"THESE ARE THE ANALYZED LISTINGS {analyzed_listings}")
         if scout_results:
             existing_IDS = [s.listingID for s in scout_results]
@@ -288,12 +298,12 @@ while True:
             currentTime = time.time()
             # 2. Check for NEW, un-analyzed skins
             new_candidates = [s for s in scout_results if (str(s.listingID) not in analyzed_listings and (currentTime - cooldown_listings.get(str(s.listingID), 0)) > 600)]
-            for s in new_candidates:
-                print(s.listingID)
+            #for s in new_candidates:
+                #print(s.listingID)
 
             if new_candidates:
                 # 3. Call the Analysis function
-                analyze_skin_value(new_candidates, 1.1, 0.08, wlevel, scout_results)
+                analyze_skin_value(new_candidates, 1.1, maximum_float, wlevel, scout_results)
             else: 
                 print("No new skins this update")
         print("Loop complete. Resting to avoid rate limits...")
