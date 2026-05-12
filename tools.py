@@ -1,4 +1,5 @@
 import requests
+import sqlite3
 import time
 from google import genai
 import os
@@ -7,6 +8,7 @@ import json
 
 api_key = os.getenv("GEMINI_API_KEY")
 user_agent = os.getenv("STEAM_USER_AGENT")
+adbConnect = sqlite3.connect("analyzed.db")
 print(api_key)
 
 if api_key:
@@ -42,7 +44,7 @@ class Skin:
     def __init__(self, listingID, price, assetID, dID, float_val, market_pos):
         self.assetID = assetID
         self.listingID = listingID
-        self.price = price / 100
+        self.price = price
         self.dID = dID
         self.float_val = float_val
         self.market_pos = market_pos
@@ -144,7 +146,7 @@ def scout(skin_name: str, wear: int, max_float: float):
                     break
 
             if float_val < max_float:
-                availableSkins.append(Skin(listingID, price, assetID, dID, float_val, mkt_pos + 100 * pg))
+                availableSkins.append(Skin(listingID, price / 100, assetID, dID, float_val, mkt_pos + 100 * pg))
             #else:
                 #print("Too High Float")
             # print(availableSkins[i].listingID)
@@ -277,11 +279,22 @@ user_input = input("Please input a skin's name (Gun Name | Finish Name):\n")
 skin_name = user_input.strip()
 while not user_input.isdigit():
     user_input = input("\nPlease input a wear level 0-4:\n").strip()
+
 wlevel = int(user_input)
 user_input = ""
+
 while not is_float(user_input):
     user_input = input("\nPlease enter the maximum float:\n").strip()
+
 maximum_float = float(user_input)
+adbConnect.execute("CREATE table if NOT EXISTS 'Analyzed Skins' "
+"(ListingID TEXT PRIMARY KEY, Price REAL, AssetID TEXT, dID TEXT, float_val REAL, market_pos INTEGER)")
+# Load data from past analysis.
+adbPastCur = adbConnect.execute("SELECT ListingID, Price, AssetID, dID, float_val, market_pos FROM 'Analyzed Skins'")
+past_analyzed = adbPastCur.fetchall()
+for values in past_analyzed:
+    temporary_skin = Skin(*values)
+    analyzed_listings[temporary_skin.listingID] = temporary_skin
 while True:
     try:
         scout_results = scout(skin_name, wlevel, maximum_float)
@@ -293,12 +306,13 @@ while True:
             for listingID in list(analyzed_listings.keys()):
                 if listingID not in existing_IDS:
                     print(f"Listing {listingID} no longer present")
+                    adbConnect.execute("DELETE FROM 'Analyzed Skins' WHERE ListingID = ?", (listingID,))
                     del analyzed_listings[listingID]
-
+            adbConnect.commit()
             currentTime = time.time()
             # 2. Check for NEW, un-analyzed skins
             new_candidates = [s for s in scout_results if (str(s.listingID) not in analyzed_listings and (currentTime - cooldown_listings.get(str(s.listingID), 0)) > 600)]
-            #for s in new_candidates:
+            #for s in new_candidates:a45
                 #print(s.listingID)
 
             if new_candidates:
@@ -309,7 +323,9 @@ while True:
         print("Loop complete. Resting to avoid rate limits...")
         for lID in analyzed_listings:
             skin = analyzed_listings[lID]
+            adbConnect.execute("INSERT OR REPLACE INTO 'Analyzed Skins' VALUES(?, ?, ?, ?, ?, ?)", (skin.listingID, skin.price, skin.assetID, skin.dID, skin.float_val, skin.market_pos))
             print(f"Listing ID: {skin.listingID} | Price: {skin.price} | Float Value: {skin.float_val} | Market Position: {skin.market_pos}")
+        adbConnect.commit()
         time.sleep(30)
     except Exception as e:
         print(f"Loop Failed: {e}")
