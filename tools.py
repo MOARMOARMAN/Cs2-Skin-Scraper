@@ -1,6 +1,7 @@
 import requests
 import sqlite3
 import time
+import re
 from google import genai
 import os
 from dotenv import load_dotenv
@@ -287,10 +288,12 @@ while not is_float(user_input):
     user_input = input("\nPlease enter the maximum float:\n").strip()
 
 maximum_float = float(user_input)
-adbConnect.execute("CREATE table if NOT EXISTS 'Analyzed Skins' "
-"(ListingID TEXT PRIMARY KEY, Price REAL, AssetID TEXT, dID TEXT, float_val REAL, market_pos INTEGER)")
+table_name = skin_name + wears[wlevel]
+table_name = re.sub(r'[^0-9a-zA-Z]', '', table_name)
+table_name = f'"{table_name}"'
+adbConnect.execute(f"CREATE table if NOT EXISTS {table_name} (ListingID TEXT PRIMARY KEY, Price REAL, AssetID TEXT, dID TEXT, float_val REAL, market_pos INTEGER)")
 # Load data from past analysis.
-adbPastCur = adbConnect.execute("SELECT ListingID, Price, AssetID, dID, float_val, market_pos FROM 'Analyzed Skins'")
+adbPastCur = adbConnect.execute(f"SELECT ListingID, Price, AssetID, dID, float_val, market_pos FROM {table_name}")
 past_analyzed = adbPastCur.fetchall()
 for values in past_analyzed:
     temporary_skin = Skin(*values)
@@ -306,8 +309,9 @@ while True:
             for listingID in list(analyzed_listings.keys()):
                 if listingID not in existing_IDS:
                     print(f"Listing {listingID} no longer present")
-                    adbConnect.execute("DELETE FROM 'Analyzed Skins' WHERE ListingID = ?", (listingID,))
+                    adbConnect.execute(f"DELETE FROM {table_name} WHERE ListingID = ?", (listingID,))
                     del analyzed_listings[listingID]
+
             adbConnect.commit()
             currentTime = time.time()
             # 2. Check for NEW, un-analyzed skins
@@ -323,7 +327,7 @@ while True:
         print("Loop complete. Resting to avoid rate limits...")
         for lID in analyzed_listings:
             skin = analyzed_listings[lID]
-            adbConnect.execute("INSERT OR REPLACE INTO 'Analyzed Skins' VALUES(?, ?, ?, ?, ?, ?)", (skin.listingID, skin.price, skin.assetID, skin.dID, skin.float_val, skin.market_pos))
+            adbConnect.execute(f"INSERT OR REPLACE INTO {table_name} VALUES(?, ?, ?, ?, ?, ?)", (skin.listingID, skin.price, skin.assetID, skin.dID, skin.float_val, skin.market_pos))
             print(f"Listing ID: {skin.listingID} | Price: {skin.price} | Float Value: {skin.float_val} | Market Position: {skin.market_pos}")
         adbConnect.commit()
         time.sleep(30)
