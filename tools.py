@@ -6,10 +6,20 @@ from google import genai
 import os
 from dotenv import load_dotenv
 import json
+import random
 
 api_key = os.getenv("GEMINI_API_KEY")
 user_agent = os.getenv("STEAM_USER_AGENT")
 adbConnect = sqlite3.connect("analyzed.db")
+scraper_session = requests.Session()
+scraper_session.get("https://steamcommunity.com/market/")
+session_id = scraper_session.cookies.get('sessionid', domain='steamcommunity.com')
+if not session_id:
+    session_id = "ecfa287520111ed4f64e6d6e" # Your known good ID
+    scraper_session.cookies.set('sessionid', session_id, domain='steamcommunity.com')
+else:
+    print("Session Connected to Steam!")
+    print(session_id)
 print(api_key)
 
 if api_key:
@@ -58,9 +68,24 @@ WEAR_RANGES = {
     "(Well-Worn)": "(0.38 - 0.45)",
     "(Battle-Scarred)": "(0.45 - 1.00)"
 }
-# Header to let steam know this isn't a typical bot request
 headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    "Host": "steamcommunity.com",
+    "Origin": "https://steamcommunity.com",
+    "Referer": "https://steamcommunity.com/market/listings/730/G1802208A0A3004",
+    "X-Requested-With": "XMLHttpRequest",
+    "Content-Type": "application/json; charset=utf-8",
+    # THE SECRET HANDSHAKE
+    "x-valve-action-type": "4OPT6VBA:Search",
+    "x-valve-request-type": "routeAction",
+    # MAPPING BROWSER ID
+    "User-Agent": user_agent,
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-fetch-dest": "empty"
+}
+cookies = {
+    "sessionid": session_id,
+    "timezoneName": "America/New_York"
 }
 
 def scout(skin_name: str, wear: int, max_float: float):
@@ -86,53 +111,63 @@ def scout(skin_name: str, wear: int, max_float: float):
         "currency": 20,
         "language": "english"
     }
-    scout_r = requests.get(f"https://steamcommunity.com/market/listings/730/{search_name}/render", params=scout_params, headers=headers)
+    # Obtaining the skin's specific code.
+    scout_code = requests.get(f"https://steamcommunity.com/market/listings/730/{search_name}")
+    scout_code = scout_code.url.split('/')[-1]
+    #print(scout_code.text)
+    Payload = [{
+        "appid":730,
+        "strItemName": scout_code, # Unique identifier, will have to calculate later
+        "sort":{"field":1,"direction":0,"assetpropertyid":2},
+        "filters":{"category_730_Exterior":[f"tag_WearCategory{wear}"]}, # Set these using the inputs
+        "accessoryFilters":{},
+        "propertyFilters":{},
+        "start": 0,
+    }]
+    # Steam forces 20 listings at a time.
+    scout_r = scraper_session.post(f"https://steamcommunity.com/market/listings/730/{scout_code}", json=Payload, headers=headers, cookies=cookies)
+    print(scout_r.url)
+    print(scout_r.status_code)
+    #print(f"JSON FILE IS: {scout_r.json()}")
+    #data = scout_r.json().get('listings', [])
+    #print(f"num listings: {len(data)}")
+
+    #print(f"WEBSITE OUTPUT: {scout_r.text}")
+    
+    response_text = scout_r.text
+    print(f"length of response_text: {len(response_text)}")
 
     if scout_r.status_code == 200:
         total_listings = scout_r.json().get('total_count', 0)
         scan_limit = min(int(total_listings * 0.2), 1000)
         print(f"Total Listings: {total_listings}. Scanning top: {scan_limit} items")
-    if scout_r.status_code == 429:
+    elif scout_r.status_code == 429:
         print("Steam rate limit reached.")
         time.sleep(300)
         return []
 
-    for offset in range (0, scan_limit, 100):
-        params = {
-            "start": offset,
-            "count": 100,
-            "currency": 20,
-            "language": "english"
-        }
-
-        r = requests.get(f"https://steamcommunity.com/market/listings/730/{search_name}/render", params=params, headers=headers)
-
+    for offset in range (0, scan_limit, 20):
+        Payload[0]['start'] = offset
+        r = scraper_session.post(f"https://steamcommunity.com/market/listings/730/{scout_code}", json=Payload, headers=headers, cookies=cookies)
         data = r.json()
-        for mkt_pos, item in enumerate(data['listinginfo'].items()):
-            # Tuple 
-            # steamitemID = 0
-            # dict containing everything else = 1
-            # dict_keys(['listingid', 'price', 'fee', 'publisher_fee_app', 'publisher_fee_percent', 'currencyid', 
-            # 'steam_fee', 'publisher_fee', 'converted_price', 'converted_fee', 'converted_currencyid', 'converted_steam_fee', 
-            # 'converted_publisher_fee', 'converted_price_per_unit', 'converted_fee_per_unit', 'converted_steam_fee_per_unit', 
-            # 'converted_publisher_fee_per_unit', 'asset'])
-            listingID = item[0]
-            #print(item[1].keys())
-            price = item[1].get('converted_publisher_fee', 0) + item[1].get('converted_price', 0) + item[1].get('converted_steam_fee', 0)
+        #print(data)
+        for mkt_pos, item in enumerate(data['listings']):
+            listingID = item['listingid']
+            #print(listingID)
+            #price = item[1].get('converted_publisher_fee', 0) + item[1].get('converted_price', 0) + item[1].get('converted_steam_fee', 0)
+            price = item['unPrice'] + item['unFee']
+            #print(price)
             if price:
                 price = float(price)
             else:
                 continue
             
-            assetID = item[1].get('asset').get('id')
-
-            # Accesses the asset_properties' 6th property for the D code.
-            asset_data = data.get('assets', {}).get('730', {}).get('2', {}).get(assetID)
-            if not asset_data:
-                print(f"Listing {listingID} is not able to be accessed, Skipping...")
-                continue
-
-            properties = asset_data.get('asset_properties')
+            #assetID = item[1].get('asset').get('id')
+            #print(item.keys())
+            asset_data = item['asset']
+            assetID = asset_data['assetid']
+            properties = asset_data['asset_properties']
+            #print(properties)
             dID = ''
             float_val = None
             for prop in properties:
@@ -145,21 +180,16 @@ def scout(skin_name: str, wear: int, max_float: float):
                 if prop.get('propertyid') == 6:
                     dID = prop.get('string_value')
                     break
-
+            #print(f"fval: {float_val} | dID: {dID}")
             if float_val < max_float:
-                availableSkins.append(Skin(listingID, price / 100, assetID, dID, float_val, mkt_pos + 100 * pg))
+                availableSkins.append(Skin(listingID, price / 100, assetID, dID, float_val, mkt_pos + 20 * pg))
             #else:
                 #print("Too High Float")
-            # print(availableSkins[i].listingID)
-            # print(availableSkins[i].price)
-            # print(availableSkins[i].assetID)
-            # print(availableSkins[i].dID)
-            # print(availableSkins[i].float)
 
-        print(f"Processed up to offset {offset + 100}...")
+        print(f"Processed up to offset {offset + 20}...")
         # Increment to next page
         pg += 1
-        time.sleep(10)
+        time.sleep(random.randint(7,15))
     # for skin in availableSkins:
         # print(skin.price)
         # print(skin.float_val)
@@ -273,31 +303,40 @@ analyzed_listings = {}
 # Dictionary mapping cooldown times with the listingID
 cooldown_listings = {}
 
-def is_float(value):
-    return value.replace('.', '', 1).isdigit()
+testing = False
+dbReadWrite = not testing
 
-user_input = input("Please input a skin's name (Gun Name | Finish Name):\n")
-skin_name = user_input.strip()
-while not user_input.isdigit():
-    user_input = input("\nPlease input a wear level 0-4:\n").strip()
+if not testing:
+    def is_float(value):
+        return value.replace('.', '', 1).isdigit()
+    user_input = input("Please input a skin's name (Gun Name | Finish Name):\n")
+    skin_name = user_input.strip()
+    while not user_input.isdigit():
+        user_input = input("\nPlease input a wear level 0-4:\n").strip()
 
-wlevel = int(user_input)
-user_input = ""
+    wlevel = int(user_input)
+    user_input = ""
 
-while not is_float(user_input):
-    user_input = input("\nPlease enter the maximum float:\n").strip()
-
-maximum_float = float(user_input)
+    while not is_float(user_input):
+        user_input = input("\nPlease enter the maximum float:\n").strip()
+    maximum_float = float(user_input)
+else:
+    skin_name = "Dual Berettas | Polished Malachite"
+    wlevel = 1
+    maximum_float = 0.085
 table_name = skin_name + wears[wlevel]
 table_name = re.sub(r'[^0-9a-zA-Z]', '', table_name)
 table_name = f'"{table_name}"'
-adbConnect.execute(f"CREATE table if NOT EXISTS {table_name} (ListingID TEXT PRIMARY KEY, Price REAL, AssetID TEXT, dID TEXT, float_val REAL, market_pos INTEGER)")
+
+if dbReadWrite:
+    adbConnect.execute(f"CREATE table if NOT EXISTS {table_name} (ListingID TEXT PRIMARY KEY, Price REAL, AssetID TEXT, dID TEXT, float_val REAL, market_pos INTEGER)")
 # Load data from past analysis.
 adbPastCur = adbConnect.execute(f"SELECT ListingID, Price, AssetID, dID, float_val, market_pos FROM {table_name}")
 past_analyzed = adbPastCur.fetchall()
 for values in past_analyzed:
     temporary_skin = Skin(*values)
     analyzed_listings[temporary_skin.listingID] = temporary_skin
+    print(f"Loaded listing {temporary_skin.listingID}")
 while True:
     try:
         scout_results = scout(skin_name, wlevel, maximum_float)
@@ -309,14 +348,17 @@ while True:
             for listingID in list(analyzed_listings.keys()):
                 if listingID not in existing_IDS:
                     print(f"Listing {listingID} no longer present")
-                    adbConnect.execute(f"DELETE FROM {table_name} WHERE ListingID = ?", (listingID,))
+                    if dbReadWrite:
+                        adbConnect.execute(f"DELETE FROM {table_name} WHERE ListingID = ?", (listingID,))
                     del analyzed_listings[listingID]
-
-            adbConnect.commit()
+                else:
+                    print(f"Listing {listingID} is still present")
+            if dbReadWrite:
+                adbConnect.commit()
             currentTime = time.time()
             # 2. Check for NEW, un-analyzed skins
             new_candidates = [s for s in scout_results if (str(s.listingID) not in analyzed_listings and (currentTime - cooldown_listings.get(str(s.listingID), 0)) > 600)]
-            #for s in new_candidates:a45
+            #for s in new_candidates:
                 #print(s.listingID)
 
             if new_candidates:
@@ -327,10 +369,12 @@ while True:
         print("Loop complete. Resting to avoid rate limits...")
         for lID in analyzed_listings:
             skin = analyzed_listings[lID]
-            adbConnect.execute(f"INSERT OR REPLACE INTO {table_name} VALUES(?, ?, ?, ?, ?, ?)", (skin.listingID, skin.price, skin.assetID, skin.dID, skin.float_val, skin.market_pos))
+            if dbReadWrite:
+                adbConnect.execute(f"INSERT OR REPLACE INTO {table_name} VALUES(?, ?, ?, ?, ?, ?)", (skin.listingID, skin.price, skin.assetID, skin.dID, skin.float_val, skin.market_pos))
             print(f"Listing ID: {skin.listingID} | Price: {skin.price} | Float Value: {skin.float_val} | Market Position: {skin.market_pos}")
-        adbConnect.commit()
-        time.sleep(30)
+        if dbReadWrite:
+            adbConnect.commit()
+        time.sleep(random.randint(45, 60))
     except Exception as e:
         print(f"Loop Failed: {e}")
-        time.sleep(60)
+        time.sleep(random.randint(60,120))
