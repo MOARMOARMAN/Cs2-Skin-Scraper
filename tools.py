@@ -88,7 +88,7 @@ cookies = {
     "timezoneName": "America/New_York"
 }
 
-def scout(skin_name: str, wear: int, max_float: float):
+def scout(skin_name: str, wear: int, max_float: float, max_price: float):
     # List of availableSkins that will be returned.
     availableSkins = []
     # Page number
@@ -139,7 +139,7 @@ def scout(skin_name: str, wear: int, max_float: float):
 
     if scout_r.status_code == 200:
         total_listings = scout_r.json().get('total_count', 0)
-        scan_limit = min(int(total_listings * 0.2), 1000)
+        scan_limit = min(int(total_listings * 0.2), 200)
         print(f"Total Listings: {total_listings}. Scanning top: {scan_limit} items")
     elif scout_r.status_code == 429:
         print("Steam rate limit reached.")
@@ -181,7 +181,7 @@ def scout(skin_name: str, wear: int, max_float: float):
                     dID = prop.get('string_value')
                     break
             #print(f"fval: {float_val} | dID: {dID}")
-            if float_val < max_float:
+            if float_val < max_float and price / 100 <= max_price:
                 availableSkins.append(Skin(listingID, price / 100, assetID, dID, float_val, mkt_pos + 20 * pg))
             #else:
                 #print("Too High Float")
@@ -189,7 +189,7 @@ def scout(skin_name: str, wear: int, max_float: float):
         print(f"Processed up to offset {offset + 20}...")
         # Increment to next page
         pg += 1
-        time.sleep(random.randint(7,15))
+        time.sleep(random.uniform(3,5))
     # for skin in availableSkins:
         # print(skin.price)
         # print(skin.float_val)
@@ -320,10 +320,14 @@ if not testing:
     while not is_float(user_input):
         user_input = input("\nPlease enter the maximum float:\n").strip()
     maximum_float = float(user_input)
+
+    user_input = input("\nPlease enter the maximum price in CAD:\n").strip()
+    maximum_price = float(user_input)
 else:
     skin_name = "Dual Berettas | Polished Malachite"
     wlevel = 1
     maximum_float = 0.085
+    maximum_price = 0.45
 table_name = skin_name + wears[wlevel]
 table_name = re.sub(r'[^0-9a-zA-Z]', '', table_name)
 table_name = f'"{table_name}"'
@@ -339,7 +343,7 @@ for values in past_analyzed:
     print(f"Loaded listing {temporary_skin.listingID}")
 while True:
     try:
-        scout_results = scout(skin_name, wlevel, maximum_float)
+        scout_results = scout(skin_name, wlevel, maximum_float, maximum_price)
         print(f"THESE ARE THE ANALYZED LISTINGS {analyzed_listings}")
         if scout_results:
             existing_IDS = [s.listingID for s in scout_results]
