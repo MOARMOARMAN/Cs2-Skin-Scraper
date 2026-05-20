@@ -10,23 +10,6 @@ import random
 
 api_key = os.getenv("GEMINI_API_KEY")
 user_agent = os.getenv("STEAM_USER_AGENT")
-adbConnect = sqlite3.connect("analyzed.db")
-scraper_session = requests.Session()
-try:
-    scraper_session.get("https://steamcommunity.com/market/")
-except Exception as e:
-    print(e)
-if not scraper_session:
-    print("Failed to create Steam market session")
-else:
-    print("Session to Steam Created.")
-session_id = scraper_session.cookies.get('sessionid', domain='steamcommunity.com')
-if not session_id:
-    session_id = os.getenv("SESSION_ID_FALLBACK") # Your known good ID
-    scraper_session.cookies.set('sessionid', session_id, domain='steamcommunity.com')
-else:
-    print("Session Connected to Steam!")
-    print(session_id)
 print(api_key)
 
 if api_key:
@@ -62,6 +45,7 @@ CURRENCY_TO_CAD = {
 headers = {
     "Host": "steamcommunity.com",
     "Origin": "https://steamcommunity.com",
+    # Just an Example, is updated later in the scouting loop
     "Referer": "https://steamcommunity.com/market/listings/730/G1802208A0A3004",
     "X-Requested-With": "XMLHttpRequest",
     "Content-Type": "application/json; charset=utf-8",
@@ -74,13 +58,8 @@ headers = {
     "sec-fetch-site": "same-origin",
     "sec-fetch-dest": "empty"
 }
-cookies = {
-    "sessionid": session_id,
-    "timezoneName": "America/New_York",
-}
-scraper_session.cookies.update(cookies)
 
-def scout(skin_name: str, wear: int, max_float: float, max_price: float):
+def scout(skin_name: str, wear: int, max_float: float, max_price: float, scraper_session: requests.Session, cookies: dict):
     # List of availableSkins that will be returned.
     availableSkins = []
     # Page number
@@ -199,37 +178,34 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float):
         # print(f"___________________{skin.market_pos}")
     return availableSkins
 
-# Dictionary containing all of the information on the skins
-# Stored as listingID for key
-# Skin Object as the value.
-analyzed_listings = {}
-
-testing = False
-dbReadWrite = not testing
-if not testing:
-    def is_float(value):
-        return value.replace('.', '', 1).isdigit()
-    user_input = input("Please input a skin's name (Gun Name | Finish Name):\n")
-    skin_name = user_input.strip()
-    while not user_input.isdigit():
-        user_input = input("\nPlease input a wear level 0-4:\n").strip()
-
-    wlevel = int(user_input)
-    user_input = ""
-
-    while not is_float(user_input):
-        user_input = input("\nPlease enter the maximum float:\n").strip()
-    maximum_float = float(user_input)
-
-    user_input = input("\nPlease enter the maximum price in CAD:\n").strip()
-    maximum_price = float(user_input)
-else:
-    skin_name = "Dual Berettas | Polished Malachite"
-    wlevel = 1
-    maximum_float = 0.083
-    maximum_price = 0.45
-
 def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: float, maximum_price: float):
+    # Dictionary containing all of the information on the skins
+    # Stored as listingID for key
+    # Skin Object as the value.
+    analyzed_listings = {}
+    adbConnect = sqlite3.connect("analyzed.db")
+    scraper_session = requests.Session()
+    try:
+        scraper_session.get("https://steamcommunity.com/market/")
+    except Exception as e:
+        print(e)
+    if not scraper_session:
+        print("Failed to create Steam market session")
+    else:
+        print("Session to Steam Created.")
+    session_id = scraper_session.cookies.get('sessionid', domain='steamcommunity.com')
+    if not session_id:
+        session_id = os.getenv("SESSION_ID_FALLBACK") # Your known good ID
+        scraper_session.cookies.set('sessionid', session_id, domain='steamcommunity.com')
+    else:
+        print("Session Connected to Steam!")
+        print(session_id)
+    cookies = {
+        "sessionid": session_id,
+        "timezoneName": "America/New_York",
+    }
+    scraper_session.cookies.update(cookies)
+
     table_name = skin_name + wears[wlevel]
     table_name = re.sub(r'[^0-9a-zA-Z]', '', table_name)
     table_name = f'"{table_name}"'
@@ -245,7 +221,7 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
         print(f"Loaded listing {temporary_skin.listingID}")
     while True:
         try:
-            scout_results = scout(skin_name, wlevel, maximum_float, maximum_price)
+            scout_results = scout(skin_name, wlevel, maximum_float, maximum_price, scraper_session, cookies)
             print(f"THESE ARE THE ANALYZED LISTINGS {analyzed_listings}")
             if scout_results:
                 existing_IDS = [s.listingID for s in scout_results]
@@ -277,4 +253,29 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
         except Exception as e:
             print(f"Loop Failed: {e}")
             time.sleep(random.randint(60,120))
+
+testing = True
+dbReadWrite = not testing
+if not testing:
+    def is_float(value):
+        return value.replace('.', '', 1).isdigit()
+    user_input = input("Please input a skin's name (Gun Name | Finish Name):\n")
+    skin_name = user_input.strip()
+    while not user_input.isdigit():
+        user_input = input("\nPlease input a wear level 0-4:\n").strip()
+
+    wlevel = int(user_input)
+    user_input = ""
+
+    while not is_float(user_input):
+        user_input = input("\nPlease enter the maximum float:\n").strip()
+    maximum_float = float(user_input)
+
+    user_input = input("\nPlease enter the maximum price in CAD:\n").strip()
+    maximum_price = float(user_input)
+else:
+    skin_name = "Dual Berettas | Polished Malachite"
+    wlevel = 1
+    maximum_float = 0.083
+    maximum_price = 0.45
 scouting_loop(testing, skin_name, wlevel, maximum_float, maximum_price)
