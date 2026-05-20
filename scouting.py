@@ -12,7 +12,14 @@ api_key = os.getenv("GEMINI_API_KEY")
 user_agent = os.getenv("STEAM_USER_AGENT")
 adbConnect = sqlite3.connect("analyzed.db")
 scraper_session = requests.Session()
-scraper_session.get("https://steamcommunity.com/market/")
+try:
+    scraper_session.get("https://steamcommunity.com/market/")
+except Exception as e:
+    print(e)
+if not scraper_session:
+    print("Failed to create Steam market session")
+else:
+    print("Session to Steam Created.")
 session_id = scraper_session.cookies.get('sessionid', domain='steamcommunity.com')
 if not session_id:
     session_id = os.getenv("SESSION_ID_FALLBACK") # Your known good ID
@@ -45,6 +52,13 @@ WEAR_RANGES = {
     "(Well-Worn)": "(0.38 - 0.45)",
     "(Battle-Scarred)": "(0.45 - 1.00)"
 }
+CURRENCY_TO_CAD = {
+    "HKD": 0.177,   # 1 Hong Kong Dollar ~ 0.18 CAD
+    "USD": 1.370,   # 1 US Dollar ~ 1.37 CAD
+    "EUR": 1.480,   # 1 Euro ~ 1.48 CAD
+    "GBP": 1.740,   # 1 British Pound ~ 1.74 CAD
+    "CAD": 1.000    # Base currency fallback
+}
 headers = {
     "Host": "steamcommunity.com",
     "Origin": "https://steamcommunity.com",
@@ -62,8 +76,9 @@ headers = {
 }
 cookies = {
     "sessionid": session_id,
-    "timezoneName": "America/New_York"
+    "timezoneName": "America/New_York",
 }
+scraper_session.cookies.update(cookies)
 
 def scout(skin_name: str, wear: int, max_float: float, max_price: float):
     # List of availableSkins that will be returned.
@@ -81,13 +96,6 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float):
     # skin_name = "AK-47 | Ice Coaled (Field-Tested)"
 
     scan_limit = 0
-    # Scout the total number of skins
-    scout_params = {
-        "start": 0,
-        "count": 1,
-        "currency": 20,
-        "language": "english"
-    }
     # Obtaining the skin's specific code.
     scout_code = requests.get(f"https://steamcommunity.com/market/listings/730/{search_name}")
     scout_code = scout_code.url.split('/')[-1]
@@ -99,6 +107,7 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float):
         "filters":{"category_730_Exterior":[f"tag_WearCategory{wear}"]}, # Set these using the inputs
         "accessoryFilters":{},
         "propertyFilters":{},
+        "price":{"eCurrency":20, "unMax":max_price * 100},
         "start": 0,
     }]
     # Steam forces 20 listings at a time.
@@ -117,7 +126,7 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float):
 
     if scout_r.status_code == 200:
         total_listings = scout_r.json().get('total_count', 0)
-        scan_limit = min(int(total_listings * 0.2), 200)
+        scan_limit = min(int(total_listings * 0.2), 140)
         print(f"Total Listings: {total_listings}. Scanning top: {scan_limit} items")
     elif scout_r.status_code == 429:
         print("Steam rate limit reached.")
@@ -126,7 +135,12 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float):
 
     for offset in range (0, scan_limit, 20):
         Payload[0]['start'] = offset
-        r = scraper_session.post(f"https://steamcommunity.com/market/listings/730/{scout_code}", json=Payload, headers=headers, cookies=cookies)
+        r = scraper_session.post(
+            f"https://steamcommunity.com/market/listings/730/{scout_code}",
+            json=Payload,
+            headers=headers,
+            cookies=cookies
+        )
         data = r.json()
         #print(data)
         for mkt_pos, item in enumerate(data['listings']):
@@ -158,9 +172,20 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float):
                 if prop.get('propertyid') == 6:
                     dID = prop.get('string_value')
                     break
-            #print(f"fval: {float_val} | dID: {dID}")
-            if float_val < max_float and price / 100 <= max_price:
-                availableSkins.append(Skin(listingID, price / 100, assetID, dID, float_val, mkt_pos + 20 * pg))
+            print(f"fval: {float_val} | price: {price / 100} | max_price: {max_price}")
+            salePriceText = item['strSubtotal']
+            print(f"SALE PRICE TEXT: {salePriceText}")
+            # Price checking handled by the filter located in the header.
+            converted_price = 0
+            if "CA" not in salePriceText:
+                print("Needs Converting")
+                if "HK" in salePriceText:
+                    converted_price = round(price * CURRENCY_TO_CAD["HKD"] / 100, 2)
+            else:
+                converted_price = price /100
+            print(f"CONVERTED PRICE IN CAD: CA${converted_price}")
+            if float_val < max_float:
+                availableSkins.append(Skin(listingID, converted_price, assetID, dID, float_val, mkt_pos + 20 * pg))
             #else:
                 #print("Too High Float")
 
@@ -179,9 +204,8 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float):
 # Skin Object as the value.
 analyzed_listings = {}
 
-testing = False
+testing = True
 dbReadWrite = not testing
-
 if not testing:
     def is_float(value):
         return value.replace('.', '', 1).isdigit()
@@ -204,48 +228,52 @@ else:
     wlevel = 1
     maximum_float = 0.083
     maximum_price = 0.45
-table_name = skin_name + wears[wlevel]
-table_name = re.sub(r'[^0-9a-zA-Z]', '', table_name)
-table_name = f'"{table_name}"'
 
-if dbReadWrite:
-    adbConnect.execute(f"CREATE table if NOT EXISTS {table_name} (ListingID TEXT PRIMARY KEY, Price REAL, AssetID TEXT, dID TEXT, float_val REAL, market_pos INTEGER)")
-# Load data from past analysis.
-adbPastCur = adbConnect.execute(f"SELECT ListingID, Price, AssetID, dID, float_val, market_pos FROM {table_name}")
-past_analyzed = adbPastCur.fetchall()
-for values in past_analyzed:
-    temporary_skin = Skin(*values)
-    analyzed_listings[temporary_skin.listingID] = temporary_skin
-    print(f"Loaded listing {temporary_skin.listingID}")
-while True:
-    try:
-        scout_results = scout(skin_name, wlevel, maximum_float, maximum_price)
-        print(f"THESE ARE THE ANALYZED LISTINGS {analyzed_listings}")
-        if scout_results:
-            existing_IDS = [s.listingID for s in scout_results]
-
-            # Update the analyzed_listings
-            for listingID in list(analyzed_listings.keys()):
-                if listingID not in existing_IDS:
-                    print(f"Listing {listingID} no longer present")
-                    if dbReadWrite:
-                        adbConnect.execute(f"DELETE FROM {table_name} WHERE ListingID = ?", (listingID,))
-                    del analyzed_listings[listingID]
-                else:
-                    print(f"Listing {listingID} is still present")
+def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: float, maximum_price: float):
+    table_name = skin_name + wears[wlevel]
+    table_name = re.sub(r'[^0-9a-zA-Z]', '', table_name)
+    table_name = f'"{table_name}"'
+    dbReadWrite = not isTesting
+    if dbReadWrite:
+        adbConnect.execute(f"CREATE table if NOT EXISTS {table_name} (ListingID TEXT PRIMARY KEY, Price REAL, AssetID TEXT, dID TEXT, float_val REAL, market_pos INTEGER)")
+    # Load data from past analysis.
+    adbPastCur = adbConnect.execute(f"SELECT ListingID, Price, AssetID, dID, float_val, market_pos FROM {table_name}")
+    past_analyzed = adbPastCur.fetchall()
+    for values in past_analyzed:
+        temporary_skin = Skin(*values)
+        analyzed_listings[temporary_skin.listingID] = temporary_skin
+        print(f"Loaded listing {temporary_skin.listingID}")
+    while True:
+        try:
+            scout_results = scout(skin_name, wlevel, maximum_float, maximum_price)
+            print(f"THESE ARE THE ANALYZED LISTINGS {analyzed_listings}")
+            if scout_results:
+                existing_IDS = [s.listingID for s in scout_results]
+                print(existing_IDS)
+                # Update the analyzed_listings
+                print("LISTING UPDATE _______________________________________________________________________")
+                for listingID in analyzed_listings:
+                    if listingID not in existing_IDS:
+                        print(f"Listing {listingID} no longer present")
+                        if dbReadWrite:
+                            adbConnect.execute(f"DELETE FROM {table_name} WHERE ListingID = ?", (listingID,))
+                        del analyzed_listings[listingID]
+                    else:
+                        print(f"Listing {listingID} is still present")
+                if dbReadWrite:
+                    adbConnect.commit()
+                for s in scout_results:
+                    analyzed_listings[s.listingID] = s
+            print("Loop complete. Resting to avoid rate limits...")
+            for index, lID in enumerate(analyzed_listings):
+                skin = analyzed_listings[lID]
+                if dbReadWrite:
+                    adbConnect.execute(f"INSERT OR REPLACE INTO {table_name} VALUES(?, ?, ?, ?, ?, ?)", (skin.listingID, skin.price, skin.assetID, skin.dID, skin.float_val, skin.market_pos))
+                print(f"{index} Listing ID: {skin.listingID} | Price: {skin.price} | Float Value: {skin.float_val} | Market Position: {skin.market_pos}")
             if dbReadWrite:
                 adbConnect.commit()
-            for s in scout_results:
-                analyzed_listings[s.listingID] = s
-        print("Loop complete. Resting to avoid rate limits...")
-        for index, lID in enumerate(analyzed_listings):
-            skin = analyzed_listings[lID]
-            if dbReadWrite:
-                adbConnect.execute(f"INSERT OR REPLACE INTO {table_name} VALUES(?, ?, ?, ?, ?, ?)", (skin.listingID, skin.price, skin.assetID, skin.dID, skin.float_val, skin.market_pos))
-            print(f"{index} Listing ID: {skin.listingID} | Price: {skin.price} | Float Value: {skin.float_val} | Market Position: {skin.market_pos}")
-        if dbReadWrite:
-            adbConnect.commit()
-        time.sleep(random.randint(45, 60))
-    except Exception as e:
-        print(f"Loop Failed: {e}")
-        time.sleep(random.randint(60,120))
+            time.sleep(random.randint(45, 60))
+        except Exception as e:
+            print(f"Loop Failed: {e}")
+            time.sleep(random.randint(60,120))
+scouting_loop(testing, skin_name, wlevel, maximum_float, maximum_price)
