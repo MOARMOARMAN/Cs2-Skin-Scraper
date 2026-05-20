@@ -174,11 +174,11 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float):
                     break
             print(f"fval: {float_val} | price: {price / 100} | max_price: {max_price}")
             salePriceText = item['strSubtotal']
-            print(f"SALE PRICE TEXT: {salePriceText}")
+            #print(f"SALE PRICE TEXT: {salePriceText}")
             # Price checking handled by the filter located in the header.
             converted_price = 0
             if "CA" not in salePriceText:
-                print("Needs Converting")
+                #print("Needs Converting")
                 if "HK" in salePriceText:
                     converted_price = round(price * CURRENCY_TO_CAD["HKD"] / 100, 2)
             else:
@@ -204,7 +204,7 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float):
 # Skin Object as the value.
 analyzed_listings = {}
 
-testing = True
+testing = False
 dbReadWrite = not testing
 if not testing:
     def is_float(value):
@@ -252,7 +252,8 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
                 print(existing_IDS)
                 # Update the analyzed_listings
                 print("LISTING UPDATE _______________________________________________________________________")
-                for listingID in analyzed_listings:
+                # Must loop over a list of the keys because the analyzed_listings dictionary is being modified during the loop
+                for listingID in list(analyzed_listings):
                     if listingID not in existing_IDS:
                         print(f"Listing {listingID} no longer present")
                         if dbReadWrite:
@@ -269,7 +270,7 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
                 skin = analyzed_listings[lID]
                 if dbReadWrite:
                     adbConnect.execute(f"INSERT OR REPLACE INTO {table_name} VALUES(?, ?, ?, ?, ?, ?)", (skin.listingID, skin.price, skin.assetID, skin.dID, skin.float_val, skin.market_pos))
-                print(f"{index} Listing ID: {skin.listingID} | Price: {skin.price} | Float Value: {skin.float_val} | Market Position: {skin.market_pos}")
+                print(f"{index + 1} Listing ID: {skin.listingID} | Price: {skin.price} | Float Value: {skin.float_val} | Market Position: {skin.market_pos}")
             if dbReadWrite:
                 adbConnect.commit()
             time.sleep(random.randint(45, 60))
