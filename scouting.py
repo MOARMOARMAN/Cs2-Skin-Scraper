@@ -105,7 +105,7 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float, scraper
 
     if scout_r.status_code == 200:
         total_listings = scout_r.json().get('total_count', 0)
-        scan_limit = min(int(total_listings * 0.2), 140)
+        scan_limit = min(int(total_listings * 0.05), 100)
         print(f"Total Listings: {total_listings}. Scanning top: {scan_limit} items")
     elif scout_r.status_code == 429:
         print("Steam rate limit reached.")
@@ -221,42 +221,55 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
         temporary_skin = Skin(*values)
         valid_listings[temporary_skin.listingID] = temporary_skin
         print(f"Loaded listing {temporary_skin.listingID}")
-    while True:
-        try:
-            scout_results = scout(skin_name, wlevel, maximum_float, maximum_price, scraper_session, cookies)
-            print(f"THESE ARE THE VALID LISTINGS {valid_listings}")
-            if scout_results:
-                existing_IDS = [s.listingID for s in scout_results]
-                print(existing_IDS)
-                # Update the valid_listings
-                print("LISTING UPDATE _______________________________________________________________________")
-                # Must loop over a list of the keys because the valid_listings dictionary is being modified during the loop
-                for listingID in list(valid_listings):
-                    if listingID not in existing_IDS:
-                        print(f"Listing {listingID} no longer present")
-                        if dbReadWrite:
-                            adbConnect.execute(f"DELETE FROM {table_name} WHERE ListingID = ?", (listingID,))
-                        del valid_listings[listingID]
-                    else:
-                        print(f"Listing {listingID} is still present")
+    try:
+        while True:
+            try:
+                scout_results = scout(skin_name, wlevel, maximum_float, maximum_price, scraper_session, cookies)
+                print(f"THESE ARE THE VALID LISTINGS {valid_listings}")
+                if scout_results:
+                    existing_IDS = [s.listingID for s in scout_results]
+                    print(existing_IDS)
+                    # Update the valid_listings
+                    print("LISTING UPDATE _______________________________________________________________________")
+                    # Must loop over a list of the keys because the valid_listings dictionary is being modified during the loop
+                    for listingID in list(valid_listings):
+                        if listingID not in existing_IDS:
+                            print(f"Listing {listingID} no longer present")
+                            if dbReadWrite:
+                                adbConnect.execute(f"DELETE FROM {table_name} WHERE ListingID = ?", (listingID,))
+                            del valid_listings[listingID]
+                        else:
+                            print(f"Listing {listingID} is still present")
+                    if dbReadWrite:
+                        adbConnect.commit()
+                    for s in scout_results:
+                        valid_listings[s.listingID] = s
+                print("Loop complete. Resting to avoid rate limits...")
+                for index, lID in enumerate(valid_listings):
+                    skin = valid_listings[lID]
+                    if dbReadWrite:
+                        adbConnect.execute(f"INSERT OR REPLACE INTO {table_name} VALUES(?, ?, ?, ?, ?, ?)", (skin.listingID, skin.price, skin.assetID, skin.dID, skin.float_val, skin.market_pos))
+                    print(f"{index + 1} Listing ID: {skin.listingID} | Price: {skin.price} | Float Value: {skin.float_val} | Market Position: {skin.market_pos}")
                 if dbReadWrite:
                     adbConnect.commit()
-                for s in scout_results:
-                    valid_listings[s.listingID] = s
-            print("Loop complete. Resting to avoid rate limits...")
-            for index, lID in enumerate(valid_listings):
-                skin = valid_listings[lID]
-                if dbReadWrite:
-                    adbConnect.execute(f"INSERT OR REPLACE INTO {table_name} VALUES(?, ?, ?, ?, ?, ?)", (skin.listingID, skin.price, skin.assetID, skin.dID, skin.float_val, skin.market_pos))
-                print(f"{index + 1} Listing ID: {skin.listingID} | Price: {skin.price} | Float Value: {skin.float_val} | Market Position: {skin.market_pos}")
-            if dbReadWrite:
-                adbConnect.commit()
-            time.sleep(random.randint(45, 60))
-        except Exception as e:
-            print(f"Loop Failed: {e}")
-            time.sleep(random.randint(60,120))
+                time.sleep(random.randint(45, 60))
+            except Exception as e:
+                print(f"Loop Failed: {e}")
+                time.sleep(random.randint(60,120))
+    except KeyboardInterrupt:
+        print("User Terminated scouting-loop, saving reads to database.")
+        adbConnect.commit()
+    except Exception as e:
+        print(f"Exception {e} resulted in a crash.")
+        adbConnect.commit()
+    
+    # This runs before the script fully closes.
+    finally:
+        adbConnect.close()
+        print("Database access terminated.")
+        
 
-testing = True
+testing = False
 dbReadWrite = not testing
 if not testing:
     def is_float(value):
