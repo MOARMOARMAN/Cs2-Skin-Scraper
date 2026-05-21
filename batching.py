@@ -9,3 +9,4 @@ adbFloorPriceCursor = adbConnect.execute(f"SELECT MIN(Price) FROM '{tracked_tabl
 floor_price = adbFloorPriceCursor.fetchone()[0]
 max_price = floor_price * (1 + overpayPercent)
 max_price = round(max_price, 2)
+print(max_price)
