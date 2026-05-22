@@ -2,5 +2,7 @@
 venv/
 __pycache__/
 *.db
+*.db-shm
+*.db-wal
 test.py
 unusedFunction.py
