@@ -1,24 +1,18 @@
+from collections import namedtuple
+
 import requests
 import sqlite3
 import time
 import re
-from google import genai
 import os
 from dotenv import load_dotenv
 import json
 import random
-
-api_key = os.getenv("GEMINI_API_KEY")
+from contextlib import closing
+# api_key = os.getenv("GEMINI_API_KEY")
 user_agent = os.getenv("STEAM_USER_AGENT")
-class Skin:
-    # (ListingID TEXT PRIMARY KEY, Price REAL, AssetID TEXT, dID TEXT, float_val REAL, market_pos INTEGER)
-    def __init__(self, listingID: str, price: float, assetID: str, dID: str, float_val: float, market_pos: int):
-        self.assetID = assetID
-        self.listingID = listingID
-        self.price = price
-        self.dID = dID
-        self.float_val = float_val
-        self.market_pos = market_pos
+
+DB_NAME = "analyzed.db"
 # Tuple of Possible Wears
 wears = ("(Factory New)", "(Minimal Wear)", "(Field-Tested)", "(Well-Worn)", "(Battle-Scarred)")
 WEAR_RANGES = {
@@ -51,18 +45,55 @@ headers = {
     "sec-fetch-site": "same-origin",
     "sec-fetch-dest": "empty"
 }
-"""
-if api_key:
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-else:
-    print("Missing Gemini API Key")
-    exit()
-"""
+# skinData = namedtuple('skinData', ['dID', 'float_val', 'price'])
+skinData = namedtuple('skinData', ['dID', 'float_val', 'price'])
+
+def write_db(skin_name: str, valid_listings: dict, db_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;") 
+        with conn:
+            print("WRITING")
+            listingData = (
+                (lID, skin_name, data.dID, data.float_val, data.price)
+                for lID, data in valid_listings.items()
+            )
+            conn.executemany(f"INSERT OR REPLACE INTO skin_listings (listing_ID, skin_name, d_ID, float_val, price) VALUES(?, ?, ?, ?, ?)", listingData)
+
+def del_missing_ID_db(skin_name: str, gone_listingIDs: list, db_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;") 
+        with conn:
+            print("DELETING")
+            print(gone_listingIDs)
+            delete_data = ((ID[0], skin_name) for ID in gone_listingIDs)
+            conn.executemany(f"DELETE FROM skin_listings WHERE listing_ID = ? AND skin_name = ?", delete_data)
+
+def load_data_db(skin_name: str, valid_listings: dict, db_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;") 
+        with conn:
+            print("LOADING")
+            try:
+                stored_skins = conn.execute(f"SELECT listing_ID, price, d_ID, float_val FROM skin_listings WHERE skin_name = ?", (skin_name, )).fetchall()
+                for skin in stored_skins:
+                    valid_listings[skin[0]] = skinData(dID=skin[2], float_val=skin[3], price=skin[1])
+            except sqlite3.OperationalError as e:
+                if "no such table" in str(e):
+                    print(f"table skin_listings doesn't exist yet")
+                else:
+                    raise      
+
+def create_table_db(db_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;") 
+        with conn:
+            conn.execute(f"CREATE TABLE IF NOT EXISTS skin_listings (listing_ID TEXT PRIMARY KEY, skin_name TEXT, d_ID TEXT, float_val REAL, price REAL)")
+            conn.execute(f"CREATE INDEX IF NOT EXISTS idx_skin_listings_skin_name ON skin_listings (skin_name)")
+
 def scout(skin_name: str, wear: int, max_float: float, max_price: float, scraper_session: requests.Session, cookies: dict):
     # List of availableSkins that will be returned.
-    availableSkins = []
-    # Page number
-    pg = 0
+    availableSkins = {}
 
     # Skin Name
     if wear < 0 or wear > 4:
@@ -104,14 +135,14 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float, scraper
 
     if scout_r.status_code == 200:
         total_listings = scout_r.json().get('total_count', 0)
-        scan_limit = min(int(total_listings * 0.05), 100)
+        scan_limit = max(min(int(total_listings * 0.1), 100), 20)
         print(f"Total Listings: {total_listings}. Scanning top: {scan_limit} items")
     elif scout_r.status_code == 429:
         print("Steam rate limit reached.")
         time.sleep(300)
         return []
 
-    for offset in range (0, scan_limit, 20):
+    for offset in range (0, scan_limit, min(scan_limit, 20)):
         Payload[0]['start'] = offset
         r = scraper_session.post(
             f"https://steamcommunity.com/market/listings/730/{scout_code}",
@@ -134,9 +165,7 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float, scraper
             
             #assetID = item[1].get('asset').get('id')
             #print(item.keys())
-            asset_data = item['asset']
-            assetID = asset_data['assetid']
-            properties = asset_data['asset_properties']
+            properties = item['asset']['asset_properties']
             #print(properties)
             dID = ''
             float_val = None
@@ -160,17 +189,16 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float, scraper
                 if "HK" in salePriceText:
                     converted_price = round(price * CURRENCY_TO_CAD["HKD"] / 100, 2)
             else:
-                converted_price = price /100
+                converted_price = price / 100
             print(f"CONVERTED PRICE IN CAD: CA${converted_price}")
             if float_val < max_float:
-                availableSkins.append(Skin(listingID, converted_price, assetID, dID, float_val, mkt_pos + 20 * pg))
+                availableSkins[listingID] = skinData(dID=dID, float_val=float_val, price=converted_price)
+                #availableSkins.append(Skin(listingID, converted_price, assetID, dID, float_val, mkt_pos + 20 * pg))
             #else:
                 #print("Too High Float")
 
         print(f"Processed up to offset {offset + 20}...")
-        # Increment to next page
-        pg += 1
-        time.sleep(random.uniform(10,20))
+        time.sleep(random.uniform(8,10))
     # for skin in availableSkins:
         # print(skin.price)
         # print(skin.float_val)
@@ -180,7 +208,7 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float, scraper
 def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: float, maximum_price: float):
     # Dictionary containing all of the information on the skins
     # Stored as listingID for key
-    # Skin Object as the value.
+    # namedtuple containing the skin data like dID, float_val, and price
     valid_listings = {}
     adbConnect = sqlite3.connect("analyzed.db", timeout=60)
     dbMode = adbConnect.execute("PRAGMA journal_mode=WAL;").fetchone()[0] # This enables Write Ahead Logging which allows multiple cursors to read from a database at once.
@@ -207,74 +235,59 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
     }
     scraper_session.cookies.update(cookies)
 
-    table_name = skin_name + wears[wlevel]
-    table_name = re.sub(r'[^0-9a-zA-Z]', '', table_name)
-    table_name = f'"{table_name}"'
+    processed_name = skin_name + wears[wlevel]
+    processed_name = re.sub(r'[^0-9a-zA-Z]', '', processed_name)
+    processed_name = f'"{processed_name}"'
     dbReadWrite = not isTesting
-    if dbReadWrite:
-        adbConnect.execute(f"CREATE table if NOT EXISTS {table_name} (ListingID TEXT PRIMARY KEY, Price REAL, AssetID TEXT, dID TEXT, float_val REAL, market_pos INTEGER)")
-    # Load data from past analysis.
-    adbPastCur = adbConnect.execute(f"SELECT ListingID, Price, AssetID, dID, float_val, market_pos FROM {table_name}")
-    past_analyzed = adbPastCur.fetchall()
-    for values in past_analyzed:
-        temporary_skin = Skin(*values)
-        valid_listings[temporary_skin.listingID] = temporary_skin
-        print(f"Loaded listing {temporary_skin.listingID}")
+    create_table_db(DB_NAME)
+    load_data_db(processed_name, valid_listings, DB_NAME)
+    
     try:
         while True:
             try:
                 scout_results = scout(skin_name, wlevel, maximum_float, maximum_price, scraper_session, cookies)
-                print(f"THESE ARE THE VALID LISTINGS {valid_listings}")
+                #print(f"THESE ARE THE SCOUT RESULTS {scout_results}")
+                #print(f"THESE ARE THE VALID LISTINGS {valid_listings}")
                 if scout_results:
-                    existing_IDS = [s.listingID for s in scout_results]
-                    print(existing_IDS)
+                    currentlyAvailableIDS = [lID for lID in scout_results]
+                    print(currentlyAvailableIDS)
                     # Update the valid_listings
                     print("LISTING UPDATE _______________________________________________________________________")
-                    # Must loop over a list of the keys because the valid_listings dictionary is being modified during the loop
-                    for listingID in list(valid_listings):
-                        if listingID not in existing_IDS:
-                            print(f"Listing {listingID} no longer present")
-                            if dbReadWrite:
-                                adbConnect.execute(f"DELETE FROM {table_name} WHERE ListingID = ?", (listingID,))
-                            del valid_listings[listingID]
-                        else:
-                            print(f"Listing {listingID} is still present")
                     if dbReadWrite:
-                        adbConnect.commit()
-                    for s in scout_results:
-                        valid_listings[s.listingID] = s
-                print("Loop complete. Resting to avoid rate limits...")
-                for index, lID in enumerate(valid_listings):
-                    skin = valid_listings[lID]
+                        toRemoveIDs = []
+                        for listingID in list(valid_listings):
+                            if listingID not in currentlyAvailableIDS:
+                                toRemoveIDs.append((listingID,))
+                                print(f"Listing {listingID} no longer present")
+                                del valid_listings[listingID]
+                            else:
+                                print(f"Listing {listingID} is still present")
+                        del_missing_ID_db(processed_name, toRemoveIDs, DB_NAME)
+                    for listingID in scout_results:
+                        valid_listings[listingID] = scout_results[listingID]
+                        print(f"Price: {valid_listings[listingID].price} | Float: {valid_listings[listingID].float_val} | dID: {valid_listings[listingID].dID}")
                     if dbReadWrite:
-                        adbConnect.execute(f"INSERT OR REPLACE INTO {table_name} VALUES(?, ?, ?, ?, ?, ?)", (skin.listingID, skin.price, skin.assetID, skin.dID, skin.float_val, skin.market_pos))
-                    print(f"{index + 1} Listing ID: {skin.listingID} | Price: {skin.price} | Float Value: {skin.float_val} | Market Position: {skin.market_pos}")
-                if dbReadWrite:
-                    adbConnect.commit()
+                        write_db(processed_name, valid_listings, DB_NAME)
+                    print("Loop complete. Resting to avoid rate limits...")
                 time.sleep(random.randint(45, 60))
             except Exception as e:
                 print(f"Loop Failed: {e}")
                 time.sleep(random.randint(60,120))
     except KeyboardInterrupt:
         print("User Terminated scouting-loop, saving reads to database.")
-        adbConnect.commit()
     except Exception as e:
         print(f"Exception {e} resulted in a crash.")
-        adbConnect.commit()
-    
     # This runs before the script fully closes.
     finally:
-        adbConnect.close()
-        print("Database access terminated.")
+        print(f"{skin_name} scraping loop ended.")
         
 if __name__ == "__main__":
     testing = False
-    dbReadWrite = not testing
-    if not testing:
+    if testing:
         def is_float(value):
             return value.replace('.', '', 1).isdigit()
         user_input = input("Please input a skin's name (Gun Name | Finish Name):\n")
-        skin_name = user_input.strip()
+        temp_name = user_input.strip()
         while not user_input.isdigit():
             user_input = input("\nPlease input a wear level 0-4:\n").strip()
 
@@ -288,8 +301,8 @@ if __name__ == "__main__":
         user_input = input("\nPlease enter the maximum price in CAD:\n").strip()
         maximum_price = float(user_input)
     else:
-        skin_name = "Dual Berettas | Polished Malachite"
+        temp_name = "Dual Berettas | Polished Malachite"
         wlevel = 1
-        maximum_float = 0.083
+        maximum_float = 0.086
         maximum_price = 0.45
-    scouting_loop(testing, skin_name, wlevel, maximum_float, maximum_price)
+    scouting_loop(testing, temp_name, wlevel, maximum_float, maximum_price)
