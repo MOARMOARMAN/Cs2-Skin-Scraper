@@ -10,16 +10,9 @@ import random
 
 api_key = os.getenv("GEMINI_API_KEY")
 user_agent = os.getenv("STEAM_USER_AGENT")
-print(api_key)
-
-if api_key:
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-else:
-    print("Missing Gemini API Key")
-    exit()
-
 class Skin:
-    def __init__(self, listingID, price, assetID, dID, float_val, market_pos):
+    # (ListingID TEXT PRIMARY KEY, Price REAL, AssetID TEXT, dID TEXT, float_val REAL, market_pos INTEGER)
+    def __init__(self, listingID: str, price: float, assetID: str, dID: str, float_val: float, market_pos: int):
         self.assetID = assetID
         self.listingID = listingID
         self.price = price
@@ -58,7 +51,13 @@ headers = {
     "sec-fetch-site": "same-origin",
     "sec-fetch-dest": "empty"
 }
-
+"""
+if api_key:
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+else:
+    print("Missing Gemini API Key")
+    exit()
+"""
 def scout(skin_name: str, wear: int, max_float: float, max_price: float, scraper_session: requests.Session, cookies: dict):
     # List of availableSkins that will be returned.
     availableSkins = []
@@ -268,29 +267,29 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
         adbConnect.close()
         print("Database access terminated.")
         
+if __name__ == "__main__":
+    testing = False
+    dbReadWrite = not testing
+    if not testing:
+        def is_float(value):
+            return value.replace('.', '', 1).isdigit()
+        user_input = input("Please input a skin's name (Gun Name | Finish Name):\n")
+        skin_name = user_input.strip()
+        while not user_input.isdigit():
+            user_input = input("\nPlease input a wear level 0-4:\n").strip()
 
-testing = False
-dbReadWrite = not testing
-if not testing:
-    def is_float(value):
-        return value.replace('.', '', 1).isdigit()
-    user_input = input("Please input a skin's name (Gun Name | Finish Name):\n")
-    skin_name = user_input.strip()
-    while not user_input.isdigit():
-        user_input = input("\nPlease input a wear level 0-4:\n").strip()
+        wlevel = int(user_input)
+        user_input = ""
 
-    wlevel = int(user_input)
-    user_input = ""
+        while not is_float(user_input):
+            user_input = input("\nPlease enter the maximum float:\n").strip()
+        maximum_float = float(user_input)
 
-    while not is_float(user_input):
-        user_input = input("\nPlease enter the maximum float:\n").strip()
-    maximum_float = float(user_input)
-
-    user_input = input("\nPlease enter the maximum price in CAD:\n").strip()
-    maximum_price = float(user_input)
-else:
-    skin_name = "Dual Berettas | Polished Malachite"
-    wlevel = 1
-    maximum_float = 0.083
-    maximum_price = 0.45
-scouting_loop(testing, skin_name, wlevel, maximum_float, maximum_price)
+        user_input = input("\nPlease enter the maximum price in CAD:\n").strip()
+        maximum_price = float(user_input)
+    else:
+        skin_name = "Dual Berettas | Polished Malachite"
+        wlevel = 1
+        maximum_float = 0.083
+        maximum_price = 0.45
+    scouting_loop(testing, skin_name, wlevel, maximum_float, maximum_price)
