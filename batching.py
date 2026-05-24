@@ -6,9 +6,10 @@ from dotenv import load_dotenv
 from contextlib import closing
 from scouting import skinData
 from google import genai
-from google.genai import types
+from google.genai import types, errors
 from pydantic import BaseModel, Field
 from typing import List
+from tenacity import retry, stop_after_attempt, wait_exponential_jitter
 
 class SkinDeal(BaseModel):
     listing_id: str = Field(description="The unique alphanumeric identifier of the specific listing row.")
@@ -37,39 +38,44 @@ def load_all_data_db(valid_skins: dict, db_name: str):
             else:
                 raise   
 
+@retry(stop=stop_after_attempt(3), wait=wait_exponential_jitter(initial=2, max=10))
 def gemini_return_top5(prompt: str):
-    client = genai.Client(api_key=api_key)
-    instructions="""
-    You are a highly analytical, deterministic Steam Market Valuation Engine for an automated CS trading bot. Your sole purpose is to analyze a provided markdown document containing statistical summaries and tabular listing data for various weapon skins, identify the absolute best financial deals, and return them in a strict JSON format.
-
-    CRITICAL EVALUATION ENGINE CONSTRAINTS:
-    1. You must select exactly the top 5 best deals across all skins provided in the context, sorted from the absolute best deal to the fifth-best deal.
-    2. A "Best Deal" is determined by a combined evaluation of Price Variance (Price Diff) and Float Variance (Float Diff):
-    - Float Difference (Primary Weight): Listings where the Float Diff is highly negative (meaning the wear value is significantly lower/cleaner than the average float for that specific skin).
-    - Price Difference (Secondary Weight): Listings where the Price Diff is highly negative (meaning the listing price is significantly BELOW the average market price for that specific skin).
-    - Exceptionally underpriced items (large negative Price Diff) take highest priority. Items with a slightly negative or neutral Price Diff but an exceptionally low float (large negative Float Diff) represent "low-float over-paying opportunities" and should fill out the remaining deals.
-
-    OPERATIONAL SAFETY PIPELINE:
-    - Do not make up, hallucinate, or extrapolate listings. Only choose IDs that explicitly exist in the provided Markdown tables.
-    - Cross-reference the "Skin Name" header under which a listing resides to ensure you populate the correct skin name for each listing entry in the output array.
-    - Treat all numerical comparisons uniformly. A negative variance is good (undervalued/cleaner), a positive variance is bad (overpriced/dirtier).
-    - Output must strictly adhere to the provided JSON Schema. Do not include markdown formatting or wrapper code like ```json ... ``` in your raw API payload response if requested to output raw JSON text, or let the SDK handle schema enforcement directly.
-    """
-    
-    response = client.models.generate_content(
-        model="gemini-3.5-flash",
-        contents=prompt,
-        config=types.GenerateContentConfig(
-        system_instruction=instructions,
-        response_mime_type="application/json",
-        response_schema=TopSkinsResponse,
-        temperature=0.1,
-    ),
-    )
-
     best_deals = []
-    for deal in response.parsed.deals:
-        best_deals.append((deal.listing_id, deal.skin_name, deal.raw_price, deal.raw_float, deal.deal_justification))
+    try:
+        client = genai.Client(api_key=api_key)
+        instructions="""
+        You are a highly analytical, deterministic Steam Market Valuation Engine for an automated CS trading bot. Your sole purpose is to analyze a provided markdown document containing statistical summaries and tabular listing data for various weapon skins, identify the absolute best financial deals, and return them in a strict JSON format.
+
+        CRITICAL EVALUATION ENGINE CONSTRAINTS:
+        1. You must select exactly the top 5 best deals across all skins provided in the context, sorted from the absolute best deal to the fifth-best deal.
+        2. A "Best Deal" is determined by a combined evaluation of Price Variance (Price Diff) and Float Variance (Float Diff):
+        - Float Difference (Primary Weight): Listings where the Float Diff is highly negative (meaning the wear value is significantly lower/cleaner than the average float for that specific skin).
+        - Price Difference (Secondary Weight): Listings where the Price Diff is highly negative (meaning the listing price is significantly BELOW the average market price for that specific skin).
+        - Exceptionally underpriced items (large negative Price Diff) take highest priority. Items with a slightly negative or neutral Price Diff but an exceptionally low float (large negative Float Diff) represent "low-float over-paying opportunities" and should fill out the remaining deals.
+
+        OPERATIONAL SAFETY PIPELINE:
+        - Do not make up, hallucinate, or extrapolate listings. Only choose IDs that explicitly exist in the provided Markdown tables.
+        - Cross-reference the "Skin Name" header under which a listing resides to ensure you populate the correct skin name for each listing entry in the output array.
+        - Treat all numerical comparisons uniformly. A negative variance is good (undervalued/cleaner), a positive variance is bad (overpriced/dirtier).
+        - Output must strictly adhere to the provided JSON Schema. Do not include markdown formatting or wrapper code like ```json ... ``` in your raw API payload response if requested to output raw JSON text, or let the SDK handle schema enforcement directly.
+        """
+        
+        response = client.models.generate_content(
+            model="gemini-3.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+            system_instruction=instructions,
+            response_mime_type="application/json",
+            response_schema=TopSkinsResponse,
+            temperature=0.1,
+        ),
+        )
+
+        for deal in response.parsed.deals:
+            best_deals.append((deal.listing_id, deal.skin_name, deal.raw_price, deal.raw_float, deal.deal_justification))
+        client.close()
+    except errors.APIError as e:
+        print(e.code)
     return best_deals
 
 def analyze_batch(db: str):
