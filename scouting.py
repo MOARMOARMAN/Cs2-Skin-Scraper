@@ -54,7 +54,7 @@ def write_db(skin_name: str, valid_listings: dict, db_name: str):
         with conn:
             print("WRITING")
             listingData = (
-                (lID, skin_name, data.dID, data.float_val, data.price)
+                (lID, skin_name.strip('"'), data.dID, data.float_val, data.price)
                 for lID, data in valid_listings.items()
             )
             conn.executemany(f"INSERT OR REPLACE INTO skin_listings (listing_ID, skin_name, d_ID, float_val, price) VALUES(?, ?, ?, ?, ?)", listingData)
@@ -71,17 +71,16 @@ def del_missing_ID_db(skin_name: str, gone_listingIDs: list, db_name: str):
 def load_data_db(skin_name: str, valid_listings: dict, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
-        with conn:
-            print("LOADING")
-            try:
-                stored_skins = conn.execute(f"SELECT listing_ID, price, d_ID, float_val FROM skin_listings WHERE skin_name = ?", (skin_name, )).fetchall()
-                for skin in stored_skins:
-                    valid_listings[skin[0]] = skinData(dID=skin[2], float_val=skin[3], price=skin[1])
-            except sqlite3.OperationalError as e:
-                if "no such table" in str(e):
-                    print(f"table skin_listings doesn't exist yet")
-                else:
-                    raise      
+        print("LOADING")
+        try:
+            stored_skins = conn.execute(f"SELECT listing_ID, price, d_ID, float_val FROM skin_listings WHERE skin_name = ?", (skin_name, )).fetchall()
+            for skin in stored_skins:
+                valid_listings[skin[0]] = skinData(dID=skin[2], float_val=skin[3], price=skin[1])
+        except sqlite3.OperationalError as e:
+            if "no such table" in str(e):
+                print(f"table skin_listings doesn't exist yet")
+            else:
+                raise
 
 def create_table_db(db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
@@ -283,7 +282,7 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
         
 if __name__ == "__main__":
     testing = False
-    if testing:
+    if not testing:
         def is_float(value):
             return value.replace('.', '', 1).isdigit()
         user_input = input("Please input a skin's name (Gun Name | Finish Name):\n")
