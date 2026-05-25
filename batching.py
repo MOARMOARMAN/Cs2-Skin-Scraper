@@ -9,7 +9,7 @@ from google import genai
 from google.genai import types, errors
 from pydantic import BaseModel, Field
 from typing import List
-from tenacity import retry, stop_after_attempt, wait_exponential_jitter
+from tenacity import retry, stop_after_attempt, wait_exponential_jitter, retry_if_exception_type
 
 class SkinDeal(BaseModel):
     listing_id: str = Field(description="The unique alphanumeric identifier of the specific listing row.")
@@ -38,7 +38,7 @@ def load_all_data_db(valid_skins: dict, db_name: str):
             else:
                 raise   
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential_jitter(initial=2, max=10))
+@retry(retry=retry_if_exception_type(errors.APIError), wait=wait_exponential_jitter(initial=2, max=10))
 def gemini_return_top5(prompt: str):
     best_deals = []
     try:
