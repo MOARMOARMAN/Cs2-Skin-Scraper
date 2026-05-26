@@ -5,4 +5,4 @@ __pycache__/
 *.db-shm
 *.db-wal
 test.py
-unusedFunction.py
+unusedFunctions.py
