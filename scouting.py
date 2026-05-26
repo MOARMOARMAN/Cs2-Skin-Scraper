@@ -90,17 +90,12 @@ def create_table_db(db_name: str):
             conn.execute(f"CREATE TABLE IF NOT EXISTS skin_listings (listing_ID TEXT PRIMARY KEY, skin_name TEXT, d_ID TEXT, float_val REAL, price REAL)")
             conn.execute(f"CREATE INDEX IF NOT EXISTS idx_skin_listings_skin_name ON skin_listings (skin_name)")
 
-def scout(skin_name: str, wear: int, max_float: float, max_price: float, scraper_session: requests.Session, cookies: dict):
+def scout(search_name: str, wear: int, max_float: float, max_price: float, scraper_session: requests.Session, cookies: dict):
     # List of availableSkins that will be returned.
     availableSkins = {}
 
     # Skin Name
-    if wear < 0 or wear > 4:
-        print("invalid wear")
-        return
-    skin_wear = wears[wear]
-    search_name = f"{skin_name} {skin_wear}"
-    print(search_name)
+    print(f"searching {search_name}")
     # skin_name = "AK-47 | Ice Coaled (Field-Tested)"
 
     scan_limit = 0
@@ -121,8 +116,8 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float, scraper
     # Steam forces 20 listings at a time.
     headers["Referer"] = f"https://steamcommunity.com/market/listings/730/{scout_code}"
     scout_r = scraper_session.post(f"https://steamcommunity.com/market/listings/730/{scout_code}", json=Payload, headers=headers, cookies=cookies)
-    print(scout_r.url)
-    print(scout_r.status_code)
+    #print(scout_r.url)
+    #print(scout_r.status_code)
     #print(f"JSON FILE IS: {scout_r.json()}")
     #data = scout_r.json().get('listings', [])
     #print(f"num listings: {len(data)}")
@@ -130,12 +125,12 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float, scraper
     #print(f"WEBSITE OUTPUT: {scout_r.text}")
     
     response_text = scout_r.text
-    print(f"length of response_text: {len(response_text)}")
+    #print(f"length of response_text: {len(response_text)}")
 
     if scout_r.status_code == 200:
         total_listings = scout_r.json().get('total_count', 0)
         scan_limit = max(min(int(total_listings * 0.1), 100), 20)
-        print(f"Total Listings: {total_listings}. Scanning top: {scan_limit} items")
+        print(f"Total Listings: {total_listings}. Scanning top: {scan_limit} items for {search_name}")
     elif scout_r.status_code == 429:
         print("Steam rate limit reached.")
         time.sleep(300)
@@ -178,7 +173,7 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float, scraper
                 if prop.get('propertyid') == 6:
                     dID = prop.get('string_value')
                     break
-            print(f"fval: {float_val} | price: {price / 100} | max_price: {max_price}")
+            #print(f"fval: {float_val} | price: {price / 100} | max_price: {max_price}")
             salePriceText = item['strSubtotal']
             #print(f"SALE PRICE TEXT: {salePriceText}")
             # Price checking handled by the filter located in the header.
@@ -189,7 +184,7 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float, scraper
                     converted_price = round(price * CURRENCY_TO_CAD["HKD"] / 100, 2)
             else:
                 converted_price = price / 100
-            print(f"CONVERTED PRICE IN CAD: CA${converted_price}")
+            #print(f"CONVERTED PRICE IN CAD: CA${converted_price}")
             if float_val < max_float:
                 availableSkins[listingID] = skinData(dID=dID, float_val=float_val, price=converted_price)
                 #availableSkins.append(Skin(listingID, converted_price, assetID, dID, float_val, mkt_pos + 20 * pg))
@@ -197,7 +192,7 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float, scraper
                 #print("Too High Float")
 
         print(f"Processed up to offset {offset + 20}...")
-        time.sleep(random.uniform(8,10))
+        time.sleep(random.uniform(12,15))
     # for skin in availableSkins:
         # print(skin.price)
         # print(skin.float_val)
@@ -205,13 +200,11 @@ def scout(skin_name: str, wear: int, max_float: float, max_price: float, scraper
     return availableSkins
 
 def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: float, maximum_price: float):
+    time.sleep(random.randint(3,50))
     # Dictionary containing all of the information on the skins
     # Stored as listingID for key
     # namedtuple containing the skin data like dID, float_val, and price
     valid_listings = {}
-    adbConnect = sqlite3.connect("analyzed.db", timeout=60)
-    dbMode = adbConnect.execute("PRAGMA journal_mode=WAL;").fetchone()[0] # This enables Write Ahead Logging which allows multiple cursors to read from a database at once.
-    print(dbMode)
     scraper_session = requests.Session()
     try:
         scraper_session.get("https://steamcommunity.com/market/")
@@ -226,52 +219,55 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
         session_id = os.getenv("SESSION_ID_FALLBACK") # Your known good ID
         scraper_session.cookies.set('sessionid', session_id, domain='steamcommunity.com')
     else:
-        print("Session Connected to Steam!")
-        print(session_id)
+        print(f"Session Connected to Steam for {skin_name}!")
+        #print(session_id)
     cookies = {
         "sessionid": session_id,
         "timezoneName": "America/New_York",
     }
     scraper_session.cookies.update(cookies)
-
-    processed_name = skin_name + wears[wlevel]
-    processed_name = re.sub(r'[^0-9a-zA-Z]', '', processed_name)
-    processed_name = f'"{processed_name}"'
+    if wlevel < 0 or wlevel > 4:
+        print("invalid wear")
+        exit()
+    skin_wear = wears[wlevel]
+    search_name = f"{skin_name} {skin_wear}"
+    # processed_name = skin_name + wears[wlevel]
+    # processed_name = re.sub(r'[^0-9a-zA-Z]', '', processed_name)
+    # processed_name = f'"{processed_name}"'
     dbReadWrite = not isTesting
-    create_table_db(DB_NAME)
-    load_data_db(processed_name, valid_listings, DB_NAME)
+    load_data_db(search_name, valid_listings, DB_NAME)
     
     try:
         while True:
             try:
-                scout_results = scout(skin_name, wlevel, maximum_float, maximum_price, scraper_session, cookies)
+                scout_results = scout(search_name, wlevel, maximum_float, maximum_price, scraper_session, cookies)
                 #print(f"THESE ARE THE SCOUT RESULTS {scout_results}")
                 #print(f"THESE ARE THE VALID LISTINGS {valid_listings}")
                 if scout_results:
                     currentlyAvailableIDS = [lID for lID in scout_results]
-                    print(currentlyAvailableIDS)
+                    #print(currentlyAvailableIDS)
                     # Update the valid_listings
-                    print("LISTING UPDATE _______________________________________________________________________")
+                    #print("LISTING UPDATE _______________________________________________________________________")
                     if dbReadWrite:
                         toRemoveIDs = []
                         for listingID in list(valid_listings):
                             if listingID not in currentlyAvailableIDS:
                                 toRemoveIDs.append((listingID,))
-                                print(f"Listing {listingID} no longer present")
+                                #print(f"Listing {listingID} no longer present")
                                 del valid_listings[listingID]
-                            else:
-                                print(f"Listing {listingID} is still present")
-                        del_missing_ID_db(processed_name, toRemoveIDs, DB_NAME)
+                            #else:
+                                #print(f"Listing {listingID} is still present")
+                        del_missing_ID_db(search_name, toRemoveIDs, DB_NAME)
                     for listingID in scout_results:
                         valid_listings[listingID] = scout_results[listingID]
-                        print(f"Price: {valid_listings[listingID].price} | Float: {valid_listings[listingID].float_val} | dID: {valid_listings[listingID].dID}")
+                        #print(f"Price: {valid_listings[listingID].price} | Float: {valid_listings[listingID].float_val} | dID: {valid_listings[listingID].dID}")
                     if dbReadWrite:
-                        write_db(processed_name, valid_listings, DB_NAME)
-                    print("Loop complete. Resting to avoid rate limits...")
-                time.sleep(random.randint(45, 60))
+                        write_db(search_name, valid_listings, DB_NAME)
+                    print(f"{skin_name} Loop complete. Resting to avoid rate limits...")
+                time.sleep(random.randint(120, 180))
             except Exception as e:
                 print(f"Loop Failed: {e}")
-                time.sleep(random.randint(60,120))
+                time.sleep(random.randint(120,180))
     except KeyboardInterrupt:
         print("User Terminated scouting-loop, saving reads to database.")
     except Exception as e:
