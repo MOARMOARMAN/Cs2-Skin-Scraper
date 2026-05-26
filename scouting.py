@@ -182,6 +182,8 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
                 #print("Needs Converting")
                 if "HK" in salePriceText:
                     converted_price = round(price * CURRENCY_TO_CAD["HKD"] / 100, 2)
+                else:
+                    converted_price = price
             else:
                 converted_price = price / 100
             #print(f"CONVERTED PRICE IN CAD: CA${converted_price}")
