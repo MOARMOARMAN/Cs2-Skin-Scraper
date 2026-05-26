@@ -63,17 +63,18 @@ def gemini_return_top5(prompt: str):
         - Output must strictly adhere to the provided JSON Schema. Do not include markdown formatting or wrapper code like ```json ... ``` in your raw API payload response if requested to output raw JSON text, or let the SDK handle schema enforcement directly.
         """
         
+        print(os.getenv("GEMINI_MODEL"))
         response = client.models.generate_content(
-            model="gemini-3.5-flash",
+            model=os.getenv("GEMINI_MODEL"),
             contents=prompt,
             config=types.GenerateContentConfig(
-            system_instruction=instructions,
-            response_mime_type="application/json",
-            response_schema=TopSkinsResponse,
-            temperature=0.1,
+                system_instruction=instructions,
+                response_mime_type="application/json",
+                response_schema=TopSkinsResponse,
+                temperature=0.1,
             ),
         )
-        print(response.text)
+        #print(response.text)
         for deal in response.parsed.deals:
             best_deals.append((deal.listing_id, deal.skin_name, deal.raw_price, deal.raw_float, deal.deal_justification))
         client.close()
@@ -101,8 +102,8 @@ def analyze_batch(db: str):
             float_diff = data.float_val - average_float
             price_diff = data.price - average_price
             prompt += f"| {id} | {price_diff:.2f} | {float_diff:.6f} | {data.price:.2f} | {data.float_val:.6f} |\n"
-    print("__________________________________________________________________________________________________________")
-    print(prompt)
+    #print("__________________________________________________________________________________________________________")
+    #print(prompt)
     if prompt:
         return gemini_return_top5(prompt)
     else:
@@ -117,7 +118,7 @@ def analyze_batch_loop(db: str):
         except Exception as e:
             print(f"Gemini analysis cycle failed: {e}")
         finally:
-            time.sleep(600)
+            time.sleep(1800)
 
 if __name__ == "__main__":
     DB_NAME = "analyzed.db"
