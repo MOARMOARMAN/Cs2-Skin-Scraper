@@ -7,13 +7,14 @@ from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv
 if __name__ == "__main__":
     DB_NAME = "analyzed.db"
+    load_dotenv()
     create_table_db(DB_NAME)
     # List of skins
     # skins are represented by an array [name, max_price, max_float]
-    skins = [["AK-47 | Ice Coaled", 22, 0.083], ["Dual Berettas | Polished Malachite", 0.45, 0.085], ["SG 553 | Basket Halftone", 0.5, 0.055]]
+    skins = [["AK-47 | Ice Coaled", 20, 0.083], ["Dual Berettas | Polished Malachite", 0.5, 0.085], ["SG 553 | Basket Halftone", 0.55, 0.055]]
     with ThreadPoolExecutor(max_workers=len(skins) + 1) as executor:
         executor.submit(analyze_batch_loop, DB_NAME)
-        
+
         for skin in skins:
             float_max = skin[2]
             wlevel = 0

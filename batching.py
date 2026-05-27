@@ -45,7 +45,6 @@ def gemini_return_top5(prompt: str):
     api_key = os.getenv("GEMINI_API_KEY")
     print(api_key)
     try:
-        client = genai.Client(api_key=api_key)
         instructions="""
         You are a highly analytical, deterministic Steam Market Valuation Engine for an automated CS trading bot. Your sole purpose is to analyze a provided markdown document containing statistical summaries and tabular listing data for various weapon skins, identify the absolute best financial deals, and return them in a strict JSON format.
 
@@ -62,26 +61,30 @@ def gemini_return_top5(prompt: str):
         - Treat all numerical comparisons uniformly. A negative variance is good (undervalued/cleaner), a positive variance is bad (overpriced/dirtier).
         - Output must strictly adhere to the provided JSON Schema. Do not include markdown formatting or wrapper code like ```json ... ``` in your raw API payload response if requested to output raw JSON text, or let the SDK handle schema enforcement directly.
         """
+        with genai.Client(api_key=api_key) as client:
+            response = client.models.generate_content(
+                model=os.getenv("GEMINI_MODEL"),
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=instructions,
+                    response_mime_type="application/json",
+                    response_schema=TopSkinsResponse,
+                    temperature=0.1,
+                ),
+            )
+        print("Worker Thread: Response received successfully from Gemini.")
         
-        print(os.getenv("GEMINI_MODEL"))
-        response = client.models.generate_content(
-            model=os.getenv("GEMINI_MODEL"),
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=instructions,
-                response_mime_type="application/json",
-                response_schema=TopSkinsResponse,
-                temperature=0.1,
-            ),
-        )
-        #print(response.text)
-        for deal in response.parsed.deals:
-            best_deals.append((deal.listing_id, deal.skin_name, deal.raw_price, deal.raw_float, deal.deal_justification))
-        client.close()
+        if response.parsed and hasattr(response.parsed, 'deals'):
+            # print(response.text)
+            for deal in response.parsed.deals:
+                best_deals.append((deal.listing_id, deal.skin_name, deal.raw_price, deal.raw_float, deal.deal_justification))
+        else:
+            print("Worker Thread: API evaluated but response parsing failed structural criteria.")      
+    except errors.APIError as api_err:
+        print(f"Gemini Endpoint API Error: {api_err}")
     except Exception as e:
-        print(f"gemini error: {e}")
+        print(f"Critical Internal Thread Exception during Generation: {e}")
     return best_deals
-
 def analyze_batch(db: str):
     valid_skins = {}
     load_all_data_db(valid_skins, db)
@@ -105,7 +108,8 @@ def analyze_batch(db: str):
     #print("__________________________________________________________________________________________________________")
     #print(prompt)
     if prompt:
-        return gemini_return_top5(prompt)
+        result = gemini_return_top5(prompt)
+        return result
     else:
         return []
     
@@ -114,7 +118,12 @@ def analyze_batch_loop(db: str):
     print("Starting analyze batch loop")
     while True:
         try:
-            analyze_batch(db)
+            best_5 = analyze_batch(db)
+            print("______________________________________________________________________________________________________\n")
+            for listing in best_5:
+                print(f"Skin Name: {listing[1]} | Float: {listing[2]} | Price: {listing[3]} | ID: {listing[0]} |\n")
+                print(f"    ---> Reasoning: {listing[4]}\n")
+            print("______________________________________________________________________________________________________")
         except Exception as e:
             print(f"Gemini analysis cycle failed: {e}")
         finally:
@@ -122,4 +131,5 @@ def analyze_batch_loop(db: str):
 
 if __name__ == "__main__":
     DB_NAME = "analyzed.db"
-    print(analyze_batch(DB_NAME))
+    load_dotenv()
+    print(analyze_batch_loop(DB_NAME))
