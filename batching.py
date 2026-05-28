@@ -121,7 +121,7 @@ def analyze_batch_loop(db: str):
             best_5 = analyze_batch(db)
             print("______________________________________________________________________________________________________\n")
             for listing in best_5:
-                print(f"Skin Name: {listing[1]} | Float: {listing[2]} | Price: {listing[3]} | ID: {listing[0]} |\n")
+                print(f"Skin Name: {listing[1]} | Float: {listing[3]} | Price: {listing[2]} | ID: {listing[0]} |\n")
                 print(f"    ---> Reasoning: {listing[4]}\n")
             print("______________________________________________________________________________________________________")
         except Exception as e:
