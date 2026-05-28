@@ -10,10 +10,50 @@ from dotenv import load_dotenv
 import json
 import random
 from contextlib import closing
+from tenacity import retry, stop_after_attempt, wait_exponential_jitter, retry_if_exception_type
+
 # api_key = os.getenv("GEMINI_API_KEY")
 user_agent = os.getenv("STEAM_USER_AGENT")
 
 logger = logging.getLogger(__name__)
+
+# Helper to retry transient network errors on POST requests
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential_jitter(initial=1, max=10),
+    retry=retry_if_exception_type(requests.exceptions.RequestException),
+)
+def post_with_retry(session: requests.Session, url: str, json_payload: dict, headers: dict, cookies: dict, timeout: int = 15):
+    """POST with retries for transient network errors.
+
+    Raises the last requests exception when retries are exhausted.
+    """
+    resp = session.post(url, json=json_payload, headers=headers, cookies=cookies, timeout=timeout)
+    # If server replies with 5xx or 429, raise to trigger retry
+    if resp.status_code == 429 or resp.status_code >= 500:
+        logger.warning(f"POST to {url} returned {resp.status_code}; raising to retry")
+        resp.raise_for_status()
+    return resp
+
+
+# Helper to retry transient network errors on GET requests
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential_jitter(initial=1, max=10),
+    retry=retry_if_exception_type(requests.exceptions.RequestException),
+)
+def get_with_retry(session: requests.Session | None, url: str, headers: dict | None = None, timeout: int = 10):
+    """GET with retries for transient network errors.
+
+    If `session` is provided it will be used, otherwise `requests` module is used.
+    Raises the last requests exception when retries are exhausted.
+    """
+    sess = session if session is not None else requests
+    resp = sess.get(url, headers=headers, timeout=timeout)
+    if resp.status_code == 429 or resp.status_code >= 500:
+        logger.warning(f"GET to {url} returned {resp.status_code}; raising to retry")
+        resp.raise_for_status()
+    return resp
 
 DB_NAME = "analyzed.db"
 # Tuple of Possible Wears
@@ -103,8 +143,12 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
 
     scan_limit = 0
     # Obtaining the skin's specific code.
-    scout_code = requests.get(f"https://steamcommunity.com/market/listings/730/{search_name}")
-    scout_code = scout_code.url.split('/')[-1]
+    try:
+        scout_code = requests.get(f"https://steamcommunity.com/market/listings/730/{search_name}")
+        scout_code = scout_code.url.split('/')[-1]
+    except Exception as e:
+        logger.error(f"Error occurred while fetching scout code for {search_name}: {e}")
+        return []
     #print(scout_code.text)
     Payload = [{
         "appid":730,
@@ -118,7 +162,11 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
     }]
     # Steam forces 20 listings at a time.
     headers["Referer"] = f"https://steamcommunity.com/market/listings/730/{scout_code}"
-    scout_r = scraper_session.post(f"https://steamcommunity.com/market/listings/730/{scout_code}", json=Payload, headers=headers, cookies=cookies)
+    try:
+        scout_r = post_with_retry(scraper_session, f"https://steamcommunity.com/market/listings/730/{scout_code}", Payload, headers, cookies) # type: ignore
+    except Exception as e:
+        logger.error(f"Initial scout request failed for {search_name}: {e}")
+        return {}
     #print(scout_r.url)
     #print(scout_r.status_code)
     #print(f"JSON FILE IS: {scout_r.json()}")
@@ -144,12 +192,19 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
 
     for offset in range (0, scan_limit, min(scan_limit, 20)):
         Payload[0]['start'] = offset
-        r = scraper_session.post(
-            f"https://steamcommunity.com/market/listings/730/{scout_code}",
-            json=Payload,
-            headers=headers,
-            cookies=cookies
-        )
+        try:
+            r = post_with_retry(
+                scraper_session,
+                f"https://steamcommunity.com/market/listings/730/{scout_code}",
+                Payload, # type: ignore
+                headers,
+                cookies,
+            )
+        except Exception as e:
+            logger.error(f"Request failed at offset {offset} for {search_name}: {e}")
+            # Skip this batch and continue the loop
+            time.sleep(random.uniform(5, 10))
+            continue
         data = r.json()
         #print(data)
         for mkt_pos, item in enumerate(data['listings']):
@@ -188,8 +243,10 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
                 #print("Needs Converting")
                 if "HK" in salePriceText:
                     converted_price = round(price * CURRENCY_TO_CAD["HKD"] / 100, 2)
+                elif "USD" in salePriceText:
+                    converted_price = round(price * CURRENCY_TO_CAD["USD"] / 100, 2)
                 else:
-                    converted_price = price
+                    converted_price = price / 100
             else:
                 converted_price = price / 100
             #print(f"CONVERTED PRICE IN CAD: CA${converted_price}")
@@ -208,7 +265,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
     return availableSkins
 
 def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: float, maximum_price: float):
-    time.sleep(random.randint(3,50))
+    # time.sleep(random.randint(3,50))
     # Dictionary containing all of the information on the skins
     # Stored as listingID for key
     # namedtuple containing the skin data like dID, float_val, and price
@@ -290,7 +347,7 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
         logger.info(f"{skin_name} scraping loop ended.")
         
 if __name__ == "__main__":
-    testing = False
+    testing = True
     if not testing:
         def is_float(value):
             return value.replace('.', '', 1).isdigit()
@@ -313,4 +370,4 @@ if __name__ == "__main__":
         wlevel = 1
         maximum_float = 0.086
         maximum_price = 0.45
-    scouting_loop(testing, temp_name, wlevel, maximum_float, maximum_price)
+    scouting_loop(False, temp_name, wlevel, maximum_float, maximum_price)
