@@ -24,7 +24,7 @@ if __name__ == "__main__":
     logger.info(f"Database initialized: {DB_NAME}")
     # List of skins
     # skins are represented by an array [name, max_price, max_float]
-    skins = [["AK-47 | Ice Coaled", 20, 0.083], ["Dual Berettas | Polished Malachite", 0.5, 0.085], ["SG 553 | Basket Halftone", 0.55, 0.055]]
+    skins = [["AK-47 | Ice Coaled", 20, 0.083], ["Dual Berettas | Polished Malachite", 0.5, 0.085], ["SG 553 | Basket Halftone", 0.6, 0.06]]
     logger.info(f"Monitoring {len(skins)} skins with {len(skins) + 1} worker threads")
     with ThreadPoolExecutor(max_workers=len(skins) + 1) as executor:
         executor.submit(analyze_batch_loop, DB_NAME)
