@@ -30,9 +30,12 @@ def post_with_retry(session: requests.Session, url: str, json_payload: dict, hea
     """
     resp = session.post(url, json=json_payload, headers=headers, cookies=cookies, timeout=timeout)
     # If server replies with 5xx or 429, raise to trigger retry
-    if resp.status_code == 429 or resp.status_code >= 500:
+    if resp.status_code == 429 or resp.status_code > 500:
         logger.warning(f"POST to {url} returned {resp.status_code}; raising to retry")
         resp.raise_for_status()
+    elif resp.status_code == 500:
+        logger.info(f"POST to {url} returned 500; treating as empty response")
+        resp = requests.Response()
     return resp
 
 
@@ -50,9 +53,12 @@ def get_with_retry(session: requests.Session | None, url: str, headers: dict | N
     """
     sess = session if session is not None else requests
     resp = sess.get(url, headers=headers, timeout=timeout)
-    if resp.status_code == 429 or resp.status_code >= 500:
+    if resp.status_code == 429 or resp.status_code > 500:
         logger.warning(f"GET to {url} returned {resp.status_code}; raising to retry")
         resp.raise_for_status()
+    elif resp.status_code == 500:
+        logger.info(f"GET to {url} returned 500; treating as empty response")
+        resp = requests.Response()
     return resp
 
 DB_NAME = "analyzed.db"
@@ -186,6 +192,8 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
         logger.warning("Steam rate limit reached. Sleeping 300 seconds...")
         time.sleep(300)
         return []
+    elif scout_r.status_code == 500:
+        logger.info(f"No listings found for {search_name} under this float value {max_float} and price {max_price}.")
     else:
         logger.error(f"Unexpected status code {scout_r.status_code} for {search_name}")
         return []
@@ -207,6 +215,8 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
             continue
         data = r.json()
         #print(data)
+        if not data['listings']:
+            continue
         for mkt_pos, item in enumerate(data['listings']):
             listingID = item['listingid']
             #print(listingID)
@@ -265,7 +275,8 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
     return availableSkins
 
 def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: float, maximum_price: float):
-    # time.sleep(random.randint(3,50))
+    
+    #time.sleep(random.randint(3,50))
     # Dictionary containing all of the information on the skins
     # Stored as listingID for key
     # namedtuple containing the skin data like dID, float_val, and price
