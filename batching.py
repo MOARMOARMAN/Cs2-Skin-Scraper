@@ -2,6 +2,7 @@ import sqlite3
 import time
 import random
 import os
+import logging
 from dotenv import load_dotenv
 from contextlib import closing
 from scouting import skinData
@@ -10,6 +11,8 @@ from google.genai import types, errors
 from pydantic import BaseModel, Field
 from typing import List
 from tenacity import retry, stop_after_attempt, wait_exponential_jitter, retry_if_exception_type
+
+logger = logging.getLogger(__name__)
 
 class SkinDeal(BaseModel):
     listing_id: str = Field(description="The unique alphanumeric identifier of the specific listing row.")
@@ -24,26 +27,28 @@ class TopSkinsResponse(BaseModel):
 def load_all_data_db(valid_skins: dict, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
-        print("LOADING")
         try:
             stored_skins = conn.execute(f"SELECT skin_name, listing_ID, price, d_ID, float_val FROM skin_listings").fetchall()
+            logger.debug(f"Loaded {len(stored_skins)} total listings from database")
             for skin in stored_skins:
-                #print(f"{skin}")
                 if skin[0] not in valid_skins:
                     valid_skins[skin[0]] = {}
                 valid_skins[skin[0]][skin[1]] = skinData(dID=skin[3], float_val=skin[4], price=skin[2])
         except sqlite3.OperationalError as e:
             if "no such table" in str(e):
-                print(f"table skin_listings doesn't exist yet")
+                logger.warning(f"Table skin_listings doesn't exist yet")
             else:
+                logger.error(f"Database error: {e}")
                 raise   
 
 @retry(retry=retry_if_exception_type(errors.APIError), wait=wait_exponential_jitter(initial=5, max=200))
 def gemini_return_top5(prompt: str):
     best_deals = []
-    print("gemini")
+    logger.debug("Sending request to Gemini API")
     api_key = os.getenv("GEMINI_API_KEY")
-    print(api_key)
+    if not api_key:
+        logger.error("GEMINI_API_KEY not found in environment variables")
+        return best_deals
     try:
         instructions="""
         You are a highly analytical, deterministic Steam Market Valuation Engine for an automated CS trading bot. Your sole purpose is to analyze a provided markdown document containing statistical summaries and tabular listing data for various weapon skins, identify the absolute best financial deals, and return them in a strict JSON format.
@@ -63,7 +68,7 @@ def gemini_return_top5(prompt: str):
         """
         with genai.Client(api_key=api_key) as client:
             response = client.models.generate_content(
-                model=os.getenv("GEMINI_MODEL"),
+                model=os.getenv("GEMINI_MODEL"), # type: ignore
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=instructions,
@@ -75,15 +80,15 @@ def gemini_return_top5(prompt: str):
         print("Worker Thread: Response received successfully from Gemini.")
         
         if response.parsed and hasattr(response.parsed, 'deals'):
-            # print(response.text)
-            for deal in response.parsed.deals:
+            logger.debug(f"Parsed {len(response.parsed.deals)} deals from Gemini response") # type: ignore
+            for deal in response.parsed.deals: # type: ignore
                 best_deals.append((deal.listing_id, deal.skin_name, deal.raw_price, deal.raw_float, deal.deal_justification))
         else:
-            print("Worker Thread: API evaluated but response parsing failed structural criteria.")      
+            logger.warning("Gemini API evaluated but response parsing failed structural criteria")      
     except errors.APIError as api_err:
-        print(f"Gemini Endpoint API Error: {api_err}")
+        logger.error(f"Gemini Endpoint API Error: {api_err}")
     except Exception as e:
-        print(f"Critical Internal Thread Exception during Generation: {e}")
+        logger.error(f"Critical exception during Gemini generation: {e}")
     return best_deals
 def analyze_batch(db: str):
     valid_skins = {}
@@ -105,28 +110,28 @@ def analyze_batch(db: str):
             float_diff = data.float_val - average_float
             price_diff = data.price - average_price
             prompt += f"| {id} | {price_diff:.2f} | {float_diff:.6f} | {data.price:.2f} | {data.float_val:.6f} |\n"
-    #print("__________________________________________________________________________________________________________")
-    #print(prompt)
     if prompt:
+        logger.info(f"Analyzing {len(valid_skins)} skins")
         result = gemini_return_top5(prompt)
         return result
     else:
+        logger.warning("No data available for analysis")
         return []
     
 def analyze_batch_loop(db: str):
     time.sleep(10)
-    print("Starting analyze batch loop")
+    logger.info("Starting analyze batch loop")
     while True:
         try:
             best_5 = analyze_batch(db)
-            print("______________________________________________________________________________________________________\n")
+            logger.info(f"Found {len(best_5)} top deals")
             for listing in best_5:
-                print(f"Skin Name: {listing[1]} | Float: {listing[3]} | Price: {listing[2]} | ID: {listing[0]} |\n")
-                print(f"    ---> Reasoning: {listing[4]}\n")
-            print("______________________________________________________________________________________________________")
+                logger.info(f"DEAL: {listing[1]} | Float: {listing[3]:.6f} | Price: ${listing[2]:.2f} | ID: {listing[0]}")
+                logger.info(f"      Reasoning: {listing[4]}")
         except Exception as e:
-            print(f"Gemini analysis cycle failed: {e}")
+            logger.error(f"Gemini analysis cycle failed: {e}")
         finally:
+            logger.debug("Analysis cycle complete, sleeping 30 minutes")
             time.sleep(1800)
 
 if __name__ == "__main__":

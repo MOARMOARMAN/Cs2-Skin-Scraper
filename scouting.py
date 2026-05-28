@@ -1,4 +1,5 @@
 from collections import namedtuple
+import logging
 
 import requests
 import sqlite3
@@ -11,6 +12,8 @@ import random
 from contextlib import closing
 # api_key = os.getenv("GEMINI_API_KEY")
 user_agent = os.getenv("STEAM_USER_AGENT")
+
+logger = logging.getLogger(__name__)
 
 DB_NAME = "analyzed.db"
 # Tuple of Possible Wears
@@ -52,7 +55,7 @@ def write_db(skin_name: str, valid_listings: dict, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
         with conn:
-            print("WRITING")
+            logger.debug(f"Writing {len(valid_listings)} listings for {skin_name} to database")
             listingData = (
                 (lID, skin_name.strip('"'), data.dID, data.float_val, data.price)
                 for lID, data in valid_listings.items()
@@ -63,23 +66,23 @@ def del_missing_ID_db(skin_name: str, gone_listingIDs: list, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
         with conn:
-            print("DELETING")
-            print(gone_listingIDs)
+            logger.debug(f"Deleting {len(gone_listingIDs)} missing listings for {skin_name} | {gone_listingIDs}")
             delete_data = ((ID[0], skin_name) for ID in gone_listingIDs)
             conn.executemany(f"DELETE FROM skin_listings WHERE listing_ID = ? AND skin_name = ?", delete_data)
 
 def load_data_db(skin_name: str, valid_listings: dict, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
-        print("LOADING")
         try:
             stored_skins = conn.execute(f"SELECT listing_ID, price, d_ID, float_val FROM skin_listings WHERE skin_name = ?", (skin_name, )).fetchall()
+            logger.debug(f"Loaded {len(stored_skins)} stored listings for {skin_name}")
             for skin in stored_skins:
                 valid_listings[skin[0]] = skinData(dID=skin[2], float_val=skin[3], price=skin[1])
         except sqlite3.OperationalError as e:
             if "no such table" in str(e):
-                print(f"table skin_listings doesn't exist yet")
+                logger.warning(f"Table skin_listings doesn't exist yet")
             else:
+                logger.error(f"Database error loading {skin_name}: {e}")
                 raise
 
 def create_table_db(db_name: str):
@@ -95,7 +98,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
     availableSkins = {}
 
     # Skin Name
-    print(f"searching {search_name}")
+    logger.info(f"Searching for {search_name}")
     # skin_name = "AK-47 | Ice Coaled (Field-Tested)"
 
     scan_limit = 0
@@ -130,10 +133,13 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
     if scout_r.status_code == 200:
         total_listings = scout_r.json().get('total_count', 0)
         scan_limit = max(min(int(total_listings * 0.1), 100), 20)
-        print(f"Total Listings: {total_listings}. Scanning top: {scan_limit} items for {search_name}")
+        logger.info(f"Total Listings: {total_listings}. Scanning top: {scan_limit} items for {search_name}")
     elif scout_r.status_code == 429:
-        print("Steam rate limit reached.")
+        logger.warning("Steam rate limit reached. Sleeping 300 seconds...")
         time.sleep(300)
+        return []
+    else:
+        logger.error(f"Unexpected status code {scout_r.status_code} for {search_name}")
         return []
 
     for offset in range (0, scan_limit, min(scan_limit, 20)):
@@ -162,7 +168,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
             properties = item['asset']['asset_properties']
             #print(properties)
             dID = ''
-            float_val = None
+            float_val = 1
             for prop in properties:
                 if prop.get('propertyid') == 2:
                     float_val = prop.get('float_value')
@@ -193,7 +199,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
             #else:
                 #print("Too High Float")
 
-        print(f"Processed up to offset {offset + 20}...")
+        logger.debug(f"Processed up to offset {offset + 20}...")
         time.sleep(random.uniform(12,15))
     # for skin in availableSkins:
         # print(skin.price)
@@ -211,17 +217,22 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
     try:
         scraper_session.get("https://steamcommunity.com/market/")
     except Exception as e:
-        print(e)
+        logger.error(f"Failed to initialize Steam market session: {e}")
     if not scraper_session:
-        print("Failed to create Steam market session")
+        logger.error("Failed to create Steam market session")
+        return
     else:
-        print("Session to Steam Created.")
+        logger.info("Session to Steam Created.")
     session_id = scraper_session.cookies.get('sessionid', domain='steamcommunity.com')
     if not session_id:
         session_id = os.getenv("SESSION_ID_FALLBACK") # Your known good ID
+        if not session_id:
+            logger.error("Failed to retrieve session ID from environment variables.")
+            return
+        logger.warning("Using fallback session ID from environment")
         scraper_session.cookies.set('sessionid', session_id, domain='steamcommunity.com')
     else:
-        print(f"Session Connected to Steam for {skin_name}!")
+        logger.info(f"Session Connected to Steam for {skin_name}!")
         #print(session_id)
     cookies = {
         "sessionid": session_id,
@@ -229,8 +240,8 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
     }
     scraper_session.cookies.update(cookies)
     if wlevel < 0 or wlevel > 4:
-        print("invalid wear")
-        exit()
+        logger.error(f"Invalid wear level: {wlevel}")
+        return
     skin_wear = wears[wlevel]
     search_name = f"{skin_name} {skin_wear}"
     # processed_name = skin_name + wears[wlevel]
@@ -265,18 +276,18 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
                         #print(f"Price: {valid_listings[listingID].price} | Float: {valid_listings[listingID].float_val} | dID: {valid_listings[listingID].dID}")
                     if dbReadWrite:
                         write_db(search_name, valid_listings, DB_NAME)
-                    print(f"{skin_name} Loop complete. Resting to avoid rate limits...")
+                    logger.info(f"{skin_name} Loop complete. Resting to avoid rate limits...")
                 time.sleep(random.randint(120, 180))
             except Exception as e:
-                print(f"Loop Failed: {e}")
+                logger.error(f"Loop Failed: {e}")
                 time.sleep(random.randint(120,180))
     except KeyboardInterrupt:
-        print("User Terminated scouting-loop, saving reads to database.")
+        logger.info("User Terminated scouting-loop, saving reads to database.")
     except Exception as e:
-        print(f"Exception {e} resulted in a crash.")
+        logger.error(f"Exception {e} resulted in a crash.")
     # This runs before the script fully closes.
     finally:
-        print(f"{skin_name} scraping loop ended.")
+        logger.info(f"{skin_name} scraping loop ended.")
         
 if __name__ == "__main__":
     testing = False

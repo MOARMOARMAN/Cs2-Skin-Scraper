@@ -1,8 +1,10 @@
 .env
 venv/
+.vscode/
 __pycache__/
 *.db
 *.db-shm
 *.db-wal
-test.py
+test.*
 unusedFunctions.py
+bot.log
