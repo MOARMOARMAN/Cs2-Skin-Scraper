@@ -124,7 +124,7 @@ def analyze_batch_loop(db: str):
     while True:
         try:
             best_5 = analyze_batch(db)
-            logger.info(f"Found {len(best_5)} top deals")
+            logger.info(f"Here are the top {len(best_5)} deals")
             for listing in best_5:
                 logger.info(f"DEAL: {listing[1]} | Float: {listing[3]:.6f} | Price: ${listing[2]:.2f} | ID: {listing[0]}")
                 logger.info(f"      Reasoning: {listing[4]}")

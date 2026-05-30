@@ -24,7 +24,21 @@ if __name__ == "__main__":
     logger.info(f"Database initialized: {DB_NAME}")
     # List of skins
     # skins are represented by an array [name, max_price, max_float]
-    skins = [["AK-47 | Ice Coaled", 20, 0.083], ["Dual Berettas | Polished Malachite", 0.5, 0.085], ["SG 553 | Basket Halftone", 0.6, 0.06]]
+    # ["AK-47 | Ice Coaled", 20, 0.083], ["Dual Berettas | Polished Malachite", 0.5, 0.085], ["SG 553 | Basket Halftone", 0.6, 0.06]
+    skins = []
+    user_input = input("Skin name / Max Price / Max Float (Type ! to stop entering)\n")
+    while user_input != "!":
+        try:
+            skin_name, max_price, max_float = user_input.split("/")
+            skin_name = skin_name.strip()
+            max_price = float(max_price.strip())
+            max_float = float(max_float.strip())
+            skins.append([skin_name, max_price, max_float])
+            logger.info(f"Added skin to monitor: {skin_name} with max price {max_price} and max float {max_float}")
+            user_input = input("\nSkin name / Max Price / Max Float (Type ! to stop entering)\n")
+        except ValueError:
+            logger.error("Invalid input format. Please enter in the format: Skin name / Max Price / Max Float")
+            user_input = input("\nSkin name / Max Price / Max Float (Type ! to stop entering)\n")
     logger.info(f"Monitoring {len(skins)} skins with {len(skins) + 1} worker threads")
     with ThreadPoolExecutor(max_workers=len(skins) + 1) as executor:
         executor.submit(analyze_batch_loop, DB_NAME)
