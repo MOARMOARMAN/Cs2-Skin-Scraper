@@ -13,4 +13,8 @@ As of this version, the CS2 Skin Scraper has 3 main components:
 3. A Batch Analysis Loop (Consumer) which pulls data from the database, processes it and feeds it to Gemini in an engineered prompt to return the top 5 best deals of the current batch.
 
 ### Example Output
-![images/CS2_1.png](https://raw.githubusercontent.com/MOARMOARMAN/Cs2-Skin-Scraper/main/images/CS2_1.png)
+<div style="width: 100%; overflow-x: auto; margin: 20px 0;">
+  <img src="https://raw.githubusercontent.com/MOARMOARMAN/Cs2-Skin-Scraper/main/images/CS2_1.png" 
+       alt="CS2 Skin Scraper Interface" 
+       style="min-width: 900px; width: 100%; display: block;">
+</div>
