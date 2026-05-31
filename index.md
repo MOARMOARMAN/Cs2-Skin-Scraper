@@ -12,4 +12,4 @@ As of this version, the CS2 Skin Scraper has 3 main components:
 2. A SQLite3 database using Write Ahead Logging (WAL) for handling high-frequency writes, which are necessary to support the multiple scraping loops.
 3. A Batch Analysis Loop (Consumer) which pulls data from the database, processes it and feeds it to Gemini in an engineered prompt to return the top 5 best deals of the current batch.
 
-![alt text](https://github.com/MOARMOARMAN/Cs2-Skin-Scraper/blob/image.jpg?raw=true)
+![alt text](images/CS2_1.png)
