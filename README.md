@@ -1,4 +1,4 @@
-﻿# Cs2-Skin-Scraper
+﻿# Cs2 Skin Scraper
 ## 🌟 Highlights
 Here are some of the main features of this `CS2` Skin Scraper:
 - Tracks any `CS2` skin listed on the `Steam Community Market`.
@@ -13,6 +13,9 @@ As of this version, the CS2 Skin Scraper has 3 main components:
 1. Multiple Scraping Loops (Producer) which work through messy `Steam Community Market` data.
 2. A SQLite3 database using Write Ahead Logging (WAL) for handling high-frequency writes, which are necessary to support the multiple scraping loops.
 3. A Batch Analysis Loop (Consumer) which pulls data from the database, processes it and feeds it to Gemini in an engineered prompt to return the top 5 best deals of the current batch.
+
+### Example output
+![alt text](images/CS2_1.png)
 
 ## ⚙️ Usage
 Currently, running orchestration.py will prompt you to enter a skin, float and price and repeat that until you enter `!`.
