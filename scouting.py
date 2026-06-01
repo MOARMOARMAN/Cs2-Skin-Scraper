@@ -408,7 +408,13 @@ def price_check(skin_name: str, wlevel: int):
     except Exception as e:
         logger.error(f"Initial scout request failed for {search_name}: {e}")
         return 0
-    print(scout_r.json().get('listings', 0)[0].get('strSubtotal'))
+    try:
+        lowest_listing_price = scout_r.json().get('listings', 0)[0].get('strSubtotal')
+    except Exception as e:
+        logger.error(f"No listings found or strSubtotal for {search_name}")
+        return f"No Listings Found for {search_name}"
+    
+    return lowest_listing_price
 
 if __name__ == "__main__":
     testing = True

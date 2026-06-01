@@ -1,7 +1,7 @@
 import time
 import logging
 
-from scouting import scouting_loop, create_table_db
+from scouting import scouting_loop, create_table_db, price_check
 from batching import analyze_batch_loop
 from contextlib import closing
 from concurrent.futures import ThreadPoolExecutor
