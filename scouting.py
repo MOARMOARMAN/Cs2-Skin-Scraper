@@ -371,7 +371,6 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
     # This runs before the script fully closes.
     finally:
         logger.info(f"{skin_name} scraping loop ended.")
-
 def price_check(skin_name: str, wlevel: int):
     session_cookies = setup_session_cookies()
     if not session_cookies:
@@ -387,7 +386,7 @@ def price_check(skin_name: str, wlevel: int):
     try:
         scout_code = requests.get(f"https://steamcommunity.com/market/listings/730/{search_name}")
         scout_code = scout_code.url.split('/')[-1]
-        logger.info(f"Scout code of {search_name}")
+        logger.info(f"Scout code of {search_name} is {scout_code}")
     except Exception as e:
         logger.error(f"Error occurred while fetching scout code for {search_name}: {e}")
         return 0
@@ -409,7 +408,7 @@ def price_check(skin_name: str, wlevel: int):
     except Exception as e:
         logger.error(f"Initial scout request failed for {search_name}: {e}")
         return 0
-    print(scout_r.text)
+    print(scout_r.json().get('listings', 0)[0].get('strSubtotal'))
 
 if __name__ == "__main__":
     testing = True
