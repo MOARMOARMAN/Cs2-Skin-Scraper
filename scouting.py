@@ -147,6 +147,19 @@ def create_table_db(db_name: str):
             conn.execute(f"CREATE TABLE IF NOT EXISTS skin_listings (listing_ID TEXT PRIMARY KEY, skin_name TEXT, d_ID TEXT, float_val REAL, price REAL)")
             conn.execute(f"CREATE INDEX IF NOT EXISTS idx_skin_listings_skin_name ON skin_listings (skin_name)")
 
+def price_conversion(salePriceText: str, price: float):
+    if "CA" not in salePriceText:
+        #print("Needs Converting")
+        if "HK" in salePriceText:
+            converted_price = round(price * CURRENCY_TO_CAD["HKD"] / 100, 2)
+        elif "USD" in salePriceText:
+            converted_price = round(price * CURRENCY_TO_CAD["USD"] / 100, 2)
+        else:
+            converted_price = price / 100
+    else:
+        converted_price = price / 100
+    return converted_price
+
 def scout(search_name: str, wear: int, max_float: float, max_price: float, scraper_session: requests.Session, cookies: dict):
     # List of availableSkins that will be returned.
     availableSkins = {}
@@ -256,17 +269,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
             salePriceText = item['strSubtotal']
             #print(f"SALE PRICE TEXT: {salePriceText}")
             # Price checking handled by the filter located in the header.
-            converted_price = 0
-            if "CA" not in salePriceText:
-                #print("Needs Converting")
-                if "HK" in salePriceText:
-                    converted_price = round(price * CURRENCY_TO_CAD["HKD"] / 100, 2)
-                elif "USD" in salePriceText:
-                    converted_price = round(price * CURRENCY_TO_CAD["USD"] / 100, 2)
-                else:
-                    converted_price = price / 100
-            else:
-                converted_price = price / 100
+            converted_price = price_conversion(salePriceText, price)
             #print(f"CONVERTED PRICE IN CAD: CA${converted_price}")
             if float_val < max_float:
                 availableSkins[listingID] = skinData(dID=dID, float_val=float_val, price=converted_price)
@@ -393,7 +396,7 @@ def price_check(skin_name: str, wlevel: int):
     Payload = [{
         "appid":730,
         "strItemName": scout_code, # Unique identifier, will have to calculate later
-        "sort":{"field":1,"direction":0,"assetpropertyid":2},
+        "sort":{"field":0,"direction":0},
         "filters":{"category_730_Exterior":[f"tag_WearCategory{wlevel}"]}, # Set these using the inputs
         "accessoryFilters":{},
         "propertyFilters":{},
@@ -408,13 +411,22 @@ def price_check(skin_name: str, wlevel: int):
     except Exception as e:
         logger.error(f"Initial scout request failed for {search_name}: {e}")
         return 0
+    return_subtotal = ""
     try:
-        lowest_listing_price = scout_r.json().get('listings', 0)[0].get('strSubtotal')
+        lowest_listing = scout_r.json().get('listings', 0)[0]
+        lowest_listing_subtotal = lowest_listing.get('strSubtotal')
+        lowest_listing_price = lowest_listing.get('unPrice', 0) + lowest_listing.get('unFee', 0)
+        converted_listing_price = price_conversion(lowest_listing_subtotal, lowest_listing_price)
+        if lowest_listing_price == converted_listing_price:
+            return_subtotal = return_subtotal
+        else:
+            return_subtotal = f"CA${converted_listing_price}"
+
     except Exception as e:
         logger.error(f"No listings found or strSubtotal for {search_name}")
         return f"No Listings Found for {search_name}"
     
-    return lowest_listing_price
+    return return_subtotal
 
 if __name__ == "__main__":
     testing = True
@@ -422,5 +434,5 @@ if __name__ == "__main__":
     wlevel = 1
     maximum_float = 0.086
     maximum_price = 0.45
-    price_check(temp_name, wlevel)
+    print(price_check(temp_name, wlevel))
     # scouting_loop(testing, temp_name, wlevel, maximum_float, maximum_price)
