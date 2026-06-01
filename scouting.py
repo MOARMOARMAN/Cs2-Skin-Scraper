@@ -359,26 +359,9 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
         
 if __name__ == "__main__":
     testing = True
-    if not testing:
-        def is_float(value):
-            return value.replace('.', '', 1).isdigit()
-        user_input = input("Please input a skin's name (Gun Name | Finish Name):\n")
-        temp_name = user_input.strip()
-        while not user_input.isdigit():
-            user_input = input("\nPlease input a wear level 0-4:\n").strip()
-
-        wlevel = int(user_input)
-        user_input = ""
-
-        while not is_float(user_input):
-            user_input = input("\nPlease enter the maximum float:\n").strip()
-        maximum_float = float(user_input)
-
-        user_input = input("\nPlease enter the maximum price in CAD:\n").strip()
-        maximum_price = float(user_input)
-    else:
-        temp_name = "Dual Berettas | Polished Malachite"
-        wlevel = 1
-        maximum_float = 0.086
-        maximum_price = 0.45
-    scouting_loop(False, temp_name, wlevel, maximum_float, maximum_price)
+    temp_name = "Dual Berettas | Polished Malachite"
+    wlevel = 1
+    maximum_float = 0.086
+    maximum_price = 0.45
+    
+    # scouting_loop(testing, temp_name, wlevel, maximum_float, maximum_price)

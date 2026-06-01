@@ -25,6 +25,10 @@ if __name__ == "__main__":
     # List of skins
     # skins are represented by an array [name, max_price, max_float]
     # ["AK-47 | Ice Coaled", 20, 0.083], ["Dual Berettas | Polished Malachite", 0.5, 0.085], ["SG 553 | Basket Halftone", 0.6, 0.06]
+    # AK-47 | Ice Coaled / 20 / 0.083
+    # Dual Berettas | Polished Malachite / 0.5 / 0.085
+    # SG 553 | Basket Halftone / 0.6 / 0.06
+    # 
     skins = []
     user_input = input("Skin name / Max Price / Max Float (Type ! to stop entering)\n")
     while user_input != "!":
