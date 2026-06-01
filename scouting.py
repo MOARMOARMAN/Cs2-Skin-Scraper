@@ -1,5 +1,6 @@
 from collections import namedtuple
 import logging
+from math import e
 
 import requests
 import sqlite3
@@ -11,7 +12,14 @@ import json
 import random
 from contextlib import closing
 from tenacity import retry, stop_after_attempt, wait_exponential_jitter, retry_if_exception_type
-
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('scout.log'),
+        logging.StreamHandler()
+    ]
+)
 # api_key = os.getenv("GEMINI_API_KEY")
 user_agent = os.getenv("STEAM_USER_AGENT")
 
@@ -139,6 +147,19 @@ def create_table_db(db_name: str):
             conn.execute(f"CREATE TABLE IF NOT EXISTS skin_listings (listing_ID TEXT PRIMARY KEY, skin_name TEXT, d_ID TEXT, float_val REAL, price REAL)")
             conn.execute(f"CREATE INDEX IF NOT EXISTS idx_skin_listings_skin_name ON skin_listings (skin_name)")
 
+def price_conversion(salePriceText: str, price: float):
+    if "CA" not in salePriceText:
+        #print("Needs Converting")
+        if "HK" in salePriceText:
+            converted_price = round(price * CURRENCY_TO_CAD["HKD"] / 100, 2)
+        elif "USD" in salePriceText:
+            converted_price = round(price * CURRENCY_TO_CAD["USD"] / 100, 2)
+        else:
+            converted_price = price / 100
+    else:
+        converted_price = price / 100
+    return converted_price
+
 def scout(search_name: str, wear: int, max_float: float, max_price: float, scraper_session: requests.Session, cookies: dict):
     # List of availableSkins that will be returned.
     availableSkins = {}
@@ -248,17 +269,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
             salePriceText = item['strSubtotal']
             #print(f"SALE PRICE TEXT: {salePriceText}")
             # Price checking handled by the filter located in the header.
-            converted_price = 0
-            if "CA" not in salePriceText:
-                #print("Needs Converting")
-                if "HK" in salePriceText:
-                    converted_price = round(price * CURRENCY_TO_CAD["HKD"] / 100, 2)
-                elif "USD" in salePriceText:
-                    converted_price = round(price * CURRENCY_TO_CAD["USD"] / 100, 2)
-                else:
-                    converted_price = price / 100
-            else:
-                converted_price = price / 100
+            converted_price = price_conversion(salePriceText, price)
             #print(f"CONVERTED PRICE IN CAD: CA${converted_price}")
             if float_val < max_float:
                 availableSkins[listingID] = skinData(dID=dID, float_val=float_val, price=converted_price)
@@ -273,7 +284,32 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
         # print(skin.float_val)
         # print(f"___________________{skin.market_pos}")
     return availableSkins
-
+def setup_session_cookies():
+    try:
+        scraper_session = requests.Session()
+        try:
+            scraper_session.get("https://steamcommunity.com/market/")
+        except Exception as e:
+            logger.error(f"Failed to initialize Steam market session: {e}")
+            return
+        logger.info("Session to Steam Created.")
+        session_id = scraper_session.cookies.get('sessionid', domain='steamcommunity.com')
+        if not session_id:
+            session_id = os.getenv("SESSION_ID_FALLBACK") # Your known good ID
+            if not session_id:
+                logger.error("Failed to retrieve session ID from environment variables.")
+                return
+            logger.warning("Using fallback session ID from environment")
+            scraper_session.cookies.set('sessionid', session_id, domain='steamcommunity.com')
+        cookies = {
+            "sessionid": session_id,
+            "timezoneName": "America/New_York",
+        }
+        scraper_session.cookies.update(cookies)
+        return [scraper_session, cookies]
+    except Exception as e:
+        logger.error("Steam session setup failure within setup_session_cookies")
+        return []
 def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: float, maximum_price: float):
     
     #time.sleep(random.randint(3,50))
@@ -281,32 +317,14 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
     # Stored as listingID for key
     # namedtuple containing the skin data like dID, float_val, and price
     valid_listings = {}
-    scraper_session = requests.Session()
-    try:
-        scraper_session.get("https://steamcommunity.com/market/")
-    except Exception as e:
-        logger.error(f"Failed to initialize Steam market session: {e}")
-    if not scraper_session:
-        logger.error("Failed to create Steam market session")
-        return
+    session_cookies = setup_session_cookies()
+    if not session_cookies:
+        logger.error("Session setup failed and resulted in empty session and cookies")
+        return 0
     else:
-        logger.info("Session to Steam Created.")
-    session_id = scraper_session.cookies.get('sessionid', domain='steamcommunity.com')
-    if not session_id:
-        session_id = os.getenv("SESSION_ID_FALLBACK") # Your known good ID
-        if not session_id:
-            logger.error("Failed to retrieve session ID from environment variables.")
-            return
-        logger.warning("Using fallback session ID from environment")
-        scraper_session.cookies.set('sessionid', session_id, domain='steamcommunity.com')
-    else:
-        logger.info(f"Session Connected to Steam for {skin_name}!")
-        #print(session_id)
-    cookies = {
-        "sessionid": session_id,
-        "timezoneName": "America/New_York",
-    }
-    scraper_session.cookies.update(cookies)
+        logger.info(f"Session connected successfully to steam for {skin_name}")
+    scraper_session = session_cookies[0]
+    cookies = session_cookies[1]
     if wlevel < 0 or wlevel > 4:
         logger.error(f"Invalid wear level: {wlevel}")
         return
@@ -356,12 +374,65 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
     # This runs before the script fully closes.
     finally:
         logger.info(f"{skin_name} scraping loop ended.")
-        
+def price_check(skin_name: str, wlevel: int):
+    session_cookies = setup_session_cookies()
+    if not session_cookies:
+        logger.error("Session setup failed and resulted in empty session and cookies")
+        return 0
+    else:
+        logger.info(f"Session connected successfully to steam for {skin_name}")
+    scraper_session = session_cookies[0]
+    cookies = session_cookies[1]
+    skin_wear = wears[wlevel]
+    search_name = f"{skin_name} {skin_wear}"
+    logger.info(f"Searching for {skin_name}")
+    try:
+        scout_code = requests.get(f"https://steamcommunity.com/market/listings/730/{search_name}")
+        scout_code = scout_code.url.split('/')[-1]
+        logger.info(f"Scout code of {search_name} is {scout_code}")
+    except Exception as e:
+        logger.error(f"Error occurred while fetching scout code for {search_name}: {e}")
+        return 0
+    Payload = [{
+        "appid":730,
+        "strItemName": scout_code, # Unique identifier, will have to calculate later
+        "sort":{"field":0,"direction":0},
+        "filters":{"category_730_Exterior":[f"tag_WearCategory{wlevel}"]}, # Set these using the inputs
+        "accessoryFilters":{},
+        "propertyFilters":{},
+        # "unMax":max_price * 100
+        "price":{"eCurrency":20},
+        "start": 0,
+    }]
+    # Steam forces 20 listings at a time.
+    headers["Referer"] = f"https://steamcommunity.com/market/listings/730/{scout_code}"
+    try:
+        scout_r = post_with_retry(scraper_session, f"https://steamcommunity.com/market/listings/730/{scout_code}", Payload, headers, cookies) # type: ignore
+    except Exception as e:
+        logger.error(f"Initial scout request failed for {search_name}: {e}")
+        return 0
+    return_subtotal = ""
+    try:
+        lowest_listing = scout_r.json().get('listings', 0)[0]
+        lowest_listing_subtotal = lowest_listing.get('strSubtotal')
+        lowest_listing_price = lowest_listing.get('unPrice', 0) + lowest_listing.get('unFee', 0)
+        converted_listing_price = price_conversion(lowest_listing_subtotal, lowest_listing_price)
+        if lowest_listing_price == converted_listing_price:
+            return_subtotal = return_subtotal
+        else:
+            return_subtotal = f"CA${converted_listing_price}"
+
+    except Exception as e:
+        logger.error(f"No listings found or strSubtotal for {search_name}")
+        return f"No Listings Found for {search_name}"
+    
+    return return_subtotal
+
 if __name__ == "__main__":
     testing = True
     temp_name = "Dual Berettas | Polished Malachite"
     wlevel = 1
     maximum_float = 0.086
     maximum_price = 0.45
-    
+    print(price_check(temp_name, wlevel))
     # scouting_loop(testing, temp_name, wlevel, maximum_float, maximum_price)

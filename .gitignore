@@ -7,4 +7,4 @@ __pycache__/
 *.db-wal
 test.*
 unusedFunctions.py
-bot.log
+*.log
