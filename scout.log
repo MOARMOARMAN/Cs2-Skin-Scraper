@@ -390,3 +390,36 @@
 2026-06-02 22:31:51,375 - scouting - INFO - Session connected successfully to steam for AK-47 | Ice Coaled
 2026-06-02 22:31:51,378 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
 2026-06-02 22:31:53,092 - scouting - INFO - Total Listings: 191. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 22:32:22,574 - __main__ - INFO - Starting CS:GO Trading Bot...
+2026-06-02 22:32:22,576 - __main__ - INFO - Database initialized: analyzed.db
+2026-06-02 22:32:28,892 - scouting - INFO - Session to Steam Created.
+2026-06-02 22:32:28,892 - scouting - INFO - Session connected successfully to steam for AK-47 | Ice Coaled
+2026-06-02 22:32:28,893 - scouting - INFO - Searching for AK-47 | Ice Coaled
+2026-06-02 22:32:30,227 - scouting - INFO - Scout code of AK-47 | Ice Coaled (Field-Tested) is G180720F7083004
+2026-06-02 22:32:44,383 - __main__ - INFO - Added skin to monitor: AK-47 | Ice Coaled with max price 10.0 and max float 0.2
+2026-06-02 22:33:05,490 - scouting - INFO - Session to Steam Created.
+2026-06-02 22:33:05,490 - scouting - INFO - Session connected successfully to steam for Dual Berettas | Polished Malachite
+2026-06-02 22:33:05,490 - scouting - INFO - Searching for Dual Berettas | Polished Malachite
+2026-06-02 22:33:06,614 - scouting - INFO - Scout code of Dual Berettas | Polished Malachite (Minimal Wear) is G1802208A0A3004
+2026-06-02 22:33:09,678 - __main__ - INFO - Added skin to monitor: Dual Berettas | Polished Malachite with max price 0.45 and max float 0.085
+2026-06-02 22:33:12,240 - __main__ - INFO - These are the keepers ['AK-47 | Ice Coaled', 'Dual Berettas | Polished Malachite']
+2026-06-02 22:33:12,250 - __main__ - INFO - Monitoring 2 skins with 3 worker threads
+2026-06-02 22:33:12,251 - __main__ - INFO - Spawning scouting thread for AK-47 | Ice Coaled (wear level 2)
+2026-06-02 22:33:12,252 - __main__ - INFO - Spawning scouting thread for Dual Berettas | Polished Malachite (wear level 1)
+2026-06-02 22:33:13,026 - scouting - INFO - Session to Steam Created.
+2026-06-02 22:33:13,027 - scouting - INFO - Session connected successfully to steam for AK-47 | Ice Coaled
+2026-06-02 22:33:13,030 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 22:33:13,031 - scouting - INFO - Session to Steam Created.
+2026-06-02 22:33:13,031 - scouting - INFO - Session connected successfully to steam for Dual Berettas | Polished Malachite
+2026-06-02 22:33:13,033 - scouting - INFO - Searching for Dual Berettas | Polished Malachite (Minimal Wear)
+2026-06-02 22:33:14,548 - scouting - INFO - Total Listings: 1201. Scanning top: 100 items for Dual Berettas | Polished Malachite (Minimal Wear)
+2026-06-02 22:33:17,771 - scouting - INFO - Total Listings: 492. Scanning top: 49 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 22:33:22,252 - batching - INFO - Starting analyze batch loop
+2026-06-02 22:33:22,255 - batching - WARNING - No data available for analysis
+2026-06-02 22:33:22,255 - batching - INFO - Here are the top 0 deals
+2026-06-02 22:33:57,288 - scouting - INFO - AK-47 | Ice Coaled Loop complete. Resting to avoid rate limits...
+2026-06-02 22:34:24,161 - scouting - INFO - Dual Berettas | Polished Malachite Loop complete. Resting to avoid rate limits...
+2026-06-02 22:36:19,287 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 22:36:21,103 - scouting - INFO - Total Listings: 489. Scanning top: 48 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 22:36:55,158 - scouting - INFO - Searching for Dual Berettas | Polished Malachite (Minimal Wear)
+2026-06-02 22:36:57,131 - scouting - INFO - Total Listings: 1201. Scanning top: 100 items for Dual Berettas | Polished Malachite (Minimal Wear)
