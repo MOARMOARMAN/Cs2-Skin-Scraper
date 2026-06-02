@@ -105,6 +105,19 @@ headers = {
 # skinData = namedtuple('skinData', ['dID', 'float_val', 'price'])
 skinData = namedtuple('skinData', ['dID', 'float_val', 'price'])
 
+def clear_db_skins(db_name: str, skin_names: list):
+    if not skin_names:
+        logger.error("skin_names provided to clear_db_skins is empty")
+        return 404
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        with conn:
+            logger.debug(f"Clearing out database by deleting all listings not in {skin_names}")
+            placeholders = ",".join("?" for _ in skin_names)
+            conn.execute(f"DELETE FROM skin_listings WHERE skin_name NOT IN ({placeholders})", skin_names)
+    return 200
+
+
 def write_db(skin_name: str, valid_listings: dict, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
@@ -114,7 +127,7 @@ def write_db(skin_name: str, valid_listings: dict, db_name: str):
                 (lID, skin_name.strip('"'), data.dID, data.float_val, data.price)
                 for lID, data in valid_listings.items()
             )
-            conn.executemany(f"INSERT OR REPLACE INTO skin_listings (listing_ID, skin_name, d_ID, float_val, price) VALUES(?, ?, ?, ?, ?)", listingData)
+            conn.executemany("INSERT OR REPLACE INTO skin_listings (listing_ID, skin_name, d_ID, float_val, price) VALUES(?, ?, ?, ?, ?)", listingData)
 
 def del_missing_ID_db(skin_name: str, gone_listingIDs: list, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
@@ -122,7 +135,7 @@ def del_missing_ID_db(skin_name: str, gone_listingIDs: list, db_name: str):
         with conn:
             logger.debug(f"Deleting {len(gone_listingIDs)} missing listings for {skin_name} | {gone_listingIDs}")
             delete_data = ((ID[0], skin_name) for ID in gone_listingIDs)
-            conn.executemany(f"DELETE FROM skin_listings WHERE listing_ID = ? AND skin_name = ?", delete_data)
+            conn.executemany("DELETE FROM skin_listings WHERE listing_ID = ? AND skin_name = ?", delete_data)
 
 def load_data_db(skin_name: str, valid_listings: dict, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:

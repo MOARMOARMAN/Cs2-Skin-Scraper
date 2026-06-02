@@ -143,3 +143,250 @@
 2026-06-01 17:57:47,544 - scouting - INFO - Searching for SG 553 | Basket Halftone (Factory New)
 2026-06-01 17:57:49,176 - scouting - INFO - Total Listings: 189. Scanning top: 20 items for SG 553 | Basket Halftone (Factory New)
 2026-06-01 17:58:02,452 - scouting - INFO - SG 553 | Basket Halftone Loop complete. Resting to avoid rate limits...
+2026-06-02 20:19:36,531 - __main__ - INFO - Starting CS:GO Trading Bot...
+2026-06-02 20:19:36,545 - __main__ - INFO - Database initialized: analyzed.db
+2026-06-02 20:20:14,499 - scouting - INFO - Session to Steam Created.
+2026-06-02 20:20:14,499 - scouting - INFO - Session connected successfully to steam for AK-47 | Ice Coaled
+2026-06-02 20:20:14,499 - scouting - INFO - Searching for AK-47 | Ice Coaled
+2026-06-02 20:20:17,053 - scouting - INFO - Scout code of AK-47 | Ice Coaled (Field-Tested) is G180720F7083004
+2026-06-02 20:20:29,839 - __main__ - INFO - Added skin to monitor: AK-47 | Ice Coaled with max price 9.0 and max float 0.17
+2026-06-02 20:20:32,295 - __main__ - INFO - Monitoring 1 skins with 2 worker threads
+2026-06-02 20:20:32,300 - __main__ - INFO - Spawning scouting thread for AK-47 | Ice Coaled (wear level 2)
+2026-06-02 20:20:33,055 - scouting - INFO - Session to Steam Created.
+2026-06-02 20:20:33,056 - scouting - INFO - Session connected successfully to steam for AK-47 | Ice Coaled
+2026-06-02 20:20:33,059 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:20:42,300 - batching - INFO - Starting analyze batch loop
+2026-06-02 20:20:42,305 - batching - INFO - Analyzing 3 skins
+2026-06-02 20:20:43,048 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-06-02 20:20:45,569 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-06-02 20:20:45,572 - batching - INFO - Here are the top 5 deals
+2026-06-02 20:20:45,573 - batching - INFO - DEAL: AK-47 | Ice Coaled (Minimal Wear) | Float: 0.073332 | Price: $17.31 | ID: 491600428037180779
+2026-06-02 20:20:45,573 - batching - INFO -       Reasoning: Priced $1.49 under average market value with a significantly cleaner-than-average float.
+2026-06-02 20:20:45,573 - batching - INFO - DEAL: SG 553 | Basket Halftone (Factory New) | Float: 0.051230 | Price: $0.43 | ID: 501733527197888042
+2026-06-02 20:20:45,573 - batching - INFO -       Reasoning: Priced $0.08 under average market value with the lowest float value in the dataset.
+2026-06-02 20:20:45,574 - batching - INFO - DEAL: SG 553 | Basket Halftone (Factory New) | Float: 0.055027 | Price: $0.41 | ID: 502859427108890098
+2026-06-02 20:20:45,574 - batching - INFO -       Reasoning: Priced $0.10 under average market value, representing the absolute lowest price point for this skin.
+2026-06-02 20:20:45,574 - batching - INFO - DEAL: AK-47 | Ice Coaled (Minimal Wear) | Float: 0.075051 | Price: $18.72 | ID: 529881024871615510
+2026-06-02 20:20:45,574 - batching - INFO -       Reasoning: Priced $0.08 under average market value with a cleaner-than-average float.
+2026-06-02 20:20:45,574 - batching - INFO - DEAL: SG 553 | Basket Halftone (Factory New) | Float: 0.054087 | Price: $0.47 | ID: 518622025799641463
+2026-06-02 20:20:45,574 - batching - INFO -       Reasoning: Priced $0.04 under average market value with a cleaner-than-average float.
+2026-06-02 20:20:49,470 - scouting - ERROR - Loop Failed: 'NoneType' object has no attribute 'get'
+2026-06-02 20:23:01,469 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:23:04,045 - scouting - INFO - Total Listings: 6. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:25:57,496 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:25:59,521 - scouting - INFO - Total Listings: 6. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:28:40,200 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:28:42,594 - scouting - INFO - Total Listings: 5. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:31:38,851 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:31:41,434 - scouting - INFO - Total Listings: 7. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:33:57,092 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:33:59,540 - scouting - INFO - Total Listings: 8. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:36:48,082 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:36:50,085 - scouting - INFO - Total Listings: 9. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:39:12,438 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:39:26,516 - scouting - ERROR - Loop Failed: 'NoneType' object has no attribute 'get'
+2026-06-02 20:41:39,514 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:41:42,157 - scouting - INFO - Total Listings: 7. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:43:57,387 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:43:59,226 - scouting - INFO - Total Listings: 7. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:46:58,342 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:47:00,550 - scouting - INFO - Total Listings: 8. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:50:07,025 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:50:08,904 - scouting - INFO - Total Listings: 10. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:50:45,540 - batching - INFO - Analyzing 3 skins
+2026-06-02 20:50:46,227 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-06-02 20:50:48,609 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-06-02 20:50:48,611 - batching - INFO - Here are the top 5 deals
+2026-06-02 20:50:48,611 - batching - INFO - DEAL: AK-47 | Ice Coaled (Minimal Wear) | Float: 0.073332 | Price: $17.31 | ID: 491600428037180779
+2026-06-02 20:50:48,612 - batching - INFO -       Reasoning: Priced $1.49 under average market value with a significantly cleaner-than-average float.
+2026-06-02 20:50:48,612 - batching - INFO - DEAL: SG 553 | Basket Halftone (Factory New) | Float: 0.051230 | Price: $0.43 | ID: 501733527197888042
+2026-06-02 20:50:48,612 - batching - INFO -       Reasoning: Priced $0.08 under average market value with the lowest float value in the dataset.
+2026-06-02 20:50:48,612 - batching - INFO - DEAL: SG 553 | Basket Halftone (Factory New) | Float: 0.055027 | Price: $0.41 | ID: 502859427108890098
+2026-06-02 20:50:48,612 - batching - INFO -       Reasoning: Priced $0.10 under average market value, representing the largest absolute price discount available.
+2026-06-02 20:50:48,612 - batching - INFO - DEAL: AK-47 | Ice Coaled (Minimal Wear) | Float: 0.075051 | Price: $18.72 | ID: 529881024871615510
+2026-06-02 20:50:48,613 - batching - INFO -       Reasoning: Priced $0.08 under average market value with a cleaner-than-average float.
+2026-06-02 20:50:48,613 - batching - INFO - DEAL: SG 553 | Basket Halftone (Factory New) | Float: 0.054087 | Price: $0.47 | ID: 518622025799641463
+2026-06-02 20:50:48,613 - batching - INFO -       Reasoning: Priced $0.04 under average market value with a cleaner-than-average float.
+2026-06-02 20:52:26,590 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:52:28,959 - scouting - INFO - Total Listings: 10. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:55:14,502 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:55:16,932 - scouting - INFO - Total Listings: 9. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:57:41,817 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 20:57:44,075 - scouting - INFO - Total Listings: 8. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:00:11,906 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:00:13,845 - scouting - INFO - Total Listings: 8. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:03:09,977 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:03:25,777 - scouting - ERROR - Loop Failed: 'NoneType' object has no attribute 'get'
+2026-06-02 21:05:50,775 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:05:52,719 - scouting - INFO - Total Listings: 10. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:08:57,293 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:08:59,599 - scouting - INFO - Total Listings: 10. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:11:30,070 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:11:30,565 - scouting - ERROR - Error occurred while fetching scout code for AK-47 | Ice Coaled (Field-Tested): HTTPSConnectionPool(host='steamcommunity.com', port=443): Max retries exceeded with url: /market/listings/730/AK-47%20%7C%20Ice%20Coaled%20(Field-Tested) (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('Remote end closed connection without response')))
+2026-06-02 21:13:59,563 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:14:02,031 - scouting - INFO - Total Listings: 10. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:16:27,567 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:16:30,549 - scouting - ERROR - Error occurred while fetching scout code for AK-47 | Ice Coaled (Field-Tested): HTTPSConnectionPool(host='steamcommunity.com', port=443): Max retries exceeded with url: /market/listings/730/G180720F7083004 (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('Remote end closed connection without response')))
+2026-06-02 21:18:37,547 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:18:39,725 - scouting - INFO - Total Listings: 10. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:20:48,582 - batching - INFO - Analyzing 3 skins
+2026-06-02 21:20:49,233 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-06-02 21:20:58,429 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-06-02 21:20:58,431 - batching - INFO - Here are the top 5 deals
+2026-06-02 21:20:58,432 - batching - INFO - DEAL: AK-47 | Ice Coaled (Minimal Wear) | Float: 0.073332 | Price: $17.31 | ID: 491600428037180779
+2026-06-02 21:20:58,432 - batching - INFO -       Reasoning: Priced $1.49 under average market value with a significantly cleaner-than-average float.
+2026-06-02 21:20:58,432 - batching - INFO - DEAL: SG 553 | Basket Halftone (Factory New) | Float: 0.051230 | Price: $0.43 | ID: 501733527197888042
+2026-06-02 21:20:58,432 - batching - INFO -       Reasoning: Priced $0.08 under average market value with the lowest float value in the dataset.
+2026-06-02 21:20:58,432 - batching - INFO - DEAL: SG 553 | Basket Halftone (Factory New) | Float: 0.055027 | Price: $0.41 | ID: 502859427108890098
+2026-06-02 21:20:58,432 - batching - INFO -       Reasoning: Priced $0.10 under average market value, representing the absolute lowest price point for this skin.
+2026-06-02 21:20:58,432 - batching - INFO - DEAL: AK-47 | Ice Coaled (Minimal Wear) | Float: 0.075051 | Price: $18.72 | ID: 529881024871615510
+2026-06-02 21:20:58,432 - batching - INFO -       Reasoning: Priced $0.08 under average market value with a cleaner-than-average float.
+2026-06-02 21:20:58,433 - batching - INFO - DEAL: SG 553 | Basket Halftone (Factory New) | Float: 0.054087 | Price: $0.47 | ID: 518622025799641463
+2026-06-02 21:20:58,433 - batching - INFO -       Reasoning: Priced $0.04 under average market value with a cleaner-than-average float.
+2026-06-02 21:21:22,356 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:21:24,309 - scouting - INFO - Total Listings: 10. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:24:37,993 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:24:40,666 - scouting - INFO - Total Listings: 10. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:27:41,137 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:27:43,302 - scouting - INFO - Total Listings: 10. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:30:22,746 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:30:25,118 - scouting - INFO - Total Listings: 11. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:32:55,622 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:32:57,982 - scouting - INFO - Total Listings: 9. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:35:50,868 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:35:52,520 - scouting - INFO - Total Listings: 8. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:38:18,808 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:38:21,091 - scouting - INFO - Total Listings: 5. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:40:48,505 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:41:04,054 - scouting - ERROR - Loop Failed: 'NoneType' object has no attribute 'get'
+2026-06-02 21:43:05,052 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:43:07,958 - scouting - INFO - Total Listings: 5. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:45:52,206 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:45:54,102 - scouting - INFO - Total Listings: 5. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:48:38,102 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:48:40,492 - scouting - INFO - Total Listings: 6. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:50:58,403 - batching - INFO - Analyzing 3 skins
+2026-06-02 21:50:59,033 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-06-02 21:51:01,592 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-06-02 21:51:01,595 - batching - INFO - Here are the top 5 deals
+2026-06-02 21:51:01,596 - batching - INFO - DEAL: AK-47 | Ice Coaled (Minimal Wear) | Float: 0.073332 | Price: $17.31 | ID: 491600428037180779
+2026-06-02 21:51:01,596 - batching - INFO -       Reasoning: Priced $1.49 under average market value with a significantly cleaner-than-average float.
+2026-06-02 21:51:01,596 - batching - INFO - DEAL: SG 553 | Basket Halftone (Factory New) | Float: 0.051230 | Price: $0.43 | ID: 501733527197888042
+2026-06-02 21:51:01,596 - batching - INFO -       Reasoning: Priced $0.08 under average market value with the lowest float value in the dataset.
+2026-06-02 21:51:01,596 - batching - INFO - DEAL: SG 553 | Basket Halftone (Factory New) | Float: 0.055027 | Price: $0.41 | ID: 502859427108890098
+2026-06-02 21:51:01,596 - batching - INFO -       Reasoning: Priced $0.10 under average market value, representing the largest absolute price discount available.
+2026-06-02 21:51:01,597 - batching - INFO - DEAL: AK-47 | Ice Coaled (Minimal Wear) | Float: 0.075051 | Price: $18.72 | ID: 529881024871615510
+2026-06-02 21:51:01,597 - batching - INFO -       Reasoning: Priced $0.08 under average market value with a cleaner-than-average float.
+2026-06-02 21:51:01,597 - batching - INFO - DEAL: SG 553 | Basket Halftone (Factory New) | Float: 0.054087 | Price: $0.47 | ID: 518622025799641463
+2026-06-02 21:51:01,597 - batching - INFO -       Reasoning: Priced $0.04 under average market value with a cleaner-than-average float.
+2026-06-02 21:51:37,259 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:51:39,618 - scouting - INFO - Total Listings: 5. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:54:21,357 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:54:23,233 - scouting - INFO - Total Listings: 5. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:57:32,322 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:57:34,731 - scouting - INFO - Total Listings: 5. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:59:56,979 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 21:59:58,769 - scouting - INFO - Total Listings: 4. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 22:02:43,178 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 22:02:45,422 - scouting - INFO - Total Listings: 5. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 22:05:59,619 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 22:06:02,003 - scouting - INFO - Total Listings: 1. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 22:23:56,342 - __main__ - INFO - Starting CS:GO Trading Bot...
+2026-06-02 22:23:56,354 - __main__ - INFO - Database initialized: analyzed.db
+2026-06-02 22:24:19,332 - scouting - INFO - Session to Steam Created.
+2026-06-02 22:24:19,333 - scouting - INFO - Session connected successfully to steam for Dual Berettas | Polished Malachite
+2026-06-02 22:24:19,333 - scouting - INFO - Searching for Dual Berettas | Polished Malachite
+2026-06-02 22:24:20,464 - scouting - INFO - Scout code of Dual Berettas | Polished Malachite (Minimal Wear) is G1802208A0A3004
+2026-06-02 22:24:30,529 - __main__ - INFO - Added skin to monitor: Dual Berettas | Polished Malachite with max price 0.45 and max float 0.085
+2026-06-02 22:24:39,788 - __main__ - ERROR - Invalid input format. Please enter in the format: Skin name / Max Float
+2026-06-02 22:25:07,403 - scouting - INFO - Session to Steam Created.
+2026-06-02 22:25:07,404 - scouting - INFO - Session connected successfully to steam for AK-47 | Ice Coaled
+2026-06-02 22:25:07,404 - scouting - INFO - Searching for AK-47 | Ice Coaled
+2026-06-02 22:25:08,679 - scouting - INFO - Scout code of AK-47 | Ice Coaled (Field-Tested) is G180720F7083004
+2026-06-02 22:25:12,984 - __main__ - INFO - Added skin to monitor: AK-47 | Ice Coaled with max price 9.0 and max float 0.2
+2026-06-02 22:25:38,466 - scouting - ERROR - Failed to initialize Steam market session: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+2026-06-02 22:25:38,466 - scouting - ERROR - Session setup failed and resulted in empty session and cookies
+2026-06-02 22:25:43,469 - scouting - ERROR - Failed to initialize Steam market session: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+2026-06-02 22:25:43,469 - scouting - ERROR - Session setup failed and resulted in empty session and cookies
+2026-06-02 22:25:44,254 - scouting - INFO - Session to Steam Created.
+2026-06-02 22:25:44,254 - scouting - INFO - Session connected successfully to steam for SG 553 | Basket Halftone
+2026-06-02 22:25:44,254 - scouting - INFO - Searching for SG 553 | Basket Halftone
+2026-06-02 22:25:45,585 - scouting - INFO - Scout code of SG 553 | Basket Halftone (Factory New) is G182720A80A3004
+2026-06-02 22:26:03,219 - __main__ - INFO - Added skin to monitor: SG 553 | Basket Halftone with max price 0.5 and max float 0.055
+2026-06-02 22:26:07,642 - __main__ - INFO - Monitoring 3 skins with 4 worker threads
+2026-06-02 22:26:07,646 - __main__ - INFO - Spawning scouting thread for Dual Berettas | Polished Malachite (wear level 1)
+2026-06-02 22:26:07,646 - __main__ - INFO - Spawning scouting thread for AK-47 | Ice Coaled (wear level 2)
+2026-06-02 22:26:07,647 - __main__ - INFO - Spawning scouting thread for SG 553 | Basket Halftone (wear level 0)
+2026-06-02 22:26:08,459 - scouting - INFO - Session to Steam Created.
+2026-06-02 22:26:08,459 - scouting - INFO - Session connected successfully to steam for SG 553 | Basket Halftone
+2026-06-02 22:26:08,465 - scouting - INFO - Session to Steam Created.
+2026-06-02 22:26:08,465 - scouting - INFO - Session connected successfully to steam for Dual Berettas | Polished Malachite
+2026-06-02 22:26:08,466 - scouting - INFO - Searching for SG 553 | Basket Halftone (Factory New)
+2026-06-02 22:26:08,475 - scouting - INFO - Searching for Dual Berettas | Polished Malachite (Minimal Wear)
+2026-06-02 22:26:08,478 - scouting - INFO - Session to Steam Created.
+2026-06-02 22:26:08,479 - scouting - INFO - Session connected successfully to steam for AK-47 | Ice Coaled
+2026-06-02 22:26:08,481 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 22:26:10,096 - scouting - INFO - Total Listings: 134. Scanning top: 20 items for SG 553 | Basket Halftone (Factory New)
+2026-06-02 22:26:10,221 - scouting - INFO - Total Listings: 6. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 22:26:10,232 - scouting - INFO - Total Listings: 1200. Scanning top: 100 items for Dual Berettas | Polished Malachite (Minimal Wear)
+2026-06-02 22:26:17,646 - batching - INFO - Starting analyze batch loop
+2026-06-02 22:26:17,649 - batching - INFO - Analyzing 3 skins
+2026-06-02 22:26:18,173 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-06-02 22:26:20,647 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-06-02 22:26:20,654 - batching - INFO - Here are the top 5 deals
+2026-06-02 22:26:20,655 - batching - INFO - DEAL: AK-47 | Ice Coaled (Minimal Wear) | Float: 0.073332 | Price: $17.31 | ID: 491600428037180779
+2026-06-02 22:26:20,655 - batching - INFO -       Reasoning: Priced $1.49 under average market value with a significantly cleaner-than-average float.
+2026-06-02 22:26:20,655 - batching - INFO - DEAL: SG 553 | Basket Halftone (Factory New) | Float: 0.051230 | Price: $0.43 | ID: 501733527197888042
+2026-06-02 22:26:20,655 - batching - INFO -       Reasoning: Priced $0.08 under average market value with the lowest float value in the dataset.
+2026-06-02 22:26:20,655 - batching - INFO - DEAL: SG 553 | Basket Halftone (Factory New) | Float: 0.055027 | Price: $0.41 | ID: 502859427108890098
+2026-06-02 22:26:20,655 - batching - INFO -       Reasoning: Priced $0.10 under average market value, representing the largest absolute price discount available.
+2026-06-02 22:26:20,655 - batching - INFO - DEAL: AK-47 | Ice Coaled (Minimal Wear) | Float: 0.075051 | Price: $18.72 | ID: 529881024871615510
+2026-06-02 22:26:20,656 - batching - INFO -       Reasoning: Priced $0.08 under average market value with a cleaner-than-average float.
+2026-06-02 22:26:20,656 - batching - INFO - DEAL: SG 553 | Basket Halftone (Factory New) | Float: 0.054087 | Price: $0.47 | ID: 518622025799641463
+2026-06-02 22:26:20,656 - batching - INFO -       Reasoning: Priced $0.04 under average market value with a cleaner-than-average float.
+2026-06-02 22:26:24,230 - scouting - INFO - SG 553 | Basket Halftone Loop complete. Resting to avoid rate limits...
+2026-06-02 22:27:06,086 - __main__ - INFO - Starting CS:GO Trading Bot...
+2026-06-02 22:27:06,090 - __main__ - INFO - Database initialized: analyzed.db
+2026-06-02 22:27:29,657 - scouting - INFO - Session to Steam Created.
+2026-06-02 22:27:29,658 - scouting - INFO - Session connected successfully to steam for AK-47 | Ice Coaled
+2026-06-02 22:27:29,658 - scouting - INFO - Searching for AK-47 | Ice Coaled
+2026-06-02 22:27:30,947 - scouting - INFO - Scout code of AK-47 | Ice Coaled (Field-Tested) is G180720F7083004
+2026-06-02 22:27:37,509 - __main__ - INFO - Added skin to monitor: AK-47 | Ice Coaled with max price 9.0 and max float 0.2
+2026-06-02 22:27:41,109 - __main__ - INFO - Monitoring 1 skins with 2 worker threads
+2026-06-02 22:27:41,110 - __main__ - INFO - Spawning scouting thread for AK-47 | Ice Coaled (wear level 2)
+2026-06-02 22:27:41,886 - scouting - INFO - Session to Steam Created.
+2026-06-02 22:27:41,886 - scouting - INFO - Session connected successfully to steam for AK-47 | Ice Coaled
+2026-06-02 22:27:41,888 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 22:27:43,818 - scouting - INFO - Total Listings: 6. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 22:29:31,531 - __main__ - INFO - Starting CS:GO Trading Bot...
+2026-06-02 22:29:31,534 - __main__ - INFO - Database initialized: analyzed.db
+2026-06-02 22:29:39,675 - scouting - INFO - Session to Steam Created.
+2026-06-02 22:29:39,675 - scouting - INFO - Session connected successfully to steam for AK-47 | Ice Coaled
+2026-06-02 22:29:39,676 - scouting - INFO - Searching for AK-47 | Ice Coaled
+2026-06-02 22:29:40,928 - scouting - INFO - Scout code of AK-47 | Ice Coaled (Field-Tested) is G180720F7083004
+2026-06-02 22:29:43,043 - __main__ - INFO - Added skin to monitor: AK-47 | Ice Coaled with max price 9.0 and max float 0.2
+2026-06-02 22:29:47,329 - __main__ - INFO - Monitoring 1 skins with 2 worker threads
+2026-06-02 22:29:47,330 - __main__ - INFO - Spawning scouting thread for AK-47 | Ice Coaled (wear level 2)
+2026-06-02 22:29:48,058 - scouting - INFO - Session to Steam Created.
+2026-06-02 22:29:48,058 - scouting - INFO - Session connected successfully to steam for AK-47 | Ice Coaled
+2026-06-02 22:29:48,060 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 22:29:49,803 - scouting - INFO - Total Listings: 5. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 22:29:57,330 - batching - INFO - Starting analyze batch loop
+2026-06-02 22:29:57,333 - batching - INFO - Analyzing 3 skins
+2026-06-02 22:29:57,819 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2026-06-02 22:31:25,696 - __main__ - INFO - Starting CS:GO Trading Bot...
+2026-06-02 22:31:25,699 - __main__ - INFO - Database initialized: analyzed.db
+2026-06-02 22:31:30,452 - scouting - ERROR - Failed to initialize Steam market session: HTTPSConnectionPool(host='steamcommunity.com', port=443): Max retries exceeded with url: /market/ (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('Remote end closed connection without response')))
+2026-06-02 22:31:30,452 - scouting - ERROR - Session setup failed and resulted in empty session and cookies
+2026-06-02 22:31:31,219 - scouting - INFO - Session to Steam Created.
+2026-06-02 22:31:31,219 - scouting - INFO - Session connected successfully to steam for AK-47 | Ice Coaled
+2026-06-02 22:31:31,219 - scouting - INFO - Searching for AK-47 | Ice Coaled
+2026-06-02 22:31:32,415 - scouting - INFO - Scout code of AK-47 | Ice Coaled (Field-Tested) is G180720F7083004
+2026-06-02 22:31:39,976 - __main__ - INFO - Added skin to monitor: AK-47 | Ice Coaled with max price 9.5 and max float 0.2
+2026-06-02 22:31:50,617 - __main__ - INFO - These are the keepers ['AK-47 | Ice Coaled']
+2026-06-02 22:31:50,617 - __main__ - INFO - Monitoring 1 skins with 2 worker threads
+2026-06-02 22:31:50,618 - __main__ - INFO - Spawning scouting thread for AK-47 | Ice Coaled (wear level 2)
+2026-06-02 22:31:51,375 - scouting - INFO - Session to Steam Created.
+2026-06-02 22:31:51,375 - scouting - INFO - Session connected successfully to steam for AK-47 | Ice Coaled
+2026-06-02 22:31:51,378 - scouting - INFO - Searching for AK-47 | Ice Coaled (Field-Tested)
+2026-06-02 22:31:53,092 - scouting - INFO - Total Listings: 191. Scanning top: 20 items for AK-47 | Ice Coaled (Field-Tested)

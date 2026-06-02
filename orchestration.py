@@ -1,7 +1,7 @@
 import time
 import logging
 
-from scouting import scouting_loop, create_table_db, price_check, wears
+from scouting import scouting_loop, create_table_db, clear_db_skins, price_check, wears
 from batching import analyze_batch_loop
 from contextlib import closing
 from concurrent.futures import ThreadPoolExecutor
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     # SG 553 | Basket Halftone / 0.6 / 0.06
     # 
     skins = []
-    user_input = input("Skin name / Max Price / Max Float (Type ! to stop entering)\n")
+    user_input = input("Skin name / Max Float (Type ! to stop entering)\n")
     while user_input != "!":
         try:
             skin_name, max_float = user_input.split("/")
@@ -64,17 +64,28 @@ if __name__ == "__main__":
                     if user_input != "no":
                         print("invalid input")
             if user_input == "no":
-                user_input = input("\nSkin name / Max Price / Max Float (Type ! to stop entering)\n")
+                user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
                 continue
             skins.append([skin_name, max_price, max_float])
             logger.info(f"Added skin to monitor: {skin_name} with max price {max_price} and max float {max_float}")
-            user_input = input("\nSkin name / Max Price / Max Float (Type ! to stop entering)\n")
+            user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
         except ValueError:
-            logger.error("Invalid input format. Please enter in the format: Skin name / Max Price / Max Float")
-            user_input = input("\nSkin name / Max Price / Max Float (Type ! to stop entering)\n")
+            logger.error("Invalid input format. Please enter in the format: Skin name / Max Float")
+            user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
     if not skins:
         logger.error("Empty input and no skins chosen for tracking.")
         exit()
+    
+    while user_input != "y" and user_input != "n":
+        try:
+            user_input = input("Would you like to clear other skins from the database? [Y/N]: ").lower()
+            if user_input == "y":
+                keepers = [skin[0] for skin in skins]
+                logger.info(f"These are the keepers {keepers}")
+                clear_db_skins(DB_NAME, keepers)
+        except Exception as e:
+            logger.error(f"Enter a letter dude. Exception {e}")
+    
     logger.info(f"Monitoring {len(skins)} skins with {len(skins) + 1} worker threads")
     with ThreadPoolExecutor(max_workers=len(skins) + 1) as executor:
         executor.submit(analyze_batch_loop, DB_NAME)
