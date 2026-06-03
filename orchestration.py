@@ -39,9 +39,9 @@ if __name__ == "__main__":
     # List of skins
     # skins are represented by an array [name, max_price, max_float]
     # ["AK-47 | Ice Coaled", 20, 0.083], ["Dual Berettas | Polished Malachite", 0.5, 0.085], ["SG 553 | Basket Halftone", 0.6, 0.06]
-    # AK-47 | Ice Coaled / 20 / 0.083
-    # Dual Berettas | Polished Malachite / 0.5 / 0.085
-    # SG 553 | Basket Halftone / 0.6 / 0.06
+    # AK-47 | Ice Coaled / 0.083
+    # Dual Berettas | Polished Malachite / 0.085
+    # SG 553 | Basket Halftone / 0.06
     # 
     skins = []
     user_input = input("Skin name / Max Float (Type ! to stop entering)\n")
@@ -66,8 +66,8 @@ if __name__ == "__main__":
             if user_input == "no":
                 user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
                 continue
-            skins.append([skin_name, max_price, max_float])
-            logger.info(f"Added skin to monitor: {skin_name} with max price {max_price} and max float {max_float}")
+            skins.append([skin_name, max_price, max_float, wlevel])
+            logger.info(f"Added skin to monitor: {skin_name} with max price {max_price} and max float {max_float} and wear {wears[wlevel]}")
             user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
         except ValueError:
             logger.error("Invalid input format. Please enter in the format: Skin name / Max Float")
@@ -80,7 +80,7 @@ if __name__ == "__main__":
         try:
             user_input = input("Would you like to clear other skins from the database? [Y/N]: ").lower()
             if user_input == "y":
-                keepers = [skin[0] for skin in skins]
+                keepers = [f"{skin[0]} {wears[skin[3]]}" for skin in skins]
                 logger.info(f"These are the keepers {keepers}")
                 clear_db_skins(DB_NAME, keepers)
         except Exception as e:
@@ -91,7 +91,5 @@ if __name__ == "__main__":
         executor.submit(analyze_batch_loop, DB_NAME)
 
         for skin in skins:
-            float_max = skin[2]
-            wlevel = what_wear(float_max)
             logger.info(f"Spawning scouting thread for {skin[0]} (wear level {wlevel})")
-            executor.submit(scouting_loop, False, skin[0], wlevel, float_max, skin[1])
+            executor.submit(scouting_loop, False, skin[0], skin[3], skin[2], skin[1])
