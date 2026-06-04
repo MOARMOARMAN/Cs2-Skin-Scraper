@@ -39,7 +39,9 @@ if __name__ == "__main__":
     # List of skins
     # skins are represented by an array [name, max_price, max_float]
     # ["AK-47 | Ice Coaled", 20, 0.083], ["Dual Berettas | Polished Malachite", 0.5, 0.085], ["SG 553 | Basket Halftone", 0.6, 0.06]
-    # AK-47 | Ice Coaled / 0.083
+    # AK-47 | Ice Coaled / 0.09
+    # AK-47 | Ice Coaled / 0.17
+    # AK-47 | Slate / 0.09
     # Dual Berettas | Polished Malachite / 0.085
     # SG 553 | Basket Halftone / 0.06
     # 
