@@ -19,10 +19,10 @@ class SkinDeal(BaseModel):
     skin_name: str = Field(description="The exact name of the skin this listing belongs to (e.g., 'AK-47 | Redline (Field-Tested)').")
     raw_price: float = Field(description="The current listed price of the asset.")
     raw_float: float = Field(description="The current precise float value of the asset.")
-    deal_justification: str = Field(description="A brief 1-sentence analytical breakdown explaining why this listing is mathematically a top-5 deal (e.g., 'Priced $4.50 under average market value with a cleaner-than-average float').")
+    deal_justification: str = Field(description="A brief 1-sentence analytical breakdown explaining why this listing is mathematically a top-10 deal (e.g., 'Priced $4.50 under average market value with a cleaner-than-average float').")
 
 class TopSkinsResponse(BaseModel):
-    deals: List[SkinDeal] = Field(description="A strictly ordered array containing exactly the 5 best market deals found in the data, sorted from best to worst.")
+    deals: List[SkinDeal] = Field(description="A strictly ordered array containing exactly the 10 best market deals found in the data, sorted from best to worst.")
 
 def load_all_data_db(valid_skins: dict, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
@@ -42,7 +42,7 @@ def load_all_data_db(valid_skins: dict, db_name: str):
                 raise   
 
 @retry(retry=retry_if_exception_type(errors.APIError), wait=wait_exponential_jitter(initial=5, max=200))
-def gemini_return_top5(prompt: str):
+def gemini_return_top10(prompt: str):
     best_deals = []
     logger.debug("Sending request to Gemini API")
     api_key = os.getenv("GEMINI_API_KEY")
@@ -54,7 +54,7 @@ def gemini_return_top5(prompt: str):
         You are a highly analytical, deterministic Steam Market Valuation Engine for an automated CS trading bot. Your sole purpose is to analyze a provided markdown document containing statistical summaries and tabular listing data for various weapon skins, identify the absolute best financial deals, and return them in a strict JSON format.
 
         CRITICAL EVALUATION ENGINE CONSTRAINTS:
-        1. You must select exactly the top 5 best deals across all skins provided in the context, sorted from the absolute best deal to the fifth-best deal.
+        1. You must select exactly the top 10 best deals across all skins provided in the context, sorted from the absolute best deal to the fifth-best deal.
         2. A "Best Deal" is determined by a combined evaluation of Price Variance (Price Diff) and Float Variance (Float Diff):
         - Float Difference (Primary Weight): Listings where the Float Diff is highly negative (meaning the wear value is significantly lower/cleaner than the average float for that specific skin).
         - Price Difference (Secondary Weight): Listings where the Price Diff is highly negative (meaning the listing price is significantly BELOW the average market price for that specific skin).
@@ -112,27 +112,27 @@ def analyze_batch(db: str):
             prompt += f"| {id} | {price_diff:.2f} | {float_diff:.6f} | {data.price:.2f} | {data.float_val:.6f} |\n"
     if prompt:
         logger.info(f"Analyzing {len(valid_skins)} skins")
-        result = gemini_return_top5(prompt)
+        result = gemini_return_top10(prompt)
         return result
     else:
         logger.warning("No data available for analysis")
         return []
     
 def analyze_batch_loop(db: str):
-    time.sleep(10)
+    time.sleep(100)
     logger.info("Starting analyze batch loop")
     while True:
         try:
-            best_5 = analyze_batch(db)
-            logger.info(f"Here are the top {len(best_5)} deals")
-            for listing in best_5:
+            best_10 = analyze_batch(db)
+            logger.info(f"Here are the top {len(best_10)} deals")
+            for listing in best_10:
                 logger.info(f"DEAL: {listing[1]} | Float: {listing[3]:.6f} | Price: ${listing[2]:.2f} | ID: {listing[0]}")
                 logger.info(f"      Reasoning: {listing[4]}")
         except Exception as e:
             logger.error(f"Gemini analysis cycle failed: {e}")
         finally:
             logger.debug("Analysis cycle complete, sleeping 30 minutes")
-            time.sleep(1800)
+            time.sleep(3600)
 
 if __name__ == "__main__":
     DB_NAME = "analyzed.db"
