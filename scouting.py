@@ -70,6 +70,7 @@ def get_with_retry(session: requests.Session | None, url: str, headers: dict | N
     return resp
 
 DB_NAME = "analyzed.db"
+SKIN_CODES_DB = "skin_codes.db"
 # Tuple of Possible Wears
 wears = ("(Factory New)", "(Minimal Wear)", "(Field-Tested)", "(Well-Worn)", "(Battle-Scarred)")
 WEAR_RANGES = {
@@ -104,6 +105,27 @@ headers = {
 }
 # skinData = namedtuple('skinData', ['dID', 'float_val', 'price'])
 skinData = namedtuple('skinData', ['dID', 'float_val', 'price'])
+
+def get_skin_code_db(db_name: str, search_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        with conn:
+            conn.execute(f"CREATE TABLE IF NOT EXISTS skin_codes (skin_name TEXT PRIMARY KEY, skin_code TEXT)")
+            skin_name = search_name.rsplit(" (", 1)[0]
+            skin_code = conn.execute(f"SELECT skin_code FROM skin_codes WHERE skin_name = ?", (skin_name,)).fetchone()
+            if skin_code:
+                logger.info(f"skin code {skin_code[0]} exists for {skin_name}")
+                return skin_code[0]
+            else:
+                try:
+                    result = requests.get(f"https://steamcommunity.com/market/listings/730/{search_name}")
+                    skin_code = result.url.split('/')[-1]
+                    conn.execute(f"INSERT INTO skin_codes (skin_name, skin_code) Values(?, ?)", (skin_name, skin_code))
+                    logger.info(f"skin code {skin_code} for {skin_name} inserted into {db_name}")
+                    return skin_code
+                except Exception as e:
+                    logger.error(f"Error occurred while fetching scout code for {skin_name}: {e}")
+                    return None
+
 
 def clear_db_skins(db_name: str, skin_names: list):
     if not skin_names:
@@ -152,7 +174,7 @@ def load_data_db(skin_name: str, valid_listings: dict, db_name: str):
                 logger.error(f"Database error loading {skin_name}: {e}")
                 raise
 
-def create_table_db(db_name: str):
+def create_skin_table_db(db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("PRAGMA synchronous=NORMAL;") 
@@ -183,12 +205,13 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
 
     scan_limit = 0
     # Obtaining the skin's specific code.
-    try:
+    """try:
         scout_code = requests.get(f"https://steamcommunity.com/market/listings/730/{search_name}")
         scout_code = scout_code.url.split('/')[-1]
     except Exception as e:
         logger.error(f"Error occurred while fetching scout code for {search_name}: {e}")
-        return []
+        return []"""
+    scout_code = get_skin_code_db(SKIN_CODES_DB, search_name)
     #print(scout_code.text)
     Payload = [{
         "appid":730,
@@ -399,13 +422,14 @@ def price_check(skin_name: str, wlevel: int):
     skin_wear = wears[wlevel]
     search_name = f"{skin_name} {skin_wear}"
     logger.info(f"Searching for {skin_name}")
-    try:
+    """try:
         scout_code = requests.get(f"https://steamcommunity.com/market/listings/730/{search_name}")
         scout_code = scout_code.url.split('/')[-1]
         logger.info(f"Scout code of {search_name} is {scout_code}")
     except Exception as e:
         logger.error(f"Error occurred while fetching scout code for {search_name}: {e}")
-        return 0
+        return 0"""
+    scout_code = get_skin_code_db(SKIN_CODES_DB, search_name)
     Payload = [{
         "appid":730,
         "strItemName": scout_code, # Unique identifier, will have to calculate later
@@ -443,9 +467,9 @@ def price_check(skin_name: str, wlevel: int):
 
 if __name__ == "__main__":
     testing = True
-    temp_name = "Dual Berettas | Polished Malachite"
+    temp_name = "AK-47 | Ice Coaled"
     wlevel = 1
-    maximum_float = 0.086
-    maximum_price = 0.45
+    maximum_float = 0.1
+    maximum_price = 20.07
     print(price_check(temp_name, wlevel))
     # scouting_loop(testing, temp_name, wlevel, maximum_float, maximum_price)
