@@ -195,24 +195,10 @@ def price_conversion(salePriceText: str, price: float):
         converted_price = price / 100
     return converted_price
 
-def scout(search_name: str, wear: int, max_float: float, max_price: float, scraper_session: requests.Session, cookies: dict):
+def scout(search_name: str, wear: int, max_float: float, max_price: float, scraper_session: requests.Session, cookies: dict, scout_code: str):
     # List of availableSkins that will be returned.
     availableSkins = {}
-
-    # Skin Name
-    logger.info(f"Searching for {search_name}")
-    # skin_name = "AK-47 | Ice Coaled (Field-Tested)"
-
     scan_limit = 0
-    # Obtaining the skin's specific code.
-    """try:
-        scout_code = requests.get(f"https://steamcommunity.com/market/listings/730/{search_name}")
-        scout_code = scout_code.url.split('/')[-1]
-    except Exception as e:
-        logger.error(f"Error occurred while fetching scout code for {search_name}: {e}")
-        return []"""
-    scout_code = get_skin_code_db(SKIN_CODES_DB, search_name)
-    #print(scout_code.text)
     Payload = [{
         "appid":730,
         "strItemName": scout_code, # Unique identifier, will have to calculate later
@@ -230,16 +216,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
     except Exception as e:
         logger.error(f"Initial scout request failed for {search_name}: {e}")
         return {}
-    #print(scout_r.url)
-    #print(scout_r.status_code)
-    #print(f"JSON FILE IS: {scout_r.json()}")
-    #data = scout_r.json().get('listings', [])
-    #print(f"num listings: {len(data)}")
-
-    #print(f"WEBSITE OUTPUT: {scout_r.text}")
-    
     response_text = scout_r.text
-    #print(f"length of response_text: {len(response_text)}")
 
     if scout_r.status_code == 200:
         total_listings = scout_r.json().get('total_count', 0)
@@ -276,19 +253,12 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
             continue
         for mkt_pos, item in enumerate(data['listings']):
             listingID = item['listingid']
-            #print(listingID)
-            #price = item[1].get('converted_publisher_fee', 0) + item[1].get('converted_price', 0) + item[1].get('converted_steam_fee', 0)
             price = item['unPrice'] + item['unFee']
-            #print(price)
             if price:
                 price = float(price)
             else:
                 continue
-            
-            #assetID = item[1].get('asset').get('id')
-            #print(item.keys())
             properties = item['asset']['asset_properties']
-            #print(properties)
             dID = ''
             float_val = 1
             for prop in properties:
@@ -301,24 +271,13 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
                 if prop.get('propertyid') == 6:
                     dID = prop.get('string_value')
                     break
-            #print(f"fval: {float_val} | price: {price / 100} | max_price: {max_price}")
             salePriceText = item['strSubtotal']
-            #print(f"SALE PRICE TEXT: {salePriceText}")
-            # Price checking handled by the filter located in the header.
             converted_price = price_conversion(salePriceText, price)
-            #print(f"CONVERTED PRICE IN CAD: CA${converted_price}")
             if float_val < max_float:
                 availableSkins[listingID] = skinData(dID=dID, float_val=float_val, price=converted_price)
-                #availableSkins.append(Skin(listingID, converted_price, assetID, dID, float_val, mkt_pos + 20 * pg))
-            #else:
-                #print("Too High Float")
 
         logger.debug(f"Processed up to offset {offset + 20}...")
         time.sleep(random.uniform(12,15))
-    # for skin in availableSkins:
-        # print(skin.price)
-        # print(skin.float_val)
-        # print(f"___________________{skin.market_pos}")
     return availableSkins
 def setup_session_cookies():
     try:
@@ -347,8 +306,7 @@ def setup_session_cookies():
         logger.error("Steam session setup failure within setup_session_cookies")
         return []
 def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: float, maximum_price: float):
-    
-    #time.sleep(random.randint(3,50))
+    time.sleep(random.randint(3,20))
     # Dictionary containing all of the information on the skins
     # Stored as listingID for key
     # namedtuple containing the skin data like dID, float_val, and price
@@ -366,36 +324,30 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
         return
     skin_wear = wears[wlevel]
     search_name = f"{skin_name} {skin_wear}"
-    # processed_name = skin_name + wears[wlevel]
-    # processed_name = re.sub(r'[^0-9a-zA-Z]', '', processed_name)
-    # processed_name = f'"{processed_name}"'
     dbReadWrite = not isTesting
     load_data_db(search_name, valid_listings, DB_NAME)
     
     try:
         while True:
             try:
-                scout_results = scout(search_name, wlevel, maximum_float, maximum_price, scraper_session, cookies)
-                #print(f"THESE ARE THE SCOUT RESULTS {scout_results}")
-                #print(f"THESE ARE THE VALID LISTINGS {valid_listings}")
+                scout_code = get_skin_code_db(SKIN_CODES_DB, search_name)
+                if scout_code:
+                    scout_results = scout(search_name, wlevel, maximum_float, maximum_price, scraper_session, cookies, scout_code)
+                else:
+                    logger.error("could not access the scout_code in any form.")
+                    time.sleep(60)
+                    continue
                 if scout_results:
                     currentlyAvailableIDS = [lID for lID in scout_results]
-                    #print(currentlyAvailableIDS)
-                    # Update the valid_listings
-                    #print("LISTING UPDATE _______________________________________________________________________")
                     if dbReadWrite:
                         toRemoveIDs = []
                         for listingID in list(valid_listings):
                             if listingID not in currentlyAvailableIDS:
                                 toRemoveIDs.append((listingID,))
-                                #print(f"Listing {listingID} no longer present")
                                 del valid_listings[listingID]
-                            #else:
-                                #print(f"Listing {listingID} is still present")
                         del_missing_ID_db(search_name, toRemoveIDs, DB_NAME)
                     for listingID in scout_results:
                         valid_listings[listingID] = scout_results[listingID]
-                        #print(f"Price: {valid_listings[listingID].price} | Float: {valid_listings[listingID].float_val} | dID: {valid_listings[listingID].dID}")
                     if dbReadWrite:
                         write_db(search_name, valid_listings, DB_NAME)
                     logger.info(f"{skin_name} Loop complete. Resting to avoid rate limits...")
@@ -422,13 +374,6 @@ def price_check(skin_name: str, wlevel: int):
     skin_wear = wears[wlevel]
     search_name = f"{skin_name} {skin_wear}"
     logger.info(f"Searching for {skin_name}")
-    """try:
-        scout_code = requests.get(f"https://steamcommunity.com/market/listings/730/{search_name}")
-        scout_code = scout_code.url.split('/')[-1]
-        logger.info(f"Scout code of {search_name} is {scout_code}")
-    except Exception as e:
-        logger.error(f"Error occurred while fetching scout code for {search_name}: {e}")
-        return 0"""
     scout_code = get_skin_code_db(SKIN_CODES_DB, search_name)
     Payload = [{
         "appid":730,
