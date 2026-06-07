@@ -326,17 +326,16 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
     search_name = f"{skin_name} {skin_wear}"
     dbReadWrite = not isTesting
     load_data_db(search_name, valid_listings, DB_NAME)
+    scout_code = get_skin_code_db(SKIN_CODES_DB, search_name)
+    if not scout_code:
+        logger.error("could not access the scout_code in any form.")
+        time.sleep(60)
+        return
     
     try:
         while True:
             try:
-                scout_code = get_skin_code_db(SKIN_CODES_DB, search_name)
-                if scout_code:
-                    scout_results = scout(search_name, wlevel, maximum_float, maximum_price, scraper_session, cookies, scout_code)
-                else:
-                    logger.error("could not access the scout_code in any form.")
-                    time.sleep(60)
-                    continue
+                scout_results = scout(search_name, wlevel, maximum_float, maximum_price, scraper_session, cookies, scout_code)
                 if scout_results:
                     currentlyAvailableIDS = [lID for lID in scout_results]
                     if dbReadWrite:
