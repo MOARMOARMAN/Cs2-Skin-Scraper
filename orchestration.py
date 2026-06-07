@@ -1,7 +1,7 @@
 import time
 import logging
 
-from scouting import scouting_loop, create_table_db, clear_db_skins, price_check, wears
+from scouting import scouting_loop, create_skin_table_db, clear_db_skins, price_check, wears
 from batching import analyze_batch_loop
 from contextlib import closing
 from concurrent.futures import ThreadPoolExecutor
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     DB_NAME = "analyzed.db"
     load_dotenv()
     logger.info("Starting CS:GO Trading Bot...")
-    create_table_db(DB_NAME)
+    create_skin_table_db(DB_NAME)
     logger.info(f"Database initialized: {DB_NAME}")
     # Ask for skin name and max_float -> show skin price and ask for max_price
     # List of skins

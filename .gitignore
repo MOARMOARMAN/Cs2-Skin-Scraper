@@ -2,9 +2,9 @@
 venv/
 .vscode/
 __pycache__/
-*.db
-*.db-shm
-*.db-wal
+analyzed.db
+analyzed.db-shm
+analyzed.db-wal
 test.*
 unusedFunctions.py
 *.log
