@@ -19,7 +19,7 @@ class SkinDeal(BaseModel):
     skin_name: str = Field(description="The exact name of the skin this listing belongs to (e.g., 'AK-47 | Redline (Field-Tested)').")
     raw_price: float = Field(description="The current listed price of the asset.")
     raw_float: float = Field(description="The current precise float value of the asset.")
-    deal_justification: str = Field(description="A brief 1-sentence analytical breakdown explaining why this listing is mathematically a top-10 deal (e.g., 'Priced $4.50 under average market value with a cleaner-than-average float').")
+    deal_justification: str = Field(description="A brief 1-sentence analytical breakdown explaining why this listing is mathematically a top-10 deal (e.g., 'Only 0.1$ Price Overpay and $4.50 under average market value with a very low float value').")
 
 class TopSkinsResponse(BaseModel):
     deals: List[SkinDeal] = Field(description="A strictly ordered array containing exactly the 10 best market deals found in the data, sorted from best to worst.")
@@ -57,8 +57,8 @@ def gemini_return_top10(prompt: str):
         1. You must select exactly the top 10 best deals across all skins provided in the context, sorted from the absolute best deal to the fifth-best deal.
         2. A "Best Deal" is determined by a combined evaluation of Price Variance (Price Diff) and Float Variance (Float Diff):
         - Float Difference (Primary Weight): Listings where the Float Diff is highly negative (meaning the wear value is significantly lower/cleaner than the average float for that specific skin).
-        - Price Difference (Secondary Weight): Listings where the Price Diff is highly negative (meaning the listing price is significantly BELOW the average market price for that specific skin).
-        - Exceptionally underpriced items (large negative Price Diff) take highest priority. Items with a slightly negative or neutral Price Diff but an exceptionally low float (large negative Float Diff) represent "low-float over-paying opportunities" and should fill out the remaining deals.
+        - Price Deviation From AVG (Secondary Weight): Listings where the Price Diff is highly negative (meaning the listing price is significantly BELOW the average market price for that specific skin).
+        - Exceptionally underpriced items (Very close to 0 Price Overpay) take highest priority. Items with a slightly negative or neutral Price Diff but an exceptionally low float (large negative Float Diff) represent "low-float over-paying opportunities" and should fill out the remaining deals.
 
         OPERATIONAL SAFETY PIPELINE:
         - Do not make up, hallucinate, or extrapolate listings. Only choose IDs that explicitly exist in the provided Markdown tables.
@@ -90,40 +90,47 @@ def gemini_return_top10(prompt: str):
     except Exception as e:
         logger.error(f"Critical exception during Gemini generation: {e}")
     return best_deals
-def analyze_batch(db: str):
+def analyze_batch(db: str, lowest_market_prices: dict[str:float|str]):
     valid_skins = {}
     load_all_data_db(valid_skins, db)
     prompt = ""
     average = lambda num: sum(num) / len(num) if num else 0
-
+    logger.info(f"These are the lowest prices {lowest_market_prices}")
     for skin_name, listings in valid_skins.items():
+        lowest_price = lowest_market_prices.get(f"{skin_name}", "n/a")
         price_values = [listings[l].price for l in listings]
         float_values = [listings[l].float_val for l in listings]
         average_price = average(price_values)
         average_float = average(float_values)
         prompt += f"\nSkin Name: {skin_name}\n" 
         prompt += f"- Average Listing Price: {average_price}\n"
+        prompt += f"- Lowest Listing Price: {lowest_price}"
         prompt += f"- Average Listing Float Value: {average_float}\n\n"
-        prompt += "| Listing ID | Price Diff | Float Diff | Raw Price | Raw Float |\n"
-        prompt += "| :--- | ---: | ---: | ---: | ---: |\n"
+        prompt += "| Listing ID | Price Deviation From AVG | Price Overpay | Float Diff | Raw Price | Raw Float |\n"
+        prompt += "| :--- | ---: | ---: | ---: | ---: | ---: |\n"
         for id, data in listings.items():
             float_diff = data.float_val - average_float
-            price_diff = data.price - average_price
-            prompt += f"| {id} | {price_diff:.2f} | {float_diff:.6f} | {data.price:.2f} | {data.float_val:.6f} |\n"
+            price_deviation = data.price - average_price
+            if type(lowest_price) == float: 
+                price_overpay = round(data.price - lowest_price, 2)
+            else:
+                price_overpay = "N/A"
+            prompt += f"| {id} | {price_deviation:.2f} | {price_overpay} | {float_diff:.6f} | {data.price:.2f} | {data.float_val:.6f} |\n"
     if prompt:
         logger.info(f"Analyzing {len(valid_skins)} skins")
+        logger.info(prompt)
         result = gemini_return_top10(prompt)
         return result
     else:
         logger.warning("No data available for analysis")
         return []
     
-def analyze_batch_loop(db: str):
+def analyze_batch_loop(db: str, lowest_market_prices: dict[str:float|str]):
     time.sleep(100)
     logger.info("Starting analyze batch loop")
     while True:
         try:
-            best_10 = analyze_batch(db)
+            best_10 = analyze_batch(db, lowest_market_prices)
             logger.info(f"Here are the top {len(best_10)} deals")
             for listing in best_10:
                 logger.info(f"DEAL: {listing[1]} | Float: {listing[3]:.6f} | Price: ${listing[2]:.2f} | ID: {listing[0]}")
@@ -137,4 +144,3 @@ def analyze_batch_loop(db: str):
 if __name__ == "__main__":
     DB_NAME = "analyzed.db"
     load_dotenv()
-    print(analyze_batch_loop(DB_NAME))

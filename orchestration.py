@@ -46,6 +46,7 @@ if __name__ == "__main__":
     # SG 553 | Basket Halftone / 0.06
     # 
     skins = []
+    lowest_prices = {}
     user_input = input("Skin name / Max Float (Type ! to stop entering)\n")
     while user_input != "!":
         try:
@@ -59,7 +60,10 @@ if __name__ == "__main__":
                 continue
             max_price = 0
             while user_input != "no" and max_price == 0:
-                user_input = input(f"The current lowest price for {skin_name} at a wear of {wears[wlevel]} is {cur_lowest_price}\nPlease input a price maximum in CAD or type 'no' if you don't want this skin: ")
+                if type(cur_lowest_price) == float:
+                    user_input = input(f"The current lowest price for {skin_name} at a wear of {wears[wlevel]} is ${cur_lowest_price} CAD\nPlease input a price maximum in CAD or type 'no' if you don't want this skin: ")
+                else:
+                    user_input = input(f"The current lowest price for {skin_name} at a wear of {wears[wlevel]} is {cur_lowest_price}\nPlease input a price maximum in CAD or type 'no' if you don't want this skin: ")
                 try:
                     max_price = float(user_input.strip())
                 except:
@@ -68,6 +72,7 @@ if __name__ == "__main__":
             if user_input == "no":
                 user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
                 continue
+            lowest_prices[f"{skin_name} {wears[wlevel]}"] = cur_lowest_price
             skins.append([skin_name, max_price, max_float, wlevel])
             logger.info(f"Added skin to monitor: {skin_name} with max price {max_price} and max float {max_float} and wear {wears[wlevel]}")
             user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
@@ -90,7 +95,7 @@ if __name__ == "__main__":
     
     logger.info(f"Monitoring {len(skins)} skins with {len(skins) + 1} worker threads")
     with ThreadPoolExecutor(max_workers=len(skins) + 1) as executor:
-        executor.submit(analyze_batch_loop, DB_NAME)
+        executor.submit(analyze_batch_loop, DB_NAME, lowest_prices)
 
         for skin in skins:
             logger.info(f"Spawning scouting thread for {skin[0]} (wear level {wlevel})")

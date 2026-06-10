@@ -106,6 +106,7 @@ headers = {
 # skinData = namedtuple('skinData', ['dID', 'float_val', 'price'])
 skinData = namedtuple('skinData', ['dID', 'float_val', 'price'])
 
+
 def get_skin_code_db(db_name: str, search_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         with conn:
@@ -401,7 +402,7 @@ def price_check(skin_name: str, wlevel: int):
         if lowest_listing_price == converted_listing_price:
             return_subtotal = return_subtotal
         else:
-            return_subtotal = f"CA${converted_listing_price}"
+            return_subtotal = converted_listing_price
 
     except Exception as e:
         logger.error(f"No listings found or strSubtotal for {search_name}")
