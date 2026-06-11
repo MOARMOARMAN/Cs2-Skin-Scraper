@@ -1,200 +1,27 @@
+from typing import TYPE_CHECKING
 from collections import namedtuple
 import logging
-from math import e
-
-import requests
-import sqlite3
 import time
-import re
-import os
-from dotenv import load_dotenv
-import json
 import random
-from contextlib import closing
-from tenacity import retry, stop_after_attempt, wait_exponential_jitter, retry_if_exception_type
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('scout.log'),
-        logging.StreamHandler()
-    ]
+from shared import (
+    write_db, 
+    del_missing_ID_db, 
+    load_data_db, 
+    post_with_retry, 
+    wears, 
+    headers, 
+    skinData, 
+    setup_session_cookies, 
+    price_conversion, 
+    get_skin_code_db, 
+    SKIN_CODES_DB
 )
-# api_key = os.getenv("GEMINI_API_KEY")
-user_agent = os.getenv("STEAM_USER_AGENT")
-
-logger = logging.getLogger(__name__)
-
-# Helper to retry transient network errors on POST requests
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential_jitter(initial=1, max=10),
-    retry=retry_if_exception_type(requests.exceptions.RequestException),
-)
-def post_with_retry(session: requests.Session, url: str, json_payload: dict, headers: dict, cookies: dict, timeout: int = 15):
-    """POST with retries for transient network errors.
-
-    Raises the last requests exception when retries are exhausted.
-    """
-    resp = session.post(url, json=json_payload, headers=headers, cookies=cookies, timeout=timeout)
-    # If server replies with 5xx or 429, raise to trigger retry
-    if resp.status_code == 429 or resp.status_code > 500:
-        logger.warning(f"POST to {url} returned {resp.status_code}; raising to retry")
-        resp.raise_for_status()
-    elif resp.status_code == 500:
-        logger.info(f"POST to {url} returned 500; treating as empty response")
-        resp = requests.Response()
-    return resp
-
-
-# Helper to retry transient network errors on GET requests
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential_jitter(initial=1, max=10),
-    retry=retry_if_exception_type(requests.exceptions.RequestException),
-)
-def get_with_retry(session: requests.Session | None, url: str, headers: dict | None = None, timeout: int = 10):
-    """GET with retries for transient network errors.
-
-    If `session` is provided it will be used, otherwise `requests` module is used.
-    Raises the last requests exception when retries are exhausted.
-    """
-    sess = session if session is not None else requests
-    resp = sess.get(url, headers=headers, timeout=timeout)
-    if resp.status_code == 429 or resp.status_code > 500:
-        logger.warning(f"GET to {url} returned {resp.status_code}; raising to retry")
-        resp.raise_for_status()
-    elif resp.status_code == 500:
-        logger.info(f"GET to {url} returned 500; treating as empty response")
-        resp = requests.Response()
-    return resp
 
 DB_NAME = "analyzed.db"
-SKIN_CODES_DB = "skin_codes.db"
-# Tuple of Possible Wears
-wears = ("(Factory New)", "(Minimal Wear)", "(Field-Tested)", "(Well-Worn)", "(Battle-Scarred)")
-WEAR_RANGES = {
-    "(Factory New)": "(0 - 0.07)",
-    "(Minimal Wear)": "(0.07 - 0.15)",
-    "(Field-Tested)": "(0.15 - 0.38)",
-    "(Well-Worn)": "(0.38 - 0.45)",
-    "(Battle-Scarred)": "(0.45 - 1.00)"
-}
-CURRENCY_TO_CAD = {
-    "HKD": 0.177,   # 1 Hong Kong Dollar ~ 0.18 CAD
-    "USD": 1.370,   # 1 US Dollar ~ 1.37 CAD
-    "EUR": 1.480,   # 1 Euro ~ 1.48 CAD
-    "GBP": 1.740,   # 1 British Pound ~ 1.74 CAD
-    "CAD": 1.000    # Base currency fallback
-}
-headers = {
-    "Host": "steamcommunity.com",
-    "Origin": "https://steamcommunity.com",
-    # Just an Example, is updated later in the scouting loop
-    "Referer": "https://steamcommunity.com/market/listings/730/G1802208A0A3004",
-    "X-Requested-With": "XMLHttpRequest",
-    "Content-Type": "application/json; charset=utf-8",
-    # THE SECRET HANDSHAKE
-    "x-valve-action-type": "4OPT6VBA:Search",
-    "x-valve-request-type": "routeAction",
-    # MAPPING BROWSER ID
-    "User-Agent": user_agent,
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "same-origin",
-    "sec-fetch-dest": "empty"
-}
-# skinData = namedtuple('skinData', ['dID', 'float_val', 'price'])
-skinData = namedtuple('skinData', ['dID', 'float_val', 'price'])
+logger = logging.getLogger("Scouting")
 
-
-def get_skin_code_db(db_name: str, search_name: str):
-    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
-        with conn:
-            conn.execute(f"CREATE TABLE IF NOT EXISTS skin_codes (skin_name TEXT PRIMARY KEY, skin_code TEXT)")
-            skin_name = search_name.rsplit(" (", 1)[0]
-            skin_code = conn.execute(f"SELECT skin_code FROM skin_codes WHERE skin_name = ?", (skin_name,)).fetchone()
-            if skin_code:
-                logger.info(f"skin code {skin_code[0]} exists for {skin_name}")
-                return skin_code[0]
-            else:
-                try:
-                    result = requests.get(f"https://steamcommunity.com/market/listings/730/{search_name}")
-                    skin_code = result.url.split('/')[-1]
-                    conn.execute(f"INSERT INTO skin_codes (skin_name, skin_code) Values(?, ?)", (skin_name, skin_code))
-                    logger.info(f"skin code {skin_code} for {skin_name} inserted into {db_name}")
-                    return skin_code
-                except Exception as e:
-                    logger.error(f"Error occurred while fetching scout code for {skin_name}: {e}")
-                    return None
-
-
-def clear_db_skins(db_name: str, skin_names: list):
-    if not skin_names:
-        logger.error("skin_names provided to clear_db_skins is empty")
-        return 404
-    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
-        conn.execute("PRAGMA synchronous=NORMAL;")
-        with conn:
-            logger.debug(f"Clearing out database by deleting all listings not in {skin_names}")
-            placeholders = ",".join("?" for _ in skin_names)
-            conn.execute(f"DELETE FROM skin_listings WHERE skin_name NOT IN ({placeholders})", skin_names)
-    return 200
-
-
-def write_db(skin_name: str, valid_listings: dict, db_name: str):
-    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
-        conn.execute("PRAGMA synchronous=NORMAL;") 
-        with conn:
-            logger.debug(f"Writing {len(valid_listings)} listings for {skin_name} to database")
-            listingData = (
-                (lID, skin_name.strip('"'), data.dID, data.float_val, data.price)
-                for lID, data in valid_listings.items()
-            )
-            conn.executemany("INSERT OR REPLACE INTO skin_listings (listing_ID, skin_name, d_ID, float_val, price) VALUES(?, ?, ?, ?, ?)", listingData)
-
-def del_missing_ID_db(skin_name: str, gone_listingIDs: list, db_name: str):
-    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
-        conn.execute("PRAGMA synchronous=NORMAL;") 
-        with conn:
-            logger.debug(f"Deleting {len(gone_listingIDs)} missing listings for {skin_name} | {gone_listingIDs}")
-            delete_data = ((ID[0], skin_name) for ID in gone_listingIDs)
-            conn.executemany("DELETE FROM skin_listings WHERE listing_ID = ? AND skin_name = ?", delete_data)
-
-def load_data_db(skin_name: str, valid_listings: dict, db_name: str):
-    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
-        conn.execute("PRAGMA synchronous=NORMAL;") 
-        try:
-            stored_skins = conn.execute(f"SELECT listing_ID, price, d_ID, float_val FROM skin_listings WHERE skin_name = ?", (skin_name, )).fetchall()
-            logger.debug(f"Loaded {len(stored_skins)} stored listings for {skin_name}")
-            for skin in stored_skins:
-                valid_listings[skin[0]] = skinData(dID=skin[2], float_val=skin[3], price=skin[1])
-        except sqlite3.OperationalError as e:
-            if "no such table" in str(e):
-                logger.warning(f"Table skin_listings doesn't exist yet")
-            else:
-                logger.error(f"Database error loading {skin_name}: {e}")
-                raise
-
-def create_skin_table_db(db_name: str):
-    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
-        conn.execute("PRAGMA journal_mode=WAL;")
-        conn.execute("PRAGMA synchronous=NORMAL;") 
-        with conn:
-            conn.execute(f"CREATE TABLE IF NOT EXISTS skin_listings (listing_ID TEXT PRIMARY KEY, skin_name TEXT, d_ID TEXT, float_val REAL, price REAL)")
-            conn.execute(f"CREATE INDEX IF NOT EXISTS idx_skin_listings_skin_name ON skin_listings (skin_name)")
-
-def price_conversion(salePriceText: str, price: float):
-    if "CA" not in salePriceText:
-        #print("Needs Converting")
-        if "HK" in salePriceText:
-            converted_price = round(price * CURRENCY_TO_CAD["HKD"] / 100, 2)
-        elif "USD" in salePriceText:
-            converted_price = round(price * CURRENCY_TO_CAD["USD"] / 100, 2)
-        else:
-            converted_price = price / 100
-    else:
-        converted_price = price / 100
-    return converted_price
+if TYPE_CHECKING:
+    import requests
 
 def scout(search_name: str, wear: int, max_float: float, max_price: float, scraper_session: requests.Session, cookies: dict, scout_code: str):
     # List of availableSkins that will be returned.
@@ -280,32 +107,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
         logger.debug(f"Processed up to offset {offset + 20}...")
         time.sleep(random.uniform(12,15))
     return availableSkins
-def setup_session_cookies():
-    try:
-        scraper_session = requests.Session()
-        try:
-            scraper_session.get("https://steamcommunity.com/market/")
-        except Exception as e:
-            logger.error(f"Failed to initialize Steam market session: {e}")
-            return
-        logger.info("Session to Steam Created.")
-        session_id = scraper_session.cookies.get('sessionid', domain='steamcommunity.com')
-        if not session_id:
-            session_id = os.getenv("SESSION_ID_FALLBACK") # Your known good ID
-            if not session_id:
-                logger.error("Failed to retrieve session ID from environment variables.")
-                return
-            logger.warning("Using fallback session ID from environment")
-            scraper_session.cookies.set('sessionid', session_id, domain='steamcommunity.com')
-        cookies = {
-            "sessionid": session_id,
-            "timezoneName": "America/New_York",
-        }
-        scraper_session.cookies.update(cookies)
-        return [scraper_session, cookies]
-    except Exception as e:
-        logger.error("Steam session setup failure within setup_session_cookies")
-        return []
+
 def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: float, maximum_price: float):
     time.sleep(random.randint(3,20))
     # Dictionary containing all of the information on the skins
@@ -362,53 +164,6 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
     # This runs before the script fully closes.
     finally:
         logger.info(f"{skin_name} scraping loop ended.")
-def price_check(skin_name: str, wlevel: int):
-    session_cookies = setup_session_cookies()
-    if not session_cookies:
-        logger.error("Session setup failed and resulted in empty session and cookies")
-        return 0
-    else:
-        logger.info(f"Session connected successfully to steam for {skin_name}")
-    scraper_session = session_cookies[0]
-    cookies = session_cookies[1]
-    skin_wear = wears[wlevel]
-    search_name = f"{skin_name} {skin_wear}"
-    logger.info(f"Searching for {skin_name}")
-    scout_code = get_skin_code_db(SKIN_CODES_DB, search_name)
-    Payload = [{
-        "appid":730,
-        "strItemName": scout_code, # Unique identifier, will have to calculate later
-        "sort":{"field":0,"direction":0},
-        "filters":{"category_730_Exterior":[f"tag_WearCategory{wlevel}"]}, # Set these using the inputs
-        "accessoryFilters":{},
-        "propertyFilters":{},
-        # "unMax":max_price * 100
-        "price":{"eCurrency":20},
-        "start": 0,
-    }]
-    # Steam forces 20 listings at a time.
-    headers["Referer"] = f"https://steamcommunity.com/market/listings/730/{scout_code}"
-    try:
-        scout_r = post_with_retry(scraper_session, f"https://steamcommunity.com/market/listings/730/{scout_code}", Payload, headers, cookies) # type: ignore
-    except Exception as e:
-        logger.error(f"Initial scout request failed for {search_name}: {e}")
-        return 0
-    return_subtotal = ""
-    try:
-        lowest_listing = scout_r.json().get('listings', 0)[0]
-        lowest_listing_subtotal = lowest_listing.get('strSubtotal')
-        lowest_listing_price = lowest_listing.get('unPrice', 0) + lowest_listing.get('unFee', 0)
-        converted_listing_price = price_conversion(lowest_listing_subtotal, lowest_listing_price)
-        if lowest_listing_price == converted_listing_price:
-            return_subtotal = return_subtotal
-        else:
-            return_subtotal = converted_listing_price
-
-    except Exception as e:
-        logger.error(f"No listings found or strSubtotal for {search_name}")
-        return f"No Listings Found for {search_name}"
-    
-    return return_subtotal
 
 if __name__ == "__main__":
     testing = True
@@ -416,5 +171,4 @@ if __name__ == "__main__":
     wlevel = 1
     maximum_float = 0.1
     maximum_price = 20.07
-    print(price_check(temp_name, wlevel))
     # scouting_loop(testing, temp_name, wlevel, maximum_float, maximum_price)

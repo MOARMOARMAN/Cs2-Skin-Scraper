@@ -1,18 +1,14 @@
-import sqlite3
 import time
-import random
 import os
 import logging
-from dotenv import load_dotenv
-from contextlib import closing
-from scouting import skinData
 from google import genai
 from google.genai import types, errors
 from pydantic import BaseModel, Field
 from typing import List
-from tenacity import retry, stop_after_attempt, wait_exponential_jitter, retry_if_exception_type
+from tenacity import retry, wait_exponential_jitter, retry_if_exception_type
+from shared import load_all_data_db
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("Batching")
 
 class SkinDeal(BaseModel):
     listing_id: str = Field(description="The unique alphanumeric identifier of the specific listing row.")
@@ -23,23 +19,6 @@ class SkinDeal(BaseModel):
 
 class TopSkinsResponse(BaseModel):
     deals: List[SkinDeal] = Field(description="A strictly ordered array containing exactly the 10 best market deals found in the data, sorted from best to worst.")
-
-def load_all_data_db(valid_skins: dict, db_name: str):
-    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
-        conn.execute("PRAGMA synchronous=NORMAL;") 
-        try:
-            stored_skins = conn.execute(f"SELECT skin_name, listing_ID, price, d_ID, float_val FROM skin_listings").fetchall()
-            logger.debug(f"Loaded {len(stored_skins)} total listings from database")
-            for skin in stored_skins:
-                if skin[0] not in valid_skins:
-                    valid_skins[skin[0]] = {}
-                valid_skins[skin[0]][skin[1]] = skinData(dID=skin[3], float_val=skin[4], price=skin[2])
-        except sqlite3.OperationalError as e:
-            if "no such table" in str(e):
-                logger.warning(f"Table skin_listings doesn't exist yet")
-            else:
-                logger.error(f"Database error: {e}")
-                raise   
 
 @retry(retry=retry_if_exception_type(errors.APIError), wait=wait_exponential_jitter(initial=5, max=200))
 def gemini_return_top10(prompt: str):
@@ -74,7 +53,7 @@ def gemini_return_top10(prompt: str):
                     system_instruction=instructions,
                     response_mime_type="application/json",
                     response_schema=TopSkinsResponse,
-                    temperature=0.1,
+                    temperature=0,
                 ),
             )
         print("Worker Thread: Response received successfully from Gemini.")
@@ -90,6 +69,7 @@ def gemini_return_top10(prompt: str):
     except Exception as e:
         logger.error(f"Critical exception during Gemini generation: {e}")
     return best_deals
+
 def analyze_batch(db: str, lowest_market_prices: dict[str:float|str]):
     valid_skins = {}
     load_all_data_db(valid_skins, db)
@@ -143,4 +123,3 @@ def analyze_batch_loop(db: str, lowest_market_prices: dict[str:float|str]):
 
 if __name__ == "__main__":
     DB_NAME = "analyzed.db"
-    load_dotenv()
