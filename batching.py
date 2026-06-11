@@ -19,7 +19,7 @@ class SkinDeal(BaseModel):
     skin_name: str = Field(description="The exact name of the skin this listing belongs to (e.g., 'AK-47 | Redline (Field-Tested)').")
     raw_price: float = Field(description="The current listed price of the asset.")
     raw_float: float = Field(description="The current precise float value of the asset.")
-    deal_justification: str = Field(description="A brief 1-sentence analytical breakdown explaining why this listing is mathematically a top-10 deal (e.g., 'Only 0.1$ Price Overpay and $4.50 under average market value with a very low float value').")
+    deal_justification: str = Field(description="A brief 1-sentence analytical breakdown explaining why this listing is mathematically a top-10 deal (e.g., 'Only 0.1% Price Overpay and 4.50 percent under average market value with a very low float value').")
 
 class TopSkinsResponse(BaseModel):
     deals: List[SkinDeal] = Field(description="A strictly ordered array containing exactly the 10 best market deals found in the data, sorted from best to worst.")
@@ -110,12 +110,12 @@ def analyze_batch(db: str, lowest_market_prices: dict[str:float|str]):
         prompt += "| :--- | ---: | ---: | ---: | ---: | ---: |\n"
         for id, data in listings.items():
             float_diff = data.float_val - average_float
-            price_deviation = data.price - average_price
+            price_deviation = (data.price - average_price) / average_price * 100
             if type(lowest_price) == float: 
-                price_overpay = round(data.price - lowest_price, 2)
+                price_overpay = round((data.price - lowest_price) / lowest_price * 100, 2)
             else:
                 price_overpay = "N/A"
-            prompt += f"| {id} | {price_deviation:.2f} | {price_overpay} | {float_diff:.6f} | {data.price:.2f} | {data.float_val:.6f} |\n"
+            prompt += f"| {id} | {price_deviation:.2f}% | {price_overpay}% | {float_diff:.6f} | {data.price:.2f} | {data.float_val:.6f} |\n"
     if prompt:
         logger.info(f"Analyzing {len(valid_skins)} skins")
         logger.info(prompt)
