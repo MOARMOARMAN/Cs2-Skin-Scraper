@@ -1,6 +1,6 @@
 import logging
 from scouting import scouting_loop
-from shared import (
+from utilities import (
     create_skin_table_db, 
     clear_db_skins, 
     get_skin_code_db, 

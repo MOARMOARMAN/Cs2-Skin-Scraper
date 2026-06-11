@@ -1,7 +1,7 @@
 import sqlite3
 import logging
 from contextlib import closing
-from .utils import get_with_retry, headers, skinData
+from .assorted_utils import get_with_retry, headers, skinData
 
 logger = logging.getLogger("CS2-System.DB")
 

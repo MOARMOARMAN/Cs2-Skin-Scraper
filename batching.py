@@ -6,7 +6,7 @@ from google.genai import types, errors
 from pydantic import BaseModel, Field
 from typing import List
 from tenacity import retry, wait_exponential_jitter, retry_if_exception_type
-from shared import load_all_data_db
+from utilities import load_all_data_db
 
 logger = logging.getLogger("Batching")
 
