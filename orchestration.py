@@ -1,37 +1,20 @@
-import time
 import logging
-
-from scouting import scouting_loop, create_skin_table_db, clear_db_skins, price_check, wears
-from batching import analyze_batch_loop
-from contextlib import closing
-from concurrent.futures import ThreadPoolExecutor
-from dotenv import load_dotenv
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('bot.log'),
-        logging.StreamHandler()
-    ]
+from scouting import scouting_loop
+from shared import (
+    create_skin_table_db, 
+    clear_db_skins, 
+    get_skin_code_db, 
+    price_check, 
+    wears, 
+    what_wear
 )
+from batching import analyze_batch_loop
+from concurrent.futures import ThreadPoolExecutor
 
-def what_wear(float_val: float):
-    if float_val < 0.07:
-        return 0
-    elif float_val < 0.15:
-        return 1
-    elif float_val < 0.38:
-        return 2
-    elif float_val < 0.45:
-        return 3
-    else:
-        return 4
+logger = logging.getLogger("Orchestration")
 
-logger = logging.getLogger(__name__)
 if __name__ == "__main__":
     DB_NAME = "analyzed.db"
-    load_dotenv()
     logger.info("Starting CS:GO Trading Bot...")
     create_skin_table_db(DB_NAME)
     logger.info(f"Database initialized: {DB_NAME}")
@@ -54,7 +37,7 @@ if __name__ == "__main__":
             skin_name = skin_name.strip()
             max_float = float(max_float.strip())
             wlevel = what_wear(max_float)
-            cur_lowest_price = price_check(skin_name, wlevel)
+            cur_lowest_price = price_check(skin_name, wlevel, get_skin_code_db)
             if not cur_lowest_price:
                 print(f"There are currently no listings for {skin_name} {wears[wlevel]}")
                 continue
