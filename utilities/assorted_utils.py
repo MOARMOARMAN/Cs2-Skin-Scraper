@@ -167,7 +167,6 @@ def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable):
         "filters":{"category_730_Exterior":[f"tag_WearCategory{wlevel}"]}, # Set these using the inputs
         "accessoryFilters":{},
         "propertyFilters":{},
-        # "unMax":max_price * 100
         "price":{"eCurrency":20},
         "start": 0,
     }]

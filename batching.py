@@ -6,7 +6,7 @@ from google.genai import types, errors
 from pydantic import BaseModel, Field
 from typing import List
 from tenacity import retry, wait_exponential_jitter, retry_if_exception_type
-from utilities import load_all_data_db
+from utilities import load_all_data_listings_db
 
 logger = logging.getLogger("Batching")
 
@@ -72,7 +72,7 @@ def gemini_return_top10(prompt: str):
 
 def analyze_batch(db: str, lowest_market_prices: dict[str:float|str]):
     valid_skins = {}
-    load_all_data_db(valid_skins, db)
+    load_all_data_listings_db(valid_skins, db)
     prompt = ""
     average = lambda num: sum(num) / len(num) if num else 0
     logger.info(f"These are the lowest prices {lowest_market_prices}")

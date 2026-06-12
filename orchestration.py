@@ -81,5 +81,5 @@ if __name__ == "__main__":
         executor.submit(analyze_batch_loop, DB_NAME, lowest_prices)
 
         for skin in skins:
-            logger.info(f"Spawning scouting thread for {skin[0]} (wear level {wlevel})")
+            logger.info(f"Spawning scouting thread for {skin[0]} (wear level {skin[3]})")
             executor.submit(scouting_loop, False, skin[0], skin[3], skin[2], skin[1])

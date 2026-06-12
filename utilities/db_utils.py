@@ -1,3 +1,4 @@
+from asyncio import timeout
 import sqlite3
 import logging
 from contextlib import closing
@@ -45,18 +46,18 @@ def clear_db_skins(db_name: str, skin_names: list):
             conn.execute(f"DELETE FROM skin_listings WHERE skin_name NOT IN ({placeholders})", skin_names)
     return 200
 
-def write_db(skin_name: str, valid_listings: dict, db_name: str):
+def write_listings_db(skin_name: str, valid_listings: dict, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
         with conn:
             logger.debug(f"Writing {len(valid_listings)} listings for {skin_name} to database")
-            listingData = (
+            listingData = tuple(
                 (lID, skin_name.strip('"'), data.dID, data.float_val, data.price)
                 for lID, data in valid_listings.items()
             )
             conn.executemany("INSERT OR REPLACE INTO skin_listings (listing_ID, skin_name, d_ID, float_val, price) VALUES(?, ?, ?, ?, ?)", listingData)
 
-def del_missing_ID_db(skin_name: str, gone_listingIDs: list, db_name: str):
+def del_missing_ID_listing_db(skin_name: str, gone_listingIDs: list, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
         with conn:
@@ -65,7 +66,7 @@ def del_missing_ID_db(skin_name: str, gone_listingIDs: list, db_name: str):
             conn.executemany("DELETE FROM skin_listings WHERE listing_ID = ? AND skin_name = ?", delete_data)
 
 # For loading data of an individual skin. (scout)
-def load_data_db(skin_name: str, valid_listings: dict, db_name: str):
+def load_data_listings_db(skin_name: str, valid_listings: dict, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
         try:
@@ -81,7 +82,7 @@ def load_data_db(skin_name: str, valid_listings: dict, db_name: str):
                 raise
 
 # For loading data of the entire database. (batch)
-def load_all_data_db(valid_skins: dict, db_name: str):
+def load_all_data_listings_db(valid_skins: dict, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
         try:
@@ -97,3 +98,15 @@ def load_all_data_db(valid_skins: dict, db_name: str):
             else:
                 logger.error(f"Database error: {e}")
                 raise   
+
+def insert_listings_info_db(lowest_prices: list[list[float]], skin_name: list[str], skin_codes: list[str], min_float: list[float], max_float: list[float], db_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        with conn:
+            logger.debug(f"Writing {len(lowest_prices)} listings to database")
+            values = tuple(
+                (skin_name[index], skin_codes[index], *lowest_prices[index]) 
+                for index in range(0, lowest_prices)
+            )
+            conn.executemany("INSERT OR REPLACE INTO listings_info (skin_name, skin_code, fn, mw, ft, ww, bs) VALUES(?, ?, ?, ?, ?, ?, ?)", values)
+                

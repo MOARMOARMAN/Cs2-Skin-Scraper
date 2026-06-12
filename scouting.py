@@ -4,9 +4,9 @@ import logging
 import time
 import random
 from utilities import (
-    write_db, 
-    del_missing_ID_db, 
-    load_data_db, 
+    write_listings_db, 
+    del_missing_ID_listing_db, 
+    load_data_listings_db, 
     post_with_retry, 
     wears, 
     headers, 
@@ -128,7 +128,7 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
     skin_wear = wears[wlevel]
     search_name = f"{skin_name} {skin_wear}"
     dbReadWrite = not isTesting
-    load_data_db(search_name, valid_listings, DB_NAME)
+    load_data_listings_db(search_name, valid_listings, DB_NAME)
     scout_code = get_skin_code_db(SKIN_CODES_DB, search_name)
     if not scout_code:
         logger.error("could not access the scout_code in any form.")
@@ -147,11 +147,11 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
                             if listingID not in currentlyAvailableIDS:
                                 toRemoveIDs.append((listingID,))
                                 del valid_listings[listingID]
-                        del_missing_ID_db(search_name, toRemoveIDs, DB_NAME)
+                        del_missing_ID_listing_db(search_name, toRemoveIDs, DB_NAME)
                     for listingID in scout_results:
                         valid_listings[listingID] = scout_results[listingID]
                     if dbReadWrite:
-                        write_db(search_name, valid_listings, DB_NAME)
+                        write_listings_db(search_name, valid_listings, DB_NAME)
                     logger.info(f"{skin_name} Loop complete. Resting to avoid rate limits...")
                 time.sleep(random.randint(120, 180))
             except Exception as e:
