@@ -136,6 +136,10 @@ def setup_session_cookies():
         logger.error("Steam session setup failure within setup_session_cookies")
         return []
 
+def get_skin_code(search_name: str):
+    response = get_with_retry(None, url=f"https://steamcommunity.com/market/listings/730/{search_name}", headers=headers)
+    return response.url.split("/")[-1]
+
 def price_conversion(salePriceText: str, price: float):
     if "CA" not in salePriceText:
         #print("Needs Converting")
@@ -147,7 +151,7 @@ def price_conversion(salePriceText: str, price: float):
         converted_price = price / 100
     return converted_price
 
-def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable):
+def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_code: str|None = None):
     session_cookies = setup_session_cookies()
     if not session_cookies:
         logger.error("Session setup failed and resulted in empty session and cookies")
@@ -159,7 +163,8 @@ def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable):
     skin_wear = wears[wlevel]
     search_name = f"{skin_name} {skin_wear}"
     logger.info(f"Searching for {skin_name}")
-    scout_code = get_skin_code_db(SKIN_CODES_DB, search_name)
+    if not scout_code:
+        scout_code = get_skin_code_db(SKIN_CODES_DB, search_name)
     Payload = [{
         "appid":730,
         "strItemName": scout_code, # Unique identifier, will have to calculate later
@@ -185,12 +190,12 @@ def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable):
         logger.info(f"Converting {lowest_listing_subtotal}")
         converted_listing_price = price_conversion(lowest_listing_subtotal, lowest_listing_price)
         if lowest_listing_price == converted_listing_price:
-            return_subtotal = return_subtotal
+            return_subtotal = lowest_listing_price
         else:
             return_subtotal = converted_listing_price
 
     except Exception as e:
         logger.error(f"No listings found or strSubtotal for {search_name}")
-        return f"No Listings Found for {search_name}"
+        return -1
     
     return return_subtotal

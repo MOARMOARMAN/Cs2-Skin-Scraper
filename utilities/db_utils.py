@@ -2,7 +2,7 @@ from asyncio import timeout
 import sqlite3
 import logging
 from contextlib import closing
-from .assorted_utils import get_with_retry, headers, skinData
+from .assorted_utils import headers, skinData, get_skin_code
 
 logger = logging.getLogger("CS2-System.DB")
 
@@ -17,8 +17,7 @@ def get_skin_code_db(db_name: str, search_name: str):
                 return skin_code[0]
             else:
                 try:
-                    result = get_with_retry(url=f"https://steamcommunity.com/market/listings/730/{search_name}", headers=headers, timeout=10)
-                    skin_code = result.url.split('/')[-1]
+                    skin_code = get_skin_code(search_name)
                     conn.execute(f"INSERT INTO skin_codes (skin_name, skin_code) Values(?, ?)", (skin_name, skin_code))
                     logger.info(f"skin code {skin_code} for {skin_name} inserted into {db_name}")
                     return skin_code
@@ -99,14 +98,15 @@ def load_all_data_listings_db(valid_skins: dict, db_name: str):
                 logger.error(f"Database error: {e}")
                 raise   
 
-def insert_listings_info_db(lowest_prices: list[list[float]], skin_name: list[str], skin_codes: list[str], min_float: list[float], max_float: list[float], db_name: str):
+def insert_listings_info_db(lowest_prices: list[list[float]], skins: list[dict], skin_codes: list[str], db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
+            conn.execute(f"CREATE TABLE IF NOT EXISTS skin_info (skin_name TEXT, skin_code TEXT PRIMARY KEY, fn REAL, mw REAL, ft REAL, ww REAL, bs REAL, rarity TEXT, collection TEXT, min_wear REAL, max_wear REAL)")
             logger.debug(f"Writing {len(lowest_prices)} listings to database")
             values = tuple(
-                (skin_name[index], skin_codes[index], *lowest_prices[index]) 
-                for index in range(0, lowest_prices)
+                (skins[index]["name"], skin_codes[index], *lowest_prices[index], skins[index]["rarity"], skins[index]["collection"], skins[index]["min_wear"], skins[index]["max_wear"]) 
+                for index in range(0, len(lowest_prices))
             )
-            conn.executemany("INSERT OR REPLACE INTO listings_info (skin_name, skin_code, fn, mw, ft, ww, bs) VALUES(?, ?, ?, ?, ?, ?, ?)", values)
+            conn.executemany("INSERT OR REPLACE INTO skin_info (skin_name, skin_code, fn, mw, ft, ww, bs, rarity, collection, min_wear, max_wear) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
                 

@@ -43,10 +43,7 @@ if __name__ == "__main__":
                 continue
             max_price = 0
             while user_input != "no" and max_price == 0:
-                if type(cur_lowest_price) == float:
-                    user_input = input(f"The current lowest price for {skin_name} at a wear of {wears[wlevel]} is ${cur_lowest_price} CAD\nPlease input a price maximum in CAD or type 'no' if you don't want this skin: ")
-                else:
-                    user_input = input(f"The current lowest price for {skin_name} at a wear of {wears[wlevel]} is {cur_lowest_price}\nPlease input a price maximum in CAD or type 'no' if you don't want this skin: ")
+                user_input = input(f"The current lowest price for {skin_name} at a wear of {wears[wlevel]} is ${cur_lowest_price} CAD\nPlease input a price maximum in CAD or type 'no' if you don't want this skin: ")
                 try:
                     max_price = float(user_input.strip())
                 except:
