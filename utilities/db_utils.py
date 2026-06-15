@@ -102,11 +102,11 @@ def insert_listings_info_db(lowest_prices: list[list[float]], skins: list[dict],
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
-            conn.execute(f"CREATE TABLE IF NOT EXISTS skin_info (skin_name TEXT, skin_code TEXT PRIMARY KEY, fn REAL, mw REAL, ft REAL, ww REAL, bs REAL, rarity TEXT, collection TEXT, min_wear REAL, max_wear REAL)")
+            conn.execute(f"CREATE TABLE IF NOT EXISTS skin_data (skin_name TEXT PRIMARY KEY, skin_code TEXT, fn REAL, mw REAL, ft REAL, ww REAL, bs REAL, rarity TEXT, collection TEXT, min_wear REAL, max_wear REAL)")
             logger.debug(f"Writing {len(lowest_prices)} listings to database")
             values = tuple(
                 (skins[index]["name"], skin_codes[index], *lowest_prices[index], skins[index]["rarity"], skins[index]["collection"], skins[index]["min_wear"], skins[index]["max_wear"]) 
                 for index in range(0, len(lowest_prices))
             )
-            conn.executemany("INSERT OR REPLACE INTO skin_info (skin_name, skin_code, fn, mw, ft, ww, bs, rarity, collection, min_wear, max_wear) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
+            conn.executemany("INSERT OR REPLACE INTO skin_data (skin_name, skin_code, fn, mw, ft, ww, bs, rarity, collection, min_wear, max_wear) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
                 

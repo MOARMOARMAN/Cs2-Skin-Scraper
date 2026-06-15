@@ -5,6 +5,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential_jitter, retry_i
 from collections import namedtuple
 from typing import Callable
 
+SKIN_DATA_DB = "skin_data.db"
 SKIN_CODES_DB = "skin_codes.db"
 logging.basicConfig(
     level=logging.INFO,

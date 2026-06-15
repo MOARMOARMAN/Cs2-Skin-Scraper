@@ -1,7 +1,7 @@
 # What do I want to do?
 # I want to scrape data of every single skin that exists.
+from contextlib import closing
 import httpx
-import time
 import random
 from httpx import AsyncClient
 from utilities import price_check, insert_listings_info_db, wears, get_skin_code_db
@@ -9,7 +9,8 @@ import csv
 import asyncio
 import httpx
 from urllib.parse import quote
-import re
+import sqlite3
+import time
 
 # name: str
 # collection: str
@@ -54,8 +55,14 @@ if __name__ == "__main__":
     with open("skin_names.csv", newline="\n", encoding="UTF-8") as f:
         csvr = csv.DictReader(f, lineterminator="\n", fieldnames=["name", "collection", "min_wear", "max_wear", "rarity"])
         skins = list(csvr)
-    results = asyncio.run(get_all_codes(skins))
+    with closing(sqlite3.connect("skin_data.db")) as conn:
+        result = conn.execute("SELECT skin_name FROM skin_data").fetchall()
     prices = []
+    names = [n[0] for n in result]
+    good_skins = [skin for skin in skins if skin["name"] in names]
+    print(names)
+    results = asyncio.run(get_all_codes(good_skins))
+    print(results)
     for index, code in enumerate(results):
         fn = price_check(skins[index]["name"], 0, get_skin_code_db, code)
         time.sleep(random.uniform(1, 4))
@@ -68,6 +75,6 @@ if __name__ == "__main__":
         bs = price_check(skins[index]["name"], 4, get_skin_code_db, code)
         time.sleep(random.uniform(1, 10))
         prices.append([fn, mw, ft, ww, bs])
-    insert_listings_info_db(prices, skins, results, "skin_info.db")
+    insert_listings_info_db(prices, good_skins, results, "skin_data.db")
 
 
