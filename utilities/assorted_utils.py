@@ -6,7 +6,6 @@ from collections import namedtuple
 from typing import Callable
 
 SKIN_DATA_DB = "skin_data.db"
-SKIN_CODES_DB = "skin_codes.db"
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -165,7 +164,7 @@ def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_c
     search_name = f"{skin_name} {skin_wear}"
     logger.info(f"Searching for {skin_name}")
     if not scout_code:
-        scout_code = get_skin_code_db(SKIN_CODES_DB, search_name)
+        scout_code = get_skin_code_db(SKIN_DATA_DB, search_name)
     Payload = [{
         "appid":730,
         "strItemName": scout_code, # Unique identifier, will have to calculate later

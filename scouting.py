@@ -14,7 +14,7 @@ from utilities import (
     setup_session_cookies, 
     price_conversion, 
     get_skin_code_db, 
-    SKIN_CODES_DB
+    SKIN_DATA_DB
 )
 
 DB_NAME = "analyzed.db"
@@ -129,7 +129,7 @@ def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: f
     search_name = f"{skin_name} {skin_wear}"
     dbReadWrite = not isTesting
     load_data_listings_db(search_name, valid_listings, DB_NAME)
-    scout_code = get_skin_code_db(SKIN_CODES_DB, search_name)
+    scout_code = get_skin_code_db(SKIN_DATA_DB, search_name)
     if not scout_code:
         logger.error("could not access the scout_code in any form.")
         time.sleep(60)

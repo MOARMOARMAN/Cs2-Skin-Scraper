@@ -8,30 +8,27 @@ logger = logging.getLogger("CS2-System.DB")
 
 def get_skin_code_db(db_name: str, search_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
-        with conn:
-            conn.execute(f"CREATE TABLE IF NOT EXISTS skin_codes (skin_name TEXT PRIMARY KEY, skin_code TEXT)")
-            skin_name = search_name.rsplit(" (", 1)[0]
-            skin_code = conn.execute(f"SELECT skin_code FROM skin_codes WHERE skin_name = ?", (skin_name,)).fetchone()
-            if skin_code:
-                logger.info(f"skin code {skin_code[0]} exists for {skin_name}")
-                return skin_code[0]
-            else:
-                try:
-                    skin_code = get_skin_code(search_name)
-                    conn.execute(f"INSERT INTO skin_codes (skin_name, skin_code) Values(?, ?)", (skin_name, skin_code))
-                    logger.info(f"skin code {skin_code} for {skin_name} inserted into {db_name}")
-                    return skin_code
-                except Exception as e:
-                    logger.error(f"Error occurred while fetching scout code for {skin_name}: {e}")
-                    return None
+        skin_name = search_name.rsplit(" (", 1)[0]
+        skin_code = conn.execute(f"SELECT skin_code FROM skin_data WHERE skin_name = ?", (skin_name,)).fetchone()
+        if skin_code:
+            logger.info(f"skin code {skin_code[0]} exists for {skin_name}")
+            return skin_code[0]
+        else:
+            try:
+                skin_code = get_skin_code(search_name)
+                logger.info(f"skin code {skin_code} for {skin_name} retrieved")
+                return skin_code
+            except Exception as e:
+                logger.error(f"Error occurred while fetching scout code for {skin_name}: {e}")
+                return None
 
 def create_skin_table_db(db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("PRAGMA synchronous=NORMAL;") 
         with conn:
-            conn.execute(f"CREATE TABLE IF NOT EXISTS skin_listings (listing_ID TEXT PRIMARY KEY, skin_name TEXT, d_ID TEXT, float_val REAL, price REAL)")
-            conn.execute(f"CREATE INDEX IF NOT EXISTS idx_skin_listings_skin_name ON skin_listings (skin_name)")
+            conn.execute("CREATE TABLE IF NOT EXISTS skin_listings (listing_ID TEXT PRIMARY KEY, skin_name TEXT, d_ID TEXT, float_val REAL, price REAL)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_skin_listings_skin_name ON skin_listings (skin_name)")
 
 def clear_db_skins(db_name: str, skin_names: list):
     if not skin_names:
@@ -69,13 +66,13 @@ def load_data_listings_db(skin_name: str, valid_listings: dict, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
         try:
-            stored_skins = conn.execute(f"SELECT listing_ID, price, d_ID, float_val FROM skin_listings WHERE skin_name = ?", (skin_name, )).fetchall()
+            stored_skins = conn.execute("SELECT listing_ID, price, d_ID, float_val FROM skin_listings WHERE skin_name = ?", (skin_name, )).fetchall()
             logger.debug(f"Loaded {len(stored_skins)} stored listings for {skin_name}")
             for skin in stored_skins:
                 valid_listings[skin[0]] = skinData(dID=skin[2], float_val=skin[3], price=skin[1])
         except sqlite3.OperationalError as e:
             if "no such table" in str(e):
-                logger.warning(f"Table skin_listings doesn't exist yet")
+                logger.warning("Table skin_listings doesn't exist yet")
             else:
                 logger.error(f"Database error loading {skin_name}: {e}")
                 raise
@@ -85,7 +82,7 @@ def load_all_data_listings_db(valid_skins: dict, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
         try:
-            stored_skins = conn.execute(f"SELECT skin_name, listing_ID, price, d_ID, float_val FROM skin_listings").fetchall()
+            stored_skins = conn.execute("SELECT skin_name, listing_ID, price, d_ID, float_val FROM skin_listings").fetchall()
             logger.debug(f"Loaded {len(stored_skins)} total listings from database")
             for skin in stored_skins:
                 if skin[0] not in valid_skins:
@@ -93,16 +90,37 @@ def load_all_data_listings_db(valid_skins: dict, db_name: str):
                 valid_skins[skin[0]][skin[1]] = skinData(dID=skin[3], float_val=skin[4], price=skin[2])
         except sqlite3.OperationalError as e:
             if "no such table" in str(e):
-                logger.warning(f"Table skin_listings doesn't exist yet")
+                logger.warning("Table skin_listings doesn't exist yet")
             else:
                 logger.error(f"Database error: {e}")
                 raise   
+
+def create_skin_data_table_db(db_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        with conn:
+            conn.execute("CREATE TABLE IF NOT EXISTS skin_data (skin_name TEXT PRIMARY KEY, skin_code TEXT, fn REAL, mw REAL, ft REAL, ww REAL, bs REAL, rarity TEXT, collection TEXT, min_wear REAL, max_wear REAL)")
+
+def populate_names_skin_data_db(names: list, db_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        with conn:
+            values = [(name,) for name in names]
+            conn.executemany("INSERT OR REPLACE INTO skin_data (skin_name) VALUES(?)", values)
+
+def populate_code_skin_data_db(skin_code: dict, db_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        with conn:
+            values = [(code, name,) for name, code in skin_code.items()]
+            conn.executemany("UPDATE skin_data SET skin_code=? WHERE skin_name=?", values)
+
 
 def insert_listings_info_db(lowest_prices: list[list[float]], skins: list[dict], skin_codes: list[str], db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
-            conn.execute(f"CREATE TABLE IF NOT EXISTS skin_data (skin_name TEXT PRIMARY KEY, skin_code TEXT, fn REAL, mw REAL, ft REAL, ww REAL, bs REAL, rarity TEXT, collection TEXT, min_wear REAL, max_wear REAL)")
+            conn.execute("CREATE TABLE IF NOT EXISTS skin_data (skin_name TEXT PRIMARY KEY, skin_code TEXT, fn REAL, mw REAL, ft REAL, ww REAL, bs REAL, rarity TEXT, collection TEXT, min_wear REAL, max_wear REAL)")
             logger.debug(f"Writing {len(lowest_prices)} listings to database")
             values = tuple(
                 (skins[index]["name"], skin_codes[index], *lowest_prices[index], skins[index]["rarity"], skins[index]["collection"], skins[index]["min_wear"], skins[index]["max_wear"]) 

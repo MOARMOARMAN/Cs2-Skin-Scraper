@@ -9,7 +9,7 @@ from .assorted_utils import (
     price_conversion,
     get_skin_code, 
     skinData, 
-    SKIN_CODES_DB,
+    SKIN_DATA_DB,
     WEAR_RANGES,
     CURRENCY_TO_CAD
 )
@@ -22,5 +22,8 @@ from .db_utils import (
     del_missing_ID_listing_db, 
     load_data_listings_db, 
     load_all_data_listings_db,
+    create_skin_data_table_db,
+    populate_names_skin_data_db,
+    populate_code_skin_data_db,
     insert_listings_info_db
 )
