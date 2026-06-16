@@ -115,6 +115,26 @@ def populate_code_skin_data_db(skin_code: dict, db_name: str):
             values = [(code, name,) for name, code in skin_code.items()]
             conn.executemany("UPDATE skin_data SET skin_code=? WHERE skin_name=?", values)
 
+def populate_extra_skin_data_db(extra_info: dict, db_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        with conn:
+            # list: rarity, collection, min_wear, max_wear
+            values = []
+            for name, info in extra_info.items():
+                values.append((*info, name,))
+            conn.executemany("UPDATE skin_data SET rarity=?, collection=?, min_wear=?, max_wear=? WHERE skin_name=?", values)
+
+def populate_prices_skin_data_db(prices: dict, db_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        with conn:
+            # list: rarity, collection, min_wear, max_wear
+            values = []
+            for name, price in prices.items():
+                values.append((*price, name,))
+            conn.executemany("UPDATE skin_data SET fn=?, mw=?, ft=?, ww=?, bs=? WHERE skin_name=?", values)
+
 
 def insert_listings_info_db(lowest_prices: list[list[float]], skins: list[dict], skin_codes: list[str], db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:

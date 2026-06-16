@@ -25,5 +25,7 @@ from .db_utils import (
     create_skin_data_table_db,
     populate_names_skin_data_db,
     populate_code_skin_data_db,
+    populate_extra_skin_data_db,
+    populate_prices_skin_data_db,
     insert_listings_info_db
 )

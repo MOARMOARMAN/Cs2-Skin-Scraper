@@ -1,10 +1,21 @@
 # What do I want to do?
 # I want to scrape data of every single skin that exists.
+import sqlite3
 from contextlib import closing
 import httpx
 import random
 from httpx import AsyncClient
-from utilities import price_check, insert_listings_info_db, wears, create_skin_data_table_db, populate_names_skin_data_db, SKIN_DATA_DB, populate_code_skin_data_db
+from utilities import (
+    price_check, 
+    wears, 
+    create_skin_data_table_db, 
+    populate_names_skin_data_db, 
+    SKIN_DATA_DB, 
+    populate_code_skin_data_db, 
+    populate_extra_skin_data_db,
+    populate_prices_skin_data_db,
+    get_skin_code_db
+)
 import csv
 import asyncio
 import httpx
@@ -31,7 +42,7 @@ async def get_skin_code(client: AsyncClient, name: str, semaphore):
         for attempt in range(30):
             await asyncio.sleep(random.uniform(7.5, 15.5))
             try:
-                response = await client.get(f"https://steamcommunity.com/market/listings/730/{quote(f"{name} {wears[2]}")}", follow_redirects=True)
+                response = await client.get(f"https://steamcommunity.com/market/listings/730/{quote(f"{name} {wears[4]}")}", follow_redirects=True)
                 print("Final URL:", response.url)
                 code = str(response.url).split("/")[-1]
                 return [name, code]
@@ -61,29 +72,32 @@ if __name__ == "__main__":
     with open("skin_names.csv", newline="\n", encoding="UTF-8") as f:
         csvr = csv.DictReader(f, lineterminator="\n", fieldnames=["name", "collection", "min_wear", "max_wear", "rarity"])
         skins = list(csvr)
-    prices = []
+    prices = {}
+    #with closing(sqlite3.connect("skin_data.db", timeout=10)) as conn:
+        # results = conn.execute("SELECT skin_name FROM skin_data WHERE skin_code NOT LIKE 'G18%'").fetchall()
+    # 1. names = [skin["name"] for skin in skins]
+    # 1. populate_names_skin_data_db(names, SKIN_DATA_DB)
     names = [skin["name"] for skin in skins]
-    populate_names_skin_data_db(names, SKIN_DATA_DB)
-
-    extrainfo = {skin["name"]: [skin["collection"], skin["min_wear"], skin["max_wear"], skin["rarity"]] for skin in skins}
-
-    name_code = asyncio.run(get_all_codes(names))
-    populate_code_skin_data_db(name_code, SKIN_DATA_DB)
-    print(name_code)
 
 
-    """for index, code in enumerate(results):
-        fn = price_check(skins[index]["name"], 0, get_skin_code_db, code)
+    #extra_info = {skin["name"]: [skin["rarity"], skin["collection"], skin["min_wear"], skin["max_wear"]] for skin in skins}e 
+    #name_code = asyncio.run(get_all_codes(names))
+    #populate_code_skin_data_db(name_code, SKIN_DATA_DB)
+    #print(name_code)
+    #populate_extra_skin_data_db(extra_info, SKIN_DATA_DB)
+    
+    for name in names:
+        fn = price_check(name, 0, get_skin_code_db)
         time.sleep(random.uniform(1, 4))
-        mw = price_check(skins[index]["name"], 1, get_skin_code_db, code)
+        mw = price_check(name, 1, get_skin_code_db)
         time.sleep(random.uniform(1, 4))
-        ft = price_check(skins[index]["name"], 2, get_skin_code_db, code)
+        ft = price_check(name, 2, get_skin_code_db)
         time.sleep(random.uniform(1, 4))
-        ww = price_check(skins[index]["name"], 3, get_skin_code_db, code)
+        ww = price_check(name, 3, get_skin_code_db)
         time.sleep(random.uniform(1, 4))
-        bs = price_check(skins[index]["name"], 4, get_skin_code_db, code)
+        bs = price_check(name, 4, get_skin_code_db)
         time.sleep(random.uniform(1, 10))
-        prices.append([fn, mw, ft, ww, bs])"""
-    #insert_listings_info_db(prices, good_skins, results, "skin_data.db")
+        prices[name] = [fn, mw, ft, ww, bs]
+    populate_prices_skin_data_db(prices, SKIN_DATA_DB)
 
 
