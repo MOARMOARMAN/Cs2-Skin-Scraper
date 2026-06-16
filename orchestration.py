@@ -43,10 +43,7 @@ if __name__ == "__main__":
                 continue
             max_price = 0
             while user_input != "no" and max_price == 0:
-                if type(cur_lowest_price) == float:
-                    user_input = input(f"The current lowest price for {skin_name} at a wear of {wears[wlevel]} is ${cur_lowest_price} CAD\nPlease input a price maximum in CAD or type 'no' if you don't want this skin: ")
-                else:
-                    user_input = input(f"The current lowest price for {skin_name} at a wear of {wears[wlevel]} is {cur_lowest_price}\nPlease input a price maximum in CAD or type 'no' if you don't want this skin: ")
+                user_input = input(f"The current lowest price for {skin_name} at a wear of {wears[wlevel]} is ${cur_lowest_price} CAD\nPlease input a price maximum in CAD or type 'no' if you don't want this skin: ")
                 try:
                     max_price = float(user_input.strip())
                 except:
@@ -81,5 +78,5 @@ if __name__ == "__main__":
         executor.submit(analyze_batch_loop, DB_NAME, lowest_prices)
 
         for skin in skins:
-            logger.info(f"Spawning scouting thread for {skin[0]} (wear level {wlevel})")
+            logger.info(f"Spawning scouting thread for {skin[0]} (wear level {skin[3]})")
             executor.submit(scouting_loop, False, skin[0], skin[3], skin[2], skin[1])

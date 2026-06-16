@@ -8,3 +8,4 @@ analyzed.db-wal
 test.*
 unusedFunctions.py
 *.log
+scrape.py
