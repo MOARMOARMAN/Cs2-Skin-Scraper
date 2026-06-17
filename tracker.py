@@ -1,20 +1,21 @@
 import logging
-from scouting import scouting_loop
+from scraping import scouting_loop
 from utilities import (
     create_skin_table_db, 
     clear_db_skins, 
     get_skin_code_db, 
     price_check, 
     wears, 
-    what_wear
+    what_wear,
+    LISTINGS_DB
 )
-from batching import analyze_batch_loop
+from batch import analyze_batch_loop
 from concurrent.futures import ThreadPoolExecutor
 
-logger = logging.getLogger("Orchestration")
+logger = logging.getLogger("Tracker")
 
 if __name__ == "__main__":
-    DB_NAME = "analyzed.db"
+    DB_NAME = LISTINGS_DB
     logger.info("Starting CS:GO Trading Bot...")
     create_skin_table_db(DB_NAME)
     logger.info(f"Database initialized: {DB_NAME}")

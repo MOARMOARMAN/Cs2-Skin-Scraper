@@ -22,6 +22,8 @@ def get_skin_code_db(db_name: str, search_name: str):
                 logger.error(f"Error occurred while fetching scout code for {skin_name}: {e}")
                 return None
 
+# ______________________________________________________________ listings.db functions ___________________________________________________________________
+
 def create_skin_table_db(db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA journal_mode=WAL;")
@@ -95,6 +97,8 @@ def load_all_data_listings_db(valid_skins: dict, db_name: str):
                 logger.error(f"Database error: {e}")
                 raise   
 
+# ______________________________________________________________ skin_data.db functions ___________________________________________________________________
+
 def create_skin_data_table_db(db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
@@ -134,17 +138,3 @@ def populate_prices_skin_data_db(prices: dict, db_name: str):
             for name, price in prices.items():
                 values.append((*price, name,))
             conn.executemany("UPDATE skin_data SET fn=?, mw=?, ft=?, ww=?, bs=? WHERE skin_name=?", values)
-
-
-def insert_listings_info_db(lowest_prices: list[list[float]], skins: list[dict], skin_codes: list[str], db_name: str):
-    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
-        conn.execute("PRAGMA synchronous=NORMAL;")
-        with conn:
-            conn.execute("CREATE TABLE IF NOT EXISTS skin_data (skin_name TEXT PRIMARY KEY, skin_code TEXT, fn REAL, mw REAL, ft REAL, ww REAL, bs REAL, rarity TEXT, collection TEXT, min_wear REAL, max_wear REAL)")
-            logger.debug(f"Writing {len(lowest_prices)} listings to database")
-            values = tuple(
-                (skins[index]["name"], skin_codes[index], *lowest_prices[index], skins[index]["rarity"], skins[index]["collection"], skins[index]["min_wear"], skins[index]["max_wear"]) 
-                for index in range(0, len(lowest_prices))
-            )
-            conn.executemany("INSERT OR REPLACE INTO skin_data (skin_name, skin_code, fn, mw, ft, ww, bs, rarity, collection, min_wear, max_wear) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
-                

@@ -10,6 +10,7 @@ from .assorted_utils import (
     get_skin_code, 
     skinData, 
     SKIN_DATA_DB,
+    LISTINGS_DB,
     WEAR_RANGES,
     CURRENCY_TO_CAD
 )
@@ -26,6 +27,5 @@ from .db_utils import (
     populate_names_skin_data_db,
     populate_code_skin_data_db,
     populate_extra_skin_data_db,
-    populate_prices_skin_data_db,
-    insert_listings_info_db
+    populate_prices_skin_data_db
 )

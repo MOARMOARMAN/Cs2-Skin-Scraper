@@ -17,7 +17,7 @@ from utilities import (
     SKIN_DATA_DB
 )
 
-DB_NAME = "analyzed.db"
+DB_NAME = "listings.db"
 logger = logging.getLogger("Scouting")
 
 if TYPE_CHECKING:

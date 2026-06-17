@@ -122,4 +122,4 @@ def analyze_batch_loop(db: str, lowest_market_prices: dict[str:float|str]):
             time.sleep(3600)
 
 if __name__ == "__main__":
-    DB_NAME = "analyzed.db"
+    print()

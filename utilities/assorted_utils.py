@@ -6,6 +6,7 @@ from collections import namedtuple
 from typing import Callable
 
 SKIN_DATA_DB = "skin_data.db"
+LISTINGS_DB = "listingss.db"
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
