@@ -6,7 +6,7 @@ from collections import namedtuple
 from typing import Callable
 
 SKIN_DATA_DB = "skin_data.db"
-LISTINGS_DB = "listingss.db"
+LISTINGS_DB = "listings.db"
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -27,7 +27,13 @@ WEAR_RANGES = {
     "(Well-Worn)": "(0.38 - 0.45)",
     "(Battle-Scarred)": "(0.45 - 1.00)"
 }
-
+WEAR_ABBRIEVIATIONS = {
+    0 : "fn",
+    1 : "mw",
+    2 : "ft",
+    3 : "ww",
+    4 : "bs"
+}
 CURRENCY_TO_CAD = {
     "HKD": 0.177,   # 1 Hong Kong Dollar ~ 0.18 CAD
     "USD": 1.370,   # 1 US Dollar ~ 1.37 CAD

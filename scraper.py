@@ -1,3 +1,4 @@
+from decimal import MAX_EMAX
 from typing import TYPE_CHECKING
 from collections import namedtuple
 import logging
@@ -14,7 +15,8 @@ from utilities import (
     setup_session_cookies, 
     price_conversion, 
     get_skin_code_db, 
-    SKIN_DATA_DB
+    SKIN_DATA_DB,
+    what_wear
 )
 
 DB_NAME = "listings.db"
@@ -108,12 +110,13 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
         time.sleep(random.uniform(12,15))
     return availableSkins
 
-def scouting_loop(isTesting: bool, skin_name: str, wlevel: int, maximum_float: float, maximum_price: float):
+def scouting_loop(isTesting: bool, skin_name: str, maximum_float: float, maximum_price: float):
     time.sleep(random.randint(3,20))
     # Dictionary containing all of the information on the skins
     # Stored as listingID for key
     # namedtuple containing the skin data like dID, float_val, and price
     valid_listings = {}
+    wlevel = what_wear(maximum_float)
     session_cookies = setup_session_cookies()
     if not session_cookies:
         logger.error("Session setup failed and resulted in empty session and cookies")

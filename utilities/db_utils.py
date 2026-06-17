@@ -2,7 +2,7 @@ from asyncio import timeout
 import sqlite3
 import logging
 from contextlib import closing
-from .assorted_utils import headers, skinData, get_skin_code
+from .assorted_utils import headers, skinData, get_skin_code, WEAR_ABBRIEVIATIONS
 
 logger = logging.getLogger("CS2-System.DB")
 
@@ -97,10 +97,45 @@ def load_all_data_listings_db(valid_skins: dict, db_name: str):
                 logger.error(f"Database error: {e}")
                 raise   
 
+def create_tracked_table_db(db_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        with conn:
+            conn.execute("CREATE TABLE IF NOT EXISTS tracked_skins (id INTEGER PRIMARY KEY, skin_name TEXT, max_float_val REAL, max_price REAL)")
+
+def populate_tracked_table_db(db_name: str, skins: list):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        with conn:
+            values = [
+                (skin[0], skin[1], skin[2]) for skin in skins
+            ]
+            conn.executemany("INSERT OR REPLACE INTO tracked_skins (skin_name, max_float_val, max_price) VALUES(?, ?, ?)", values)
+
+def insert_tracked_table_db(db_name: str, skin: list):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        with conn:
+            skin = tuple(skin)
+            conn.executemany("INSERT OR REPLACE INTO tracked_skins (skin_name, max_float_val, max_price) VALUES(?, ?, ?)", skin)
+
+def delete_entry_tracked_table_db(id: int, db_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        with conn:
+            conn.execute("DELETE FROM tracked_skins WHERE id=?", (id, ))
+
+def get_tracked_listings_table_db(db_name:str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        tracked_listings = conn.execute("SELECT * FROM tracked_skins").fetchall()
+        return tracked_listings
+
+
 # ______________________________________________________________ skin_data.db functions ___________________________________________________________________
 
 def create_skin_data_table_db(db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
             conn.execute("CREATE TABLE IF NOT EXISTS skin_data (skin_name TEXT PRIMARY KEY, skin_code TEXT, fn REAL, mw REAL, ft REAL, ww REAL, bs REAL, rarity TEXT, collection TEXT, min_wear REAL, max_wear REAL)")
@@ -138,3 +173,8 @@ def populate_prices_skin_data_db(prices: dict, db_name: str):
             for name, price in prices.items():
                 values.append((*price, name,))
             conn.executemany("UPDATE skin_data SET fn=?, mw=?, ft=?, ww=?, bs=? WHERE skin_name=?", values)
+
+def get_lowest_price_skin_data_db(skin_name: str, wear_level: int, db_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        result = conn.execute(f"SELECT {WEAR_ABBRIEVIATIONS[wear_level]} FROM skin_data WHERE skin_name=?", (skin_name,)).fetchone()
+        return result[0]
