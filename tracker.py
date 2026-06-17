@@ -1,5 +1,3 @@
-from multiprocessing.sharedctypes import Value
-from inspect import isdatadescriptor
 import logging
 from scraper import scouting_loop
 from utilities import (
