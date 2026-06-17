@@ -2,9 +2,7 @@
 venv/
 .vscode/
 __pycache__/
-analyzed.db
-analyzed.db-shm
-analyzed.db-wal
+listings.db*
 test.*
 unusedFunctions.py
 *.log

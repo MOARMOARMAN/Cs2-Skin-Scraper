@@ -1,5 +1,7 @@
+from multiprocessing.sharedctypes import Value
+from inspect import isdatadescriptor
 import logging
-from scraping import scouting_loop
+from scraper import scouting_loop
 from utilities import (
     create_skin_table_db, 
     clear_db_skins, 
@@ -7,59 +9,106 @@ from utilities import (
     price_check, 
     wears, 
     what_wear,
-    LISTINGS_DB
+    LISTINGS_DB,
+    SKIN_DATA_DB,
+    create_tracked_table_db,
+    populate_tracked_table_db,
+    delete_entry_tracked_table_db,
+    get_tracked_listings_table_db,
+    get_lowest_price_skin_data_db,
+    insert_tracked_table_db
 )
 from batch import analyze_batch_loop
 from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger("Tracker")
 
-if __name__ == "__main__":
-    DB_NAME = LISTINGS_DB
-    logger.info("Starting CS:GO Trading Bot...")
-    create_skin_table_db(DB_NAME)
-    logger.info(f"Database initialized: {DB_NAME}")
-    # Ask for skin name and max_float -> show skin price and ask for max_price
-    # List of skins
-    # skins are represented by an array [name, max_price, max_float]
-    # ["AK-47 | Ice Coaled", 20, 0.083], ["Dual Berettas | Polished Malachite", 0.5, 0.085], ["SG 553 | Basket Halftone", 0.6, 0.06]
-    # AK-47 | Ice Coaled / 0.09
-    # AK-47 | Ice Coaled / 0.185
-    # AK-47 | Slate / 0.09
-    # Dual Berettas | Polished Malachite / 0.085
-    # SG 553 | Basket Halftone / 0.06
-    # 
-    skins = []
-    lowest_prices = {}
-    user_input = input("Skin name / Max Float (Type ! to stop entering)\n")
-    while user_input != "!":
+def prompt_actions_user(actions: dict):
+    actions_list = " | ".join(actions)
+    user_in = input(f"\nCommands {actions_list}\n")
+    return user_in
+
+def print_tracked():
+    tracked = get_tracked_listings_table_db(LISTINGS_DB)
+    print("\nThese are the skins that are currently being tracked:")
+    for skin in tracked:
+        print(f"id: {skin[0]} | skin_name: {skin[1]} | max_float: {skin[2]} | max_price: {skin[3]}$")
+
+def add_skins():
+    user_input = ""
+    while user_input != '!':
         try:
+            print_tracked()
+            user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
+            if user_input == "!":
+                print_tracked()
+                return
             skin_name, max_float = user_input.split("/")
             skin_name = skin_name.strip()
             max_float = float(max_float.strip())
             wlevel = what_wear(max_float)
-            cur_lowest_price = price_check(skin_name, wlevel, get_skin_code_db)
-            if not cur_lowest_price:
-                print(f"There are currently no listings for {skin_name} {wears[wlevel]}")
-                continue
-            max_price = 0
-            while user_input != "no" and max_price == 0:
-                user_input = input(f"The current lowest price for {skin_name} at a wear of {wears[wlevel]} is ${cur_lowest_price} CAD\nPlease input a price maximum in CAD or type 'no' if you don't want this skin: ")
-                try:
-                    max_price = float(user_input.strip())
-                except:
-                    if user_input != "no":
-                        print("invalid input")
-            if user_input == "no":
-                user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
-                continue
+            cur_lowest_price = get_lowest_price_skin_data_db(skin_name, wlevel, SKIN_DATA_DB)
+            user_input = input(f"The current lowest price for {skin_name} at a wear of {wears[wlevel]} is ${cur_lowest_price} CAD\nPlease input a price maximum in CAD: ")
+            try:
+                max_price = float(user_input.strip())
+            except ValueError:
+                print("invalid input")
             lowest_prices[f"{skin_name} {wears[wlevel]}"] = cur_lowest_price
-            skins.append([skin_name, max_price, max_float, wlevel])
+            insert_tracked_table_db(LISTINGS_DB, [[skin_name, max_float, max_price]])
             logger.info(f"Added skin to monitor: {skin_name} with max price {max_price} and max float {max_float} and wear {wears[wlevel]}")
-            user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
         except ValueError:
             logger.error("Invalid input format. Please enter in the format: Skin name / Max Float")
             user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
+
+def remove_skins():
+    ids = []
+    user_input = ""
+    while user_input != "!":
+        try:
+            print_tracked()
+            user_input = input("\n\nWhich skin would you like to delete? (Type ! to stop entering)\nEnter the ID number: ")
+            if user_input == "!":
+                print_tracked()
+                return
+            delete_entry_tracked_table_db(int(user_input), LISTINGS_DB)
+        except ValueError:
+            print("Please enter a valid ID number!\n\n")
+
+
+if __name__ == "__main__":
+    logger.info("Starting CS:GO Trading Bot...")
+    create_skin_table_db(LISTINGS_DB)
+    create_tracked_table_db(LISTINGS_DB)
+    logger.info(f"Database initialized: {LISTINGS_DB}")
+
+    # AK-47 | Ice Coaled / 0.09
+    # AK-47 | Ice Coaled / 0.185
+    # AK-47 | Slate / 0.09  
+    # Dual Berettas | Polished Malachite / 0.085
+    # SG 553 | Basket Halftone / 0.06
+    # 
+    # tracked [[id, name, float, price], ...]
+    tracked = get_tracked_listings_table_db(LISTINGS_DB)
+    skins = [[skin[1], skin[2], skin[3], what_wear(skin[3])] for skin in tracked]
+    new_skins = []
+    print(f"There are currently {len(skins)} skins being tracked. ")
+    lowest_prices = {}
+
+    user_actions = {
+        "add": lambda: add_skins(),
+        "remove": lambda: remove_skins()
+    }
+    print_tracked()
+    user_input = prompt_actions_user(user_actions)
+    while user_input != "!":
+        try:
+            print_tracked()
+            user_actions[user_input]()
+            user_input = prompt_actions_user(user_actions)
+        except Exception as e:
+            print(f"Invalid command Error {e}")
+            user_input = prompt_actions_user(user_actions)
+        
     if not skins:
         logger.error("Empty input and no skins chosen for tracking.")
         exit()
@@ -70,14 +119,17 @@ if __name__ == "__main__":
             if user_input == "y":
                 keepers = [f"{skin[0]} {wears[skin[3]]}" for skin in skins]
                 logger.info(f"These are the keepers {keepers}")
-                clear_db_skins(DB_NAME, keepers)
+                clear_db_skins(LISTINGS_DB, keepers)
         except Exception as e:
             logger.error(f"Enter a letter dude. Exception {e}")
     
+    # id, name, float, price
+    updated_tracked = get_tracked_listings_table_db(LISTINGS_DB)
+    updated_skins = [[skin[1], skin[2], skin[3], what_wear(skin[2])] for skin in updated_tracked]
     logger.info(f"Monitoring {len(skins)} skins with {len(skins) + 1} worker threads")
     with ThreadPoolExecutor(max_workers=len(skins) + 1) as executor:
-        executor.submit(analyze_batch_loop, DB_NAME, lowest_prices)
+        executor.submit(analyze_batch_loop, LISTINGS_DB, lowest_prices)
 
-        for skin in skins:
+        for skin in updated_skins:
             logger.info(f"Spawning scouting thread for {skin[0]} (wear level {skin[3]})")
             executor.submit(scouting_loop, False, skin[0], skin[3], skin[2], skin[1])
