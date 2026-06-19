@@ -23,7 +23,7 @@ logger = logging.getLogger("Tracker")
 
 def prompt_actions_user(actions: dict):
     actions_list = " | ".join(actions)
-    user_in = input(f"\nCommands {actions_list}\n")
+    user_in = input(f"\nCommands {actions_list} | continue\n")
     return user_in
 
 def print_tracked():
@@ -72,6 +72,11 @@ def remove_skins():
         except ValueError:
             print("Please enter a valid ID number!\n\n")
 
+def help():
+    print(f"\nDescriptions of each Tool:")
+    print(f"add: Add skins to be tracked by the scraper")
+    print(f"remove: Remove skins from the list of tracked skins")
+    print(f"continue: Continue to the next step to begin scraping listings")
 
 if __name__ == "__main__":
     logger.info("Starting CS:GO Trading Bot...")
@@ -94,17 +99,19 @@ if __name__ == "__main__":
 
     user_actions = {
         "add": lambda: add_skins(),
-        "remove": lambda: remove_skins()
+        "remove": lambda: remove_skins(),
+        "help" : lambda: help()
     }
     print_tracked()
     user_input = prompt_actions_user(user_actions)
-    while user_input != "!":
+    while user_input != "continue":
         try:
             print_tracked()
             user_actions[user_input]()
             user_input = prompt_actions_user(user_actions)
         except Exception as e:
-            print(f"Invalid command Error {e}")
+            print(f"Invalid command")
+            logger.error(f"Error {e}")
             user_input = prompt_actions_user(user_actions)
         
     if not skins:
@@ -113,13 +120,14 @@ if __name__ == "__main__":
     
     while user_input != "y" and user_input != "n":
         try:
-            user_input = input("Would you like to clear other skins from the database? [Y/N]: ").lower()
+            user_input = input("\nWould you like to clear other skins from the database? [Y/N]: ").lower()
             if user_input == "y":
                 keepers = [f"{skin[0]} {wears[skin[3]]}" for skin in skins]
                 logger.info(f"These are the keepers {keepers}")
                 clear_db_skins(LISTINGS_DB, keepers)
         except Exception as e:
-            logger.error(f"Enter a letter dude. Exception {e}")
+            logger.error(f"Error {e}")
+            print("Enter [Y/N]")
     
     # id, name, float, price
     updated_tracked = get_tracked_listings_table_db(LISTINGS_DB)
