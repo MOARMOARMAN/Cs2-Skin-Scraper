@@ -10,17 +10,24 @@ Hi, I'm Charles the creator of this CS2 Skin Scraper. I built this system as an 
 
 ### How it works
 As of this version, the CS2 Skin Scraper has 3 main components:
-1. Multiple Scraping Loops (Producer) which work through messy `Steam Community Market` data.
+1. Multiple Scraping Loops (Producer) which work through messy `Steam Community Market` data and write valid listings into a SQLite3 Database. 
 2. A SQLite3 database using Write Ahead Logging (WAL) for handling high-frequency writes, which are necessary to support the multiple scraping loops.
-3. A Batch Analysis Loop (Consumer) which pulls data from the database, processes it and feeds it to Gemini in an engineered prompt to return the top 5 best deals of the current batch.
+3. A Batch Analysis Loop (Consumer) which pulls data from the database, processes it and feeds it to Gemini in an engineered prompt to return the top 10 best deals of the current batch.
 
 ### Example output
 ![alt text](images/CS2_1.png)
 
 ## ⚙️ Usage
-Currently, running orchestration.py will prompt you to enter a skin, float and price and repeat that until you enter `!`.
+Currently, the script can be run through the tracker.py file. It currently provides the user with 3 commands, `add`, `remove` and `continue`.
+
+`add` allows you to add additional skins into the list of skins being tracked. You will be prompted for maximum float and maximum price.
+
+`remove` allows you to remove specific skins from the list of skins being tracked. This can be done using the id of the skin within the tracked list.
+
+`continue` heads past the add and remove phase to begin the tracking and batch analysis. 
+
 ```python
-python orchestration.py
+python tracker.py 
 ```
 
 ## ⬇️ Installation
@@ -36,5 +43,7 @@ pip install -r requirements.txt
 STEAM_USER_AGENT=<your-user-agent>
 SESSION_ID_FALLBACK=<your-session-id>
 GEMINI_API_KEY=<your-api-key>
-GEMINI_MODEL=gemini-3.5-flash
+GEMINI_MODEL=gemini-3.1-flash-lite
 ```
+
+## Feature Ideas
