@@ -118,7 +118,7 @@ def analyze_batch_loop(db: str, lowest_market_prices: dict[str:float|str]):
         except Exception as e:
             logger.error(f"Gemini analysis cycle failed: {e}")
         finally:
-            logger.debug("Analysis cycle complete, sleeping 30 minutes")
+            logger.debug("Analysis cycle complete, sleeping 60 minutes")
             time.sleep(3600)
 
 if __name__ == "__main__":

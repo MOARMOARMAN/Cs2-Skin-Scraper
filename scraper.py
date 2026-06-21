@@ -1,6 +1,4 @@
-from decimal import MAX_EMAX
 from typing import TYPE_CHECKING
-from collections import namedtuple
 import logging
 import time
 import random
@@ -26,8 +24,8 @@ if TYPE_CHECKING:
     import requests
 
 def scout(search_name: str, wear: int, max_float: float, max_price: float, scraper_session: requests.Session, cookies: dict, scout_code: str):
-    # List of availableSkins that will be returned.
-    availableSkins = {}
+    # List of available_skins that will be returned.
+    available_skins = {}
     scan_limit = 0
     Payload = [{
         "appid":730,
@@ -50,7 +48,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
 
     if scout_r.status_code == 200:
         total_listings = scout_r.json().get('total_count', 0)
-        scan_limit = max(min(int(total_listings * 0.1), 100), 20)
+        scan_limit = max(min(int(total_listings * 0.3), 100), 20)
         logger.info(f"Total Listings: {total_listings}. Scanning top: {scan_limit} items for {search_name}")
     elif scout_r.status_code == 429:
         logger.warning("Steam rate limit reached. Sleeping 300 seconds...")
@@ -61,7 +59,6 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
     else:
         logger.error(f"Unexpected status code {scout_r.status_code} for {search_name}")
         return []
-
     for offset in range (0, scan_limit, min(scan_limit, 20)):
         Payload[0]['start'] = offset
         try:
@@ -104,13 +101,17 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
             salePriceText = item['strSubtotal']
             converted_price = price_conversion(salePriceText, price)
             if float_val < max_float:
-                availableSkins[listingID] = skinData(dID=dID, float_val=float_val, price=converted_price)
-
+                available_skins[listingID] = skinData(dID=dID, float_val=float_val, price=converted_price)
+            else:
+                logger.info(f"Found skin with higher float at {offset + mkt_pos}")
+                logger.info(f"Writing these skins to the database {available_skins}")
+                return available_skins
         logger.debug(f"Processed up to offset {offset + 20}...")
         time.sleep(random.uniform(12,15))
-    return availableSkins
+    return available_skins
 
-def scouting_loop(isTesting: bool, skin_name: str, maximum_float: float, maximum_price: float):
+def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
+    logger.info(f"Scouting Loop for {skin_name} has been started")
     time.sleep(random.randint(3,20))
     # Dictionary containing all of the information on the skins
     # Stored as listingID for key
@@ -130,7 +131,6 @@ def scouting_loop(isTesting: bool, skin_name: str, maximum_float: float, maximum
         return
     skin_wear = wears[wlevel]
     search_name = f"{skin_name} {skin_wear}"
-    dbReadWrite = not isTesting
     load_data_listings_db(search_name, valid_listings, DB_NAME)
     scout_code = get_skin_code_db(SKIN_DATA_DB, search_name)
     if not scout_code:
@@ -144,17 +144,15 @@ def scouting_loop(isTesting: bool, skin_name: str, maximum_float: float, maximum
                 scout_results = scout(search_name, wlevel, maximum_float, maximum_price, scraper_session, cookies, scout_code)
                 if scout_results:
                     currentlyAvailableIDS = [lID for lID in scout_results]
-                    if dbReadWrite:
-                        toRemoveIDs = []
-                        for listingID in list(valid_listings):
-                            if listingID not in currentlyAvailableIDS:
-                                toRemoveIDs.append((listingID,))
-                                del valid_listings[listingID]
-                        del_missing_ID_listing_db(search_name, toRemoveIDs, DB_NAME)
+                    toRemoveIDs = []
+                    for listingID in list(valid_listings):
+                        if listingID not in currentlyAvailableIDS:
+                            toRemoveIDs.append((listingID,))
+                            del valid_listings[listingID]
+                    del_missing_ID_listing_db(search_name, toRemoveIDs, DB_NAME)
                     for listingID in scout_results:
                         valid_listings[listingID] = scout_results[listingID]
-                    if dbReadWrite:
-                        write_listings_db(search_name, valid_listings, DB_NAME)
+                    write_listings_db(search_name, valid_listings, DB_NAME)
                     logger.info(f"{skin_name} Loop complete. Resting to avoid rate limits...")
                 time.sleep(random.randint(120, 180))
             except Exception as e:

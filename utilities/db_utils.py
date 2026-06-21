@@ -32,17 +32,12 @@ def create_skin_table_db(db_name: str):
             conn.execute("CREATE TABLE IF NOT EXISTS skin_listings (listing_ID TEXT PRIMARY KEY, skin_name TEXT, d_ID TEXT, float_val REAL, price REAL)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_skin_listings_skin_name ON skin_listings (skin_name)")
 
-def clear_db_skins(db_name: str, skin_names: list):
-    if not skin_names:
-        logger.error("skin_names provided to clear_db_skins is empty")
-        return 404
+def clear_db_skins(db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
-            logger.debug(f"Clearing out database by deleting all listings not in {skin_names}")
-            placeholders = ",".join("?" for _ in skin_names)
-            conn.execute(f"DELETE FROM skin_listings WHERE skin_name NOT IN ({placeholders})", skin_names)
-    return 200
+            logger.debug(f"Clearing out active listings database.")
+            conn.execute(f"DELETE FROM skin_listings")
 
 def write_listings_db(skin_name: str, valid_listings: dict, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:

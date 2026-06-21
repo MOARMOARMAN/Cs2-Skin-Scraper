@@ -3,14 +3,11 @@ from scraper import scouting_loop
 from utilities import (
     create_skin_table_db, 
     clear_db_skins, 
-    get_skin_code_db, 
-    price_check, 
     wears, 
     what_wear,
     LISTINGS_DB,
     SKIN_DATA_DB,
     create_tracked_table_db,
-    populate_tracked_table_db,
     delete_entry_tracked_table_db,
     get_tracked_listings_table_db,
     get_lowest_price_skin_data_db,
@@ -32,7 +29,7 @@ def print_tracked():
     for skin in tracked:
         print(f"id: {skin[0]} | skin_name: {skin[1]} | max_float: {skin[2]} | max_price: {skin[3]}$")
 
-def add_skins():
+def add_skins(lowest_prices: dict):
     user_input = ""
     while user_input != '!':
         try:
@@ -92,13 +89,13 @@ if __name__ == "__main__":
     # 
     # tracked [[id, name, float, price], ...]
     tracked = get_tracked_listings_table_db(LISTINGS_DB)
-    skins = [[skin[1], skin[2], skin[3], what_wear(skin[3])] for skin in tracked]
+    skins = [[skin[1], skin[2], skin[3], what_wear(skin[2])] for skin in tracked]
     new_skins = []
     print(f"There are currently {len(skins)} skins being tracked. ")
     lowest_prices = {}
 
     user_actions = {
-        "add": lambda: add_skins(),
+        "add": lambda: add_skins(lowest_prices),
         "remove": lambda: remove_skins(),
         "help" : lambda: help()
     }
@@ -114,28 +111,18 @@ if __name__ == "__main__":
             logger.error(f"Error {e}")
             user_input = prompt_actions_user(user_actions)
         
-    if not skins:
+    if not get_tracked_listings_table_db(LISTINGS_DB):
         logger.error("Empty input and no skins chosen for tracking.")
         exit()
-    
-    while user_input != "y" and user_input != "n":
-        try:
-            user_input = input("\nWould you like to clear other skins from the database? [Y/N]: ").lower()
-            if user_input == "y":
-                keepers = [f"{skin[0]} {wears[skin[3]]}" for skin in skins]
-                logger.info(f"These are the keepers {keepers}")
-                clear_db_skins(LISTINGS_DB, keepers)
-        except Exception as e:
-            logger.error(f"Error {e}")
-            print("Enter [Y/N]")
-    
+    clear_db_skins(LISTINGS_DB)
     # id, name, float, price
     updated_tracked = get_tracked_listings_table_db(LISTINGS_DB)
-    updated_skins = [[skin[1], skin[2], skin[3], what_wear(skin[2])] for skin in updated_tracked]
-    logger.info(f"Monitoring {len(skins)} skins with {len(skins) + 1} worker threads")
-    with ThreadPoolExecutor(max_workers=len(skins) + 1) as executor:
-        executor.submit(analyze_batch_loop, LISTINGS_DB, lowest_prices)
-
+    updated_skins = [[skin[1], skin[2], skin[3]] for skin in updated_tracked]
+    logger.info(f"Monitoring {len(updated_skins)} skins with {len(updated_skins) + 1} worker threads")
+    logger.info(f"These are the updated skins {updated_skins}")
+    with ThreadPoolExecutor(max_workers=len(updated_skins) + 1) as executor:
         for skin in updated_skins:
-            logger.info(f"Spawning scouting thread for {skin[0]} (wear level {skin[3]})")
-            executor.submit(scouting_loop, False, skin[0], skin[3], skin[2], skin[1])
+            logger.info(f"Spawning scouting thread for {skin[0]} at max float of {skin[1]} with max price of {skin[2]}")
+            executor.submit(scouting_loop, skin[0], skin[1], skin[2])
+        logger.info(f"Spawning batch analysis thread")
+        executor.submit(analyze_batch_loop, LISTINGS_DB, lowest_prices)

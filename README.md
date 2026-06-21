@@ -47,3 +47,5 @@ GEMINI_MODEL=gemini-3.1-flash-lite
 ```
 
 ## Feature Ideas
+Automatic determination of profitability by checking current average price of all listings that have that specific float. 
+A tradeup generator which can work through thousands of tradeup combinations to find profitable ones.
