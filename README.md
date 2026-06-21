@@ -46,6 +46,12 @@ GEMINI_API_KEY=<your-api-key>
 GEMINI_MODEL=gemini-3.1-flash-lite
 ```
 
-## Feature Ideas
+## Feature Ideas/Brainstorming
 Automatic determination of profitability by checking current average price of all listings that have that specific float. 
+    - A separate scraping function which only sifts through very specific listings to calculate the price of equal value skins
+        - +- 0.05 on the float ranges <- maybe this can be a percentage of the total float.
+    - Make this into a separate feature which is not integrated to the current scraper
+        - A different page which allows for the visualization of average price of more detailed float ranges. 
+        - Maybe even a chart that graphs this out. 
+            - This can assist in seeing potential market inefficiencies in pricing where profit can be made. 
 A tradeup generator which can work through thousands of tradeup combinations to find profitable ones.
