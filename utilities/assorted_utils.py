@@ -176,7 +176,7 @@ def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_c
         "appid":730,
         "strItemName": scout_code, # Unique identifier, will have to calculate later
         "sort":{"field":0,"direction":0},
-        "filters":{"category_730_Exterior":[f"tag_WearCategory{wlevel}"]}, # Set these using the inputs
+        "filters":{"Exterior":[f"WearCategory{wlevel}"]}, # Set these using the inputs
         "accessoryFilters":{},
         "propertyFilters":{},
         "price":{"eCurrency":20},

@@ -7,3 +7,5 @@ test.*
 unusedFunctions.py
 *.log
 scrape.py
+skin_data.db-shm
+skin_data.db-wal

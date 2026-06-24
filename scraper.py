@@ -31,7 +31,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
         "appid":730,
         "strItemName": scout_code, # Unique identifier, will have to calculate later
         "sort":{"field":1,"direction":0,"assetpropertyid":2},
-        "filters":{"category_730_Exterior":[f"tag_WearCategory{wear}"]}, # Set these using the inputs
+        "filters":{"Exterior":[f"WearCategory{wear}"]}, # Set these using the inputs
         "accessoryFilters":{},
         "propertyFilters":{},
         "price":{"eCurrency":20, "unMax":max_price * 100},
