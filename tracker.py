@@ -93,7 +93,7 @@ if __name__ == "__main__":
     new_skins = []
     print(f"There are currently {len(skins)} skins being tracked. ")
     lowest_prices = {}
-
+    
     user_actions = {
         "add": lambda: add_skins(lowest_prices),
         "remove": lambda: remove_skins(),
