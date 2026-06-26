@@ -4,8 +4,9 @@ import time
 import random
 from utilities import (
     write_listings_db, 
+    write_to_historical_db,
     del_missing_ID_listing_db, 
-    load_data_listings_db, 
+    load_data_listings_db,
     post_with_retry, 
     wears, 
     headers, 
@@ -24,8 +25,8 @@ if TYPE_CHECKING:
     import requests
 
 def scout(search_name: str, wear: int, max_float: float, max_price: float, scraper_session: requests.Session, cookies: dict, scout_code: str):
-    # List of available_skins that will be returned.
     available_skins = {}
+    valid_skins = {}
     scan_limit = 0
     Payload = [{
         "appid":730,
@@ -37,7 +38,6 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
         "price":{"eCurrency":20, "unMax":max_price * 100},
         "start": 0,
     }]
-    # Steam forces 20 listings at a time.
     headers["Referer"] = f"https://steamcommunity.com/market/listings/730/{scout_code}"
     try:
         scout_r = post_with_retry(scraper_session, f"https://steamcommunity.com/market/listings/730/{scout_code}", Payload, headers, cookies) # type: ignore
@@ -101,14 +101,12 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
             salePriceText = item['strSubtotal']
             converted_price = price_conversion(salePriceText, price)
             if float_val < max_float:
-                available_skins[listingID] = skinData(dID=dID, float_val=float_val, price=converted_price)
-            else:
-                logger.info(f"Found skin with higher float at {offset + mkt_pos}")
-                logger.info(f"Writing these skins to the database {available_skins}")
-                return available_skins
+                valid_skins[listingID] = skinData(dID=dID, float_val=float_val, price=converted_price)
+            available_skins[listingID] = skinData(dID=dID, float_val=float_val, price=converted_price)
         logger.debug(f"Processed up to offset {offset + 20}...")
         time.sleep(random.uniform(12,15))
-    return available_skins
+    write_to_historical_db(search_name.rsplit('(', 1)[0].strip(), available_skins, DB_NAME)
+    return valid_skins
 
 def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
     logger.info(f"Scouting Loop for {skin_name} has been started")

@@ -24,7 +24,7 @@ def get_skin_code_db(db_name: str, search_name: str):
 
 # ______________________________________________________________ listings.db functions ___________________________________________________________________
 
-def create_skin_table_db(db_name: str):
+def create_skin_listings_table_db(db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("PRAGMA synchronous=NORMAL;") 

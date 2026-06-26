@@ -1,7 +1,7 @@
 import logging
 from scraper import scouting_loop
 from utilities import (
-    create_skin_table_db, 
+    create_skin_listings_table_db, 
     clear_db_skins, 
     wears, 
     what_wear,
@@ -11,7 +11,8 @@ from utilities import (
     delete_entry_tracked_table_db,
     get_tracked_listings_table_db,
     get_lowest_price_skin_data_db,
-    insert_tracked_table_db
+    insert_tracked_table_db,
+    create_all_historical_listings_table_db
 )
 from batch import analyze_batch_loop
 from concurrent.futures import ThreadPoolExecutor
@@ -77,10 +78,11 @@ def help():
 
 if __name__ == "__main__":
     logger.info("Starting CS:GO Trading Bot...")
-    create_skin_table_db(LISTINGS_DB)
+    create_skin_listings_table_db(LISTINGS_DB)
     create_tracked_table_db(LISTINGS_DB)
+    create_all_historical_listings_table_db(LISTINGS_DB)
     logger.info(f"Database initialized: {LISTINGS_DB}")
-
+    
     # AK-47 | Ice Coaled / 0.09
     # AK-47 | Ice Coaled / 0.185
     # AK-47 | Slate / 0.09  

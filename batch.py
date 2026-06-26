@@ -91,7 +91,7 @@ def analyze_batch(db: str, lowest_market_prices: dict[str:float|str]):
         for id, data in listings.items():
             float_diff = data.float_val - average_float
             price_deviation = (data.price - average_price) / average_price * 100
-            if type(lowest_price) == float: 
+            if isinstance(lowest_price, float) and lowest_price != 0: 
                 price_overpay = round((data.price - lowest_price) / lowest_price * 100, 2)
             else:
                 price_overpay = "N/A"

@@ -16,13 +16,13 @@ from .assorted_utils import (
 )
 
 from .db_utils import (
-    create_skin_table_db, 
+    create_skin_listings_table_db, 
     clear_db_skins, 
     get_skin_code_db, 
     write_listings_db, 
     del_missing_ID_listing_db, 
-    load_data_listings_db, 
-    load_all_data_listings_db,
+    load_data_listings_db,  # Expects a non-stripped name e.g. "AK-47 | Ice Coaled (Factory New)"
+    load_all_data_listings_db, # Expects a non-stripped name e.g. "AK-47 | Ice Coaled (Factory New)"
     create_skin_data_table_db,
     populate_names_skin_data_db,
     populate_code_skin_data_db,
@@ -33,5 +33,11 @@ from .db_utils import (
     delete_entry_tracked_table_db,
     get_tracked_listings_table_db,
     get_lowest_price_skin_data_db,
-    insert_tracked_table_db
+    insert_tracked_table_db,
+    # Historical data functions
+    create_all_historical_listings_table_db,
+    write_to_historical_db,
+    load_all_historical_data_listings_for_skin_name_db, # Expects a stripped name e.g. "AK-47 | Ice Coaled"
+    load_all_historical_data_from_db, # Expects a stripped name e.g. "AK-47 | Ice Coaled"
+    del_from_historical_db
 )
