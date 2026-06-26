@@ -71,11 +71,9 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
             )
         except Exception as e:
             logger.error(f"Request failed at offset {offset} for {search_name}: {e}")
-            # Skip this batch and continue the loop
             time.sleep(random.uniform(5, 10))
             continue
         data = r.json()
-        #print(data)
         if not data['listings']:
             continue
         for mkt_pos, item in enumerate(data['listings']):

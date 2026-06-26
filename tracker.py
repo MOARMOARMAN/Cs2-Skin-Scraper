@@ -77,6 +77,14 @@ def help():
     print(f"continue: Continue to the next step to begin scraping listings")
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler('bot.log'),
+            logging.StreamHandler()
+        ]
+    )
     logger.info("Starting CS:GO Trading Bot...")
     create_skin_listings_table_db(LISTINGS_DB)
     create_tracked_table_db(LISTINGS_DB)

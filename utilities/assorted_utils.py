@@ -7,14 +7,6 @@ from typing import Callable
 
 SKIN_DATA_DB = "skin_data.db"
 LISTINGS_DB = "listings.db"
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('bot.log'),
-        logging.StreamHandler()
-    ]
-)
 user_agent = os.getenv("STEAM_USER_AGENT")
 logger = logging.getLogger("CS2-System")
 
