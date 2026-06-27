@@ -58,7 +58,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
     else:
         logger.error(f"Unexpected status code {scout_r.status_code} for {search_name}")
         return []
-    for offset in range (0, scan_limit, min(scan_limit, 20)):
+    for offset in range (0, total_listings, 20):
         Payload[0]['start'] = offset
         try:
             r = post_with_retry(
@@ -100,7 +100,8 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
             if float_val < max_float:
                 valid_skins[listingID] = skinData(dID=dID, float_val=float_val, price=converted_price)
             available_skins[listingID] = skinData(dID=dID, float_val=float_val, price=converted_price)
-        logger.debug(f"Processed up to offset {offset + 20}...")
+        if offset % 100 == 0:
+            logger.info(f"Processed up to offset {offset + 20} for {search_name}")
         time.sleep(random.uniform(12,15))
     write_to_historical_db(search_name.rsplit('(', 1)[0].strip(), available_skins, DB_NAME)
     return valid_skins

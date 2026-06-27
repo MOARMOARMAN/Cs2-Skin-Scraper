@@ -153,14 +153,14 @@ def write_to_historical_db(skin_name: str, valid_listings: dict, db_name: str):
             )
             conn.executemany("INSERT OR IGNORE INTO all_historical_listings (listing_ID, skin_name, d_ID, float_val, price) VALUES(?, ?, ?, ?, ?)", listingData)
 
-def load_all_historical_data_listings_for_skin_name_db(skin_name: str, db_name: str):
+def load_for_skin_name_all_historical_listings_db(skin_name: str, db_name: str):
     """Load all historical listings for a specific skin - returns dict with timestamp"""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
         try:
-            stored_skins = conn.execute("SELECT listing_ID, price, d_ID, float_val, recorded_at FROM all_historical_listings WHERE skin_name = ?", (skin_name, )).fetchall()
+            stored_skins = conn.execute("SELECT listing_ID, price, float_val, recorded_at FROM all_historical_listings WHERE skin_name = ?", (skin_name, )).fetchall()
             logger.debug(f"Loaded {len(stored_skins)} historical listings for {skin_name}")
-            return {skin[0]: {"price": skin[1], "d_ID": skin[2], "float_val": skin[3], "recorded_at": skin[4]} for skin in stored_skins}
+            return {skin[0]: {"price": skin[1], "float_val": skin[2], "recorded_at": skin[3]} for skin in stored_skins}
         except sqlite3.OperationalError as e:
             if "no such table" in str(e):
                 logger.warning("Table all_historical_listings doesn't exist yet")
@@ -168,32 +168,20 @@ def load_all_historical_data_listings_for_skin_name_db(skin_name: str, db_name: 
                 logger.error(f"Database error loading {skin_name}: {e}")
                 raise
 
-def load_all_historical_data_from_db(db_name: str):
-    """Load all historical listings from database - returns dict with timestamps"""
+def load_all_skin_names_all_historical_data_db(db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
-        conn.execute("PRAGMA synchronous=NORMAL;") 
+        conn.execute("PRAGMA synchronous=NORMAL;")
         try:
-            stored_skins = conn.execute("""SELECT skin_name, listing_ID, price, d_ID, float_val, recorded_at FROM all_historical_listings ORDER BY recorded_at DESC""").fetchall()
-            logger.debug(f"Loaded {len(stored_skins)} total historical listings from database")
-            result = {}
-            for skin in stored_skins:
-                if skin[0] not in result:
-                    result[skin[0]] = []
-                result[skin[0]].append({
-                    "listing_ID": skin[1],
-                    "price": skin[2],
-                    "d_ID": skin[3],
-                    "float_val": skin[4],
-                    "recorded_at": skin[5]
-                })
-            return result
+            skin_names = conn.execute("SELECT DISTINCT skin_name FROM all_historical_listings ORDER BY skin_name").fetchall()
+            return skin_names
         except sqlite3.OperationalError as e:
             if "no such table" in str(e):
+
                 logger.warning("Table all_historical_listings doesn't exist yet")
             else:
-                logger.error(f"Database error: {e}")
+                logger.error(f"Loading skin names from all historical data table ERROR: {e}")
                 raise
-
+            
 def del_from_historical_db(skin_name: str, listingIDs: list, db_name: str):
     """Delete listings from historical database"""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
