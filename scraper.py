@@ -35,7 +35,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
         "filters":{"Exterior":[f"WearCategory{wear}"]}, # Set these using the inputs
         "accessoryFilters":{},
         "propertyFilters":{},
-        "price":{"eCurrency":20, "unMax":max_price * 100},
+        "price":{"eCurrency":20, "unMax":max_price * 300},
         "start": 0,
     }]
     headers["Referer"] = f"https://steamcommunity.com/market/listings/730/{scout_code}"
@@ -48,8 +48,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
 
     if scout_r.status_code == 200:
         total_listings = scout_r.json().get('total_count', 0)
-        scan_limit = max(min(int(total_listings * 0.3), 100), 20)
-        logger.info(f"Total Listings: {total_listings}. Scanning top: {scan_limit} items for {search_name}")
+        logger.info(f"Total Listings: {total_listings}. Scanning top: {total_listings} items for {search_name}")
     elif scout_r.status_code == 429:
         logger.warning("Steam rate limit reached. Sleeping 300 seconds...")
         time.sleep(300)
