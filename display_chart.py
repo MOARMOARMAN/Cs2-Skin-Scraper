@@ -22,12 +22,15 @@ if __name__ == "__main__":
         # wearlevel is 0-100 representing 0.01 intervals from 0-1
         listing_wearlevel = int(listing_float_val // 0.01)
         listing_price = listing["price"]
-        cur_sum_price, cur_listing_count, cur_included_count = harmonic_sum_listing_count[listing_wearlevel]
-        if listing_price == 0 or cur_included_count > LOWEST_PRICE_LISTINGS_TO_INCLUDE:
+        cur_harmonic_sum_price, cur_listing_count, cur_included_count = harmonic_sum_listing_count[listing_wearlevel]
+        if listing_price == 0: 
+            continue
+        if cur_included_count > LOWEST_PRICE_LISTINGS_TO_INCLUDE:
+            harmonic_sum_listing_count[listing_wearlevel] = [cur_harmonic_sum_price, cur_listing_count + 1, cur_included_count]
             continue
         listing_count = cur_listing_count + 1
         included_count = cur_included_count + 1
-        harmonic_sum = cur_sum_price + 1 / listing_price
+        harmonic_sum = cur_harmonic_sum_price + 1 / listing_price
         harmonic_sum_listing_count[listing_wearlevel] = [harmonic_sum, listing_count, included_count]
     
     float_ranges = []
@@ -36,8 +39,9 @@ if __name__ == "__main__":
     for x in range(100):
         float_ranges.append(f"{round(x/100, 2)}-{round(x/100 + 0.01, 2)}") 
         listing_volume.append(harmonic_sum_listing_count[x][1])
+        included_volume = harmonic_sum_listing_count[x][2]
         if harmonic_sum_listing_count[x][0]:
-            price_harmonic_means.append(listing_volume[x] / harmonic_sum_listing_count[x][0])
+            price_harmonic_means.append(included_volume / harmonic_sum_listing_count[x][0])
         else:
             price_harmonic_means.append(0)
 
