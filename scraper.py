@@ -35,7 +35,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
         "filters":{"Exterior":[f"WearCategory{wear}"]}, # Set these using the inputs
         "accessoryFilters":{},
         "propertyFilters":{},
-        "price":{"eCurrency":20, "unMax":max_price * 300},
+        "price":{"eCurrency":20, "unMax":max_price * 200},
         "start": 0,
     }]
     headers["Referer"] = f"https://steamcommunity.com/market/listings/730/{scout_code}"
@@ -97,7 +97,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
                     break
             salePriceText = item['strSubtotal']
             converted_price = price_conversion(salePriceText, price)
-            if float_val < max_float:
+            if float_val < max_float and converted_price < max_price:
                 valid_skins[listingID] = skinData(dID=dID, float_val=float_val, price=converted_price)
             available_skins[listingID] = skinData(dID=dID, float_val=float_val, price=converted_price)
         if offset % 100 == 0:
@@ -161,6 +161,7 @@ def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
     # This runs before the script fully closes.
     finally:
         logger.info(f"{skin_name} scraping loop ended.")
+        time.sleep(random.randint(120,180))
 
 if __name__ == "__main__":
     testing = True
