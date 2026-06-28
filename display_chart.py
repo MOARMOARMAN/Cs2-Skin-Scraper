@@ -6,7 +6,7 @@ from utilities import (
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-LOWEST_PRICE_LISTINGS_TO_INCLUDE = 10
+LISTINGS_TO_INCLUDE = 10
 
 if __name__ == "__main__":
     historical_options = load_all_skin_names_all_historical_data_db(LISTINGS_DB)
@@ -16,22 +16,25 @@ if __name__ == "__main__":
     skin_name = "AK-47 | Ice Coaled"
     listings_for_skin = load_for_skin_name_all_historical_listings_db(skin_name, LISTINGS_DB)
     print(len(listings_for_skin))
-    harmonic_sum_listing_count = [[0 for _ in range(3)] for _ in range(100)]
+    # [harmonic sum of price, listing count, listings included, lowest price]
+    harmonic_sum_listing_count = [[0, 0, 0, float("inf")] for _ in range(100)]
     for listing in listings_for_skin.values():
         listing_float_val = listing["float_val"]
         # wearlevel is 0-100 representing 0.01 intervals from 0-1
         listing_wearlevel = int(listing_float_val // 0.01)
         listing_price = listing["price"]
-        cur_harmonic_sum_price, cur_listing_count, cur_included_count = harmonic_sum_listing_count[listing_wearlevel]
+        cur_harmonic_sum_price, cur_listing_count, cur_included_count, lowest_price = harmonic_sum_listing_count[listing_wearlevel]
         if listing_price == 0: 
             continue
-        if cur_included_count > LOWEST_PRICE_LISTINGS_TO_INCLUDE:
-            harmonic_sum_listing_count[listing_wearlevel] = [cur_harmonic_sum_price, cur_listing_count + 1, cur_included_count]
-            continue
-        listing_count = cur_listing_count + 1
-        included_count = cur_included_count + 1
-        harmonic_sum = cur_harmonic_sum_price + 1 / listing_price
-        harmonic_sum_listing_count[listing_wearlevel] = [harmonic_sum, listing_count, included_count]
+        if listing_price < 1.3 * lowest_price:
+            if cur_included_count > LISTINGS_TO_INCLUDE:
+                harmonic_sum_listing_count[listing_wearlevel] = [cur_harmonic_sum_price, cur_listing_count + 1, cur_included_count, lowest_price]
+                continue
+            listing_count = cur_listing_count + 1
+            included_count = cur_included_count + 1
+            lowest_price = min(listing_price, lowest_price)
+            harmonic_sum = cur_harmonic_sum_price + 1 / listing_price
+            harmonic_sum_listing_count[listing_wearlevel] = [harmonic_sum, listing_count, included_count, lowest_price]
     
     float_ranges = []
     listing_volume = []
@@ -47,17 +50,17 @@ if __name__ == "__main__":
 
     print(price_harmonic_means)
     print(listing_volume)
-    """# Create figure with secondary y-axis
+    # Create figure with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
     # Add traces
     fig.add_trace(
-        go.Scatter(x=[1, 2, 3], y=[40, 50, 60], name="yaxis data"),
+        go.Scatter(x=float_ranges, y=price_harmonic_means, name="Average Price"),
         secondary_y=False,
     )
 
     fig.add_trace(
-        go.Scatter(x=[2, 3, 4], y=[4, 5, 6], name="yaxis2 data"),
+        go.Scatter(x=float_ranges, y=listing_volume, name="Listing Volume"),
         secondary_y=True,
     )
 
@@ -73,4 +76,4 @@ if __name__ == "__main__":
     fig.update_yaxes(title_text="<b>primary</b> yaxis title", secondary_y=False)
     fig.update_yaxes(title_text="<b>secondary</b> yaxis title", secondary_y=True)
 
-    fig.show()"""
+    fig.show()
