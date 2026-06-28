@@ -158,7 +158,7 @@ def load_for_skin_name_all_historical_listings_db(skin_name: str, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
         try:
-            stored_skins = conn.execute("SELECT listing_ID, price, float_val, recorded_at FROM all_historical_listings WHERE skin_name = ?", (skin_name, )).fetchall()
+            stored_skins = conn.execute("SELECT listing_ID, price, float_val, recorded_at FROM all_historical_listings WHERE skin_name = ? ORDER BY price", (skin_name, )).fetchall()
             logger.debug(f"Loaded {len(stored_skins)} historical listings for {skin_name}")
             return {skin[0]: {"price": skin[1], "float_val": skin[2], "recorded_at": skin[3]} for skin in stored_skins}
         except sqlite3.OperationalError as e:

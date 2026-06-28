@@ -106,7 +106,7 @@ def analyze_batch(db: str, lowest_market_prices: dict[str:float|str]):
         return []
     
 def analyze_batch_loop(db: str, lowest_market_prices: dict[str:float|str]):
-    time.sleep(100)
+    time.sleep(1000)
     logger.info("Starting analyze batch loop")
     while True:
         try:
