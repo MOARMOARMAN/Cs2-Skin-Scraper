@@ -19,13 +19,8 @@ WEAR_RANGES = {
     "(Well-Worn)": "(0.38 - 0.45)",
     "(Battle-Scarred)": "(0.45 - 1.00)"
 }
-WEAR_ABBRIEVIATIONS = {
-    0 : "fn",
-    1 : "mw",
-    2 : "ft",
-    3 : "ww",
-    4 : "bs"
-}
+WEAR_ABBRIEVIATIONS = ["fn", "mw", "ft", "ww", "bs"]
+WEAR_TO_MAX = [0.07, 0.15, 0.38, 0.45, 1.0]
 CURRENCY_TO_CAD = {
     "HKD": 0.177,   # 1 Hong Kong Dollar ~ 0.18 CAD
     "USD": 1.370,   # 1 US Dollar ~ 1.37 CAD

@@ -12,7 +12,9 @@ from .assorted_utils import (
     SKIN_DATA_DB,
     LISTINGS_DB,
     WEAR_RANGES,
-    CURRENCY_TO_CAD
+    CURRENCY_TO_CAD,
+    WEAR_ABBRIEVIATIONS,
+    WEAR_TO_MAX
 )
 
 from .db_utils import (
