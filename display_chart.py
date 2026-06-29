@@ -6,6 +6,48 @@ from utilities import (
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+def show_graph(float_ranges: list, listing_volume: list, price_harmonic_means: list):
+        # Create figure with secondary y-axis
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+    # Add traces
+    fig.add_trace(
+        go.Scatter(
+            x=float_ranges,
+            y=price_harmonic_means,
+            name="Average Price",
+            line=dict(color="limegreen", width=1.5),
+            mode="lines",
+            hovertemplate="Float: %{x}<br>Price: CDN$ %{y:.2f}<extra></extra>"
+        ),
+        secondary_y=False,
+    )
+
+    fig.add_trace(
+        go.Bar(
+            x=float_ranges,
+            y=listing_volume,
+            name="Listing Volume",
+            marker=dict(color="steelblue", opacity=0.5),
+            hovertemplate="Float: %{x}<br>Volume: %{y}<extra></extra>"
+        ),
+        secondary_y=True,
+    )
+
+    # Add figure title
+    fig.update_layout(
+        title_text="Price to Float + Volume"
+    )
+
+    # Set x-axis title
+    fig.update_xaxes(title_text="Float Ranges")
+
+    # Set y-axes titles
+    fig.update_yaxes(title_text="<b>primary</b> Price", secondary_y=False)
+    fig.update_yaxes(title_text="<b>secondary</b> Volume", secondary_y=True)
+
+    fig.show()
+
 LISTINGS_TO_INCLUDE = 10
 
 if __name__ == "__main__":
@@ -50,30 +92,4 @@ if __name__ == "__main__":
 
     print(price_harmonic_means)
     print(listing_volume)
-    # Create figure with secondary y-axis
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
-
-    # Add traces
-    fig.add_trace(
-        go.Scatter(x=float_ranges, y=price_harmonic_means, name="Average Price"),
-        secondary_y=False,
-    )
-
-    fig.add_trace(
-        go.Scatter(x=float_ranges, y=listing_volume, name="Listing Volume"),
-        secondary_y=True,
-    )
-
-    # Add figure title
-    fig.update_layout(
-        title_text="Double Y Axis Example"
-    )
-
-    # Set x-axis title
-    fig.update_xaxes(title_text="xaxis title")
-
-    # Set y-axes titles
-    fig.update_yaxes(title_text="<b>primary</b> yaxis title", secondary_y=False)
-    fig.update_yaxes(title_text="<b>secondary</b> yaxis title", secondary_y=True)
-
-    fig.show()
+    show_graph(float_ranges, listing_volume, price_harmonic_means)
