@@ -1,7 +1,10 @@
 from utilities import (
     load_for_skin_name_all_historical_listings_db,
     load_all_skin_names_all_historical_data_db,
-    LISTINGS_DB
+    insert_skin_float_prices_skin_data_db,
+    create_float_prices_skin_data_db,
+    LISTINGS_DB,
+    SKIN_DATA_DB
 )
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -51,6 +54,7 @@ def show_graph(float_ranges: list, listing_volume: list, price_harmonic_means: l
 LISTINGS_TO_INCLUDE = 10
 
 if __name__ == "__main__":
+    create_float_prices_skin_data_db(SKIN_DATA_DB)
     historical_options = load_all_skin_names_all_historical_data_db(LISTINGS_DB)
     options = " --- ".join([f'"{name[0]}"' for name in historical_options])
     print(f"These are your options: {options}\n")
@@ -92,4 +96,5 @@ if __name__ == "__main__":
 
     print(price_harmonic_means)
     print(listing_volume)
+    insert_skin_float_prices_skin_data_db(skin_name, price_harmonic_means, SKIN_DATA_DB)
     show_graph(float_ranges, listing_volume, price_harmonic_means)

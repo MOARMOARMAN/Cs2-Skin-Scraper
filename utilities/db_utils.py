@@ -1,4 +1,3 @@
-from asyncio import timeout
 import sqlite3
 import logging
 from contextlib import closing
@@ -238,3 +237,27 @@ def get_lowest_price_skin_data_db(skin_name: str, wear_level: int, db_name: str)
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         result = conn.execute(f"SELECT {WEAR_ABBRIEVIATIONS[wear_level]} FROM skin_data WHERE skin_name=?", (skin_name,)).fetchone()
         return result[0]
+
+def create_float_prices_skin_data_db(db_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        with conn:
+            # float_bucket is from 0 - 99 representing 0.00 - 0.01 to 0.99 - 1.00
+            conn.execute("""CREATE TABLE IF NOT EXISTS float_prices (
+                skin_name TEXT, 
+                float_bucket INTEGER, 
+                average_price REAL, 
+                recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (skin_name, float_bucket)
+            )""")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_skin_name_float_prices ON float_prices (skin_name)")
+                
+def insert_skin_float_prices_skin_data_db(skin_name: str, prices: list, db_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        with conn:
+            values = tuple(
+                (skin_name, x, price) for x, price in enumerate(prices)
+            )
+            conn.executemany("INSERT OR REPLACE INTO float_prices (skin_name, float_bucket, average_price) VALUES(?, ?, ?)", values)
