@@ -4,9 +4,12 @@ import requests
 from tenacity import retry, stop_after_attempt, wait_exponential_jitter, retry_if_exception_type
 from collections import namedtuple
 from typing import Callable
+from pathlib import Path
 
-SKIN_DATA_DB = "skin_data.db"
-LISTINGS_DB = "listings.db"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DATABASES_DIR = PROJECT_ROOT / "databases"
+SKIN_DATA_DB = DATABASES_DIR / "skin_data.db"
+LISTINGS_DB = DATABASES_DIR / "listings.db"
 user_agent = os.getenv("STEAM_USER_AGENT")
 logger = logging.getLogger("CS2-System")
 

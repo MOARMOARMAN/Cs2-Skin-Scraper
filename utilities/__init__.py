@@ -46,3 +46,7 @@ from .db_utils import (
     create_float_prices_skin_data_db,
     insert_skin_float_prices_skin_data_db
 )
+
+from .dataclass_utils import (
+    WearBucket
+)

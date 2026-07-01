@@ -4,7 +4,8 @@ from utilities import (
     insert_skin_float_prices_skin_data_db,
     create_float_prices_skin_data_db,
     LISTINGS_DB,
-    SKIN_DATA_DB
+    SKIN_DATA_DB,
+    WearBucket
 )
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -52,6 +53,49 @@ def show_graph(float_ranges: list, listing_volume: list, price_harmonic_means: l
     fig.show()
 
 LISTINGS_TO_INCLUDE = 10
+LISTING_PRICING_MULTIPLIER = 1.3
+
+def calculate_wear_buckets(skin_name: str) -> list[WearBucket]:
+    listings_for_skin = load_for_skin_name_all_historical_listings_db(skin_name, LISTINGS_DB)
+
+    # [harmonic sum of price, listing count, listings included, lowest price]
+    wear_buckets = [WearBucket() for _ in range(100)]
+    for listing in listings_for_skin.values():
+        listing_float_val = listing["float_val"]
+        # wearlevel is 0-100 representing 0.01 intervals from 0-1
+        listing_wearlevel = int(listing_float_val // 0.01)
+        listing_price = listing["price"]
+        wb = wear_buckets[listing_wearlevel]
+        if listing_price == 0: 
+            continue
+        if listing_price < LISTING_PRICING_MULTIPLIER * wb.lowest_price:
+            if wb.included_count > LISTINGS_TO_INCLUDE:
+                wb.listing_count += 1
+                continue
+            wb.listing_count += 1
+            wb.included_count += 1
+            wb.lowest_price = min(listing_price, wb.lowest_price)
+            wb.harmonic_sum += 1 / listing_price
+    return wear_buckets
+
+def split_wear_bucket_data(wear_buckets: list[WearBucket]):
+    float_ranges = []
+    listing_volume = []
+    price_harmonic_means = []
+    for x in range(100):
+        float_ranges.append(f"{round(x/100, 2)}-{round(x/100 + 0.01, 2)}") 
+        listing_volume.append(wear_buckets[x].listing_count)
+        included_volume = wear_buckets[x].included_count
+        if wear_buckets[x].harmonic_sum:
+            price_harmonic_means.append(included_volume / wear_buckets[x].harmonic_sum)
+        else:
+            price_harmonic_means.append(0)
+    return float_ranges, listing_volume, price_harmonic_means
+
+def update_wear_bucket_data_for_skin(skin_name: str):
+    wear_buckets = calculate_wear_buckets(skin_name)
+    float_ranges, listing_volume, price_harmonic_means = split_wear_bucket_data(wear_buckets)
+    insert_skin_float_prices_skin_data_db(skin_name, price_harmonic_means, SKIN_DATA_DB)
 
 if __name__ == "__main__":
     create_float_prices_skin_data_db(SKIN_DATA_DB)
@@ -60,41 +104,9 @@ if __name__ == "__main__":
     print(f"These are your options: {options}\n")
     # skin_name = input("Please enter your choice: ")
     skin_name = "AK-47 | Ice Coaled"
-    listings_for_skin = load_for_skin_name_all_historical_listings_db(skin_name, LISTINGS_DB)
-    print(len(listings_for_skin))
-    # [harmonic sum of price, listing count, listings included, lowest price]
-    harmonic_sum_listing_count = [[0, 0, 0, float("inf")] for _ in range(100)]
-    for listing in listings_for_skin.values():
-        listing_float_val = listing["float_val"]
-        # wearlevel is 0-100 representing 0.01 intervals from 0-1
-        listing_wearlevel = int(listing_float_val // 0.01)
-        listing_price = listing["price"]
-        cur_harmonic_sum_price, cur_listing_count, cur_included_count, lowest_price = harmonic_sum_listing_count[listing_wearlevel]
-        if listing_price == 0: 
-            continue
-        if listing_price < 1.3 * lowest_price:
-            if cur_included_count > LISTINGS_TO_INCLUDE:
-                harmonic_sum_listing_count[listing_wearlevel] = [cur_harmonic_sum_price, cur_listing_count + 1, cur_included_count, lowest_price]
-                continue
-            listing_count = cur_listing_count + 1
-            included_count = cur_included_count + 1
-            lowest_price = min(listing_price, lowest_price)
-            harmonic_sum = cur_harmonic_sum_price + 1 / listing_price
-            harmonic_sum_listing_count[listing_wearlevel] = [harmonic_sum, listing_count, included_count, lowest_price]
-    
-    float_ranges = []
-    listing_volume = []
-    price_harmonic_means = []
-    for x in range(100):
-        float_ranges.append(f"{round(x/100, 2)}-{round(x/100 + 0.01, 2)}") 
-        listing_volume.append(harmonic_sum_listing_count[x][1])
-        included_volume = harmonic_sum_listing_count[x][2]
-        if harmonic_sum_listing_count[x][0]:
-            price_harmonic_means.append(included_volume / harmonic_sum_listing_count[x][0])
-        else:
-            price_harmonic_means.append(0)
 
-    print(price_harmonic_means)
-    print(listing_volume)
+    wear_buckets = calculate_wear_buckets(skin_name)
+    float_ranges, listing_volume, price_harmonic_means = split_wear_bucket_data(wear_buckets)
+
     insert_skin_float_prices_skin_data_db(skin_name, price_harmonic_means, SKIN_DATA_DB)
     show_graph(float_ranges, listing_volume, price_harmonic_means)

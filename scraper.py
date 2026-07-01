@@ -14,11 +14,11 @@ from utilities import (
     setup_session_cookies, 
     price_conversion, 
     get_skin_code_db, 
+    LISTINGS_DB,
     SKIN_DATA_DB,
     what_wear
 )
 
-DB_NAME = "listings.db"
 logger = logging.getLogger("Scouting")
 
 if TYPE_CHECKING:
@@ -35,7 +35,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
         "filters":{"Exterior":[f"WearCategory{wear}"]}, # Set these using the inputs
         "accessoryFilters":{},
         "propertyFilters":{},
-        "price":{"eCurrency":20, "unMax":max_price * 200},
+        "price":{"eCurrency":20, "unMax":max_price * 400},
         "start": 0,
     }]
     headers["Referer"] = f"https://steamcommunity.com/market/listings/730/{scout_code}"
@@ -103,7 +103,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
         if offset % 100 == 0:
             logger.info(f"Processed up to offset {offset + 20} for {search_name}")
         time.sleep(random.uniform(12,15))
-    write_to_historical_db(search_name.rsplit('(', 1)[0].strip(), available_skins, DB_NAME)
+    write_to_historical_db(search_name.rsplit('(', 1)[0].strip(), available_skins, LISTINGS_DB)
     return valid_skins
 
 def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
@@ -127,7 +127,7 @@ def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
         return
     skin_wear = wears[wlevel]
     search_name = f"{skin_name} {skin_wear}"
-    load_data_listings_db(search_name, valid_listings, DB_NAME)
+    load_data_listings_db(search_name, valid_listings, LISTINGS_DB)
     scout_code = get_skin_code_db(SKIN_DATA_DB, search_name)
     if not scout_code:
         logger.error("could not access the scout_code in any form.")
@@ -145,10 +145,10 @@ def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
                         if listingID not in currentlyAvailableIDS:
                             toRemoveIDs.append((listingID,))
                             del valid_listings[listingID]
-                    del_missing_ID_listing_db(search_name, toRemoveIDs, DB_NAME)
+                    del_missing_ID_listing_db(search_name, toRemoveIDs, LISTINGS_DB)
                     for listingID in scout_results:
                         valid_listings[listingID] = scout_results[listingID]
-                    write_listings_db(search_name, valid_listings, DB_NAME)
+                    write_listings_db(search_name, valid_listings, LISTINGS_DB)
                     logger.info(f"{skin_name} Loop complete. Resting to avoid rate limits...")
                 time.sleep(random.randint(120, 180))
             except Exception as e:
