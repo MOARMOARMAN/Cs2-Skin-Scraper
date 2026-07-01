@@ -8,7 +8,6 @@ from .assorted_utils import (
     setup_session_cookies, 
     price_conversion,
     get_skin_code, 
-    skinData, 
     SKIN_DATA_DB,
     LISTINGS_DB,
     WEAR_RANGES,
@@ -48,5 +47,6 @@ from .db_utils import (
 )
 
 from .dataclass_utils import (
-    WearBucket
+    WearBucket,
+    listingData
 )

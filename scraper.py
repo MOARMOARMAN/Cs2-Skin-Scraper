@@ -10,7 +10,7 @@ from utilities import (
     post_with_retry, 
     wears, 
     headers, 
-    skinData, 
+    listingData,
     setup_session_cookies, 
     price_conversion, 
     get_skin_code_db, 
@@ -82,8 +82,12 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
                 price = float(price)
             else:
                 continue
-            properties = item['asset']['asset_properties']
-            dID = ''
+            asset = item.get('asset')
+            if not asset:
+                continue
+            properties = asset.get('asset_properties')
+            if not properties:
+                continue
             float_val = 1
             for prop in properties:
                 if prop.get('propertyid') == 2:
@@ -92,26 +96,20 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
                         float_val = float(float_val)
                     else:
                         continue
-                if prop.get('propertyid') == 6:
-                    dID = prop.get('string_value')
-                    break
             salePriceText = item['strSubtotal']
             converted_price = price_conversion(salePriceText, price)
             if float_val < max_float and converted_price < max_price:
-                valid_skins[listingID] = skinData(dID=dID, float_val=float_val, price=converted_price)
-            available_skins[listingID] = skinData(dID=dID, float_val=float_val, price=converted_price)
+                valid_skins[listingID] = listingData(float_val=float_val, price=converted_price)
+            available_skins[listingID] = listingData(float_val=float_val, price=converted_price)
         if offset % 100 == 0:
             logger.info(f"Processed up to offset {offset + 20} for {search_name}")
-        time.sleep(random.uniform(12,15))
+        time.sleep(random.uniform(20, 30))
     write_to_historical_db(search_name.rsplit('(', 1)[0].strip(), available_skins, LISTINGS_DB)
     return valid_skins
 
 def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
     logger.info(f"Scouting Loop for {skin_name} has been started")
     time.sleep(random.randint(3,20))
-    # Dictionary containing all of the information on the skins
-    # Stored as listingID for key
-    # namedtuple containing the skin data like dID, float_val, and price
     valid_listings = {}
     wlevel = what_wear(maximum_float)
     session_cookies = setup_session_cookies()

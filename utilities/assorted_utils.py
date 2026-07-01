@@ -49,8 +49,6 @@ headers = {
     "sec-fetch-dest": "empty"
 }
 
-skinData = namedtuple('skinData', ['dID', 'float_val', 'price'])
-
 def what_wear(float_val: float):
     if float_val < 0.07:
         return 0
@@ -181,7 +179,11 @@ def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_c
         return 0
     return_subtotal = ""
     try:
-        lowest_listing = scout_r.json().get('listings', 0)[0]
+        listings = scout_r.json().get('listings')
+        if not listings:
+            logger.error(f"No listings found or strSubtotal for {search_name}")
+            return -1
+        lowest_listing = listings[0]
         lowest_listing_subtotal = lowest_listing.get('strSubtotal')
         lowest_listing_price = lowest_listing.get('unPrice', 0) + lowest_listing.get('unFee', 0)
         logger.info(f"Converting {lowest_listing_subtotal}")
