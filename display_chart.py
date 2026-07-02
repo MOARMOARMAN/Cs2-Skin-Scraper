@@ -101,9 +101,13 @@ if __name__ == "__main__":
     create_float_prices_skin_data_db(SKIN_DATA_DB)
     historical_options = load_all_skin_names_all_historical_data_db(LISTINGS_DB)
     options = " --- ".join([f'"{name[0]}"' for name in historical_options])
-    print(f"These are your options: {options}\n")
-    # skin_name = input("Please enter your choice: ")
-    skin_name = "AK-47 | Ice Coaled"
+    print(f"These are your options: {options}\n") 
+    skin_name = None
+    while skin_name not in options:
+        skin_name = input("Please enter your choice: ")
+        if skin_name not in options:
+            print(f"{skin_name} is not a part of the options.\n")
+            print(f"These are your options: {options}\n")
 
     wear_buckets = calculate_wear_buckets(skin_name)
     float_ranges, listing_volume, price_harmonic_means = split_wear_bucket_data(wear_buckets)
