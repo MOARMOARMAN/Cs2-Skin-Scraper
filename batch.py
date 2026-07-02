@@ -121,5 +121,8 @@ def analyze_batch_loop(db: str, lowest_market_prices: dict[str:float|str]):
             logger.debug("Analysis cycle complete, sleeping 60 minutes")
             time.sleep(3600)
 
+# def calculate_overpay_percentage(skin_name: str, float_val: float, price: float) -> float:
+
+
 if __name__ == "__main__":
     print()
