@@ -91,7 +91,7 @@ def analyze_batch(db: str, lowest_market_prices: dict[str:float|str]):
         for id, data in listings.items():
             float_diff = data.float_val - average_float
             price_deviation = (data.price - average_price) / average_price * 100
-            if type(lowest_price) == float: 
+            if isinstance(lowest_price, float) and lowest_price != 0: 
                 price_overpay = round((data.price - lowest_price) / lowest_price * 100, 2)
             else:
                 price_overpay = "N/A"
@@ -106,7 +106,7 @@ def analyze_batch(db: str, lowest_market_prices: dict[str:float|str]):
         return []
     
 def analyze_batch_loop(db: str, lowest_market_prices: dict[str:float|str]):
-    time.sleep(100)
+    time.sleep(1000)
     logger.info("Starting analyze batch loop")
     while True:
         try:
@@ -120,6 +120,9 @@ def analyze_batch_loop(db: str, lowest_market_prices: dict[str:float|str]):
         finally:
             logger.debug("Analysis cycle complete, sleeping 60 minutes")
             time.sleep(3600)
+
+# def calculate_overpay_percentage(skin_name: str, float_val: float, price: float) -> float:
+
 
 if __name__ == "__main__":
     print()

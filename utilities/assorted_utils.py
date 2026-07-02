@@ -4,17 +4,12 @@ import requests
 from tenacity import retry, stop_after_attempt, wait_exponential_jitter, retry_if_exception_type
 from collections import namedtuple
 from typing import Callable
+from pathlib import Path
 
-SKIN_DATA_DB = "skin_data.db"
-LISTINGS_DB = "listings.db"
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('bot.log'),
-        logging.StreamHandler()
-    ]
-)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DATABASES_DIR = PROJECT_ROOT / "databases"
+SKIN_DATA_DB = DATABASES_DIR / "skin_data.db"
+LISTINGS_DB = DATABASES_DIR / "listings.db"
 user_agent = os.getenv("STEAM_USER_AGENT")
 logger = logging.getLogger("CS2-System")
 
@@ -27,13 +22,8 @@ WEAR_RANGES = {
     "(Well-Worn)": "(0.38 - 0.45)",
     "(Battle-Scarred)": "(0.45 - 1.00)"
 }
-WEAR_ABBRIEVIATIONS = {
-    0 : "fn",
-    1 : "mw",
-    2 : "ft",
-    3 : "ww",
-    4 : "bs"
-}
+WEAR_ABBRIEVIATIONS = ["fn", "mw", "ft", "ww", "bs"]
+WEAR_TO_MAX = [0.0699, 0.1499, 0.3799, 0.4499, 0.9999]
 CURRENCY_TO_CAD = {
     "HKD": 0.177,   # 1 Hong Kong Dollar ~ 0.18 CAD
     "USD": 1.370,   # 1 US Dollar ~ 1.37 CAD
@@ -58,8 +48,6 @@ headers = {
     "sec-fetch-site": "same-origin",
     "sec-fetch-dest": "empty"
 }
-
-skinData = namedtuple('skinData', ['dID', 'float_val', 'price'])
 
 def what_wear(float_val: float):
     if float_val < 0.07:
@@ -191,7 +179,11 @@ def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_c
         return 0
     return_subtotal = ""
     try:
-        lowest_listing = scout_r.json().get('listings', 0)[0]
+        listings = scout_r.json().get('listings')
+        if not listings:
+            logger.error(f"No listings found or strSubtotal for {search_name}")
+            return -1
+        lowest_listing = listings[0]
         lowest_listing_subtotal = lowest_listing.get('strSubtotal')
         lowest_listing_price = lowest_listing.get('unPrice', 0) + lowest_listing.get('unFee', 0)
         logger.info(f"Converting {lowest_listing_subtotal}")

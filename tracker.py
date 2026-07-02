@@ -1,7 +1,7 @@
 import logging
 from scraper import scouting_loop
 from utilities import (
-    create_skin_table_db, 
+    create_skin_listings_table_db, 
     clear_db_skins, 
     wears, 
     what_wear,
@@ -11,7 +11,10 @@ from utilities import (
     delete_entry_tracked_table_db,
     get_tracked_listings_table_db,
     get_lowest_price_skin_data_db,
-    insert_tracked_table_db
+    insert_tracked_table_db,
+    create_all_historical_listings_table_db,
+    WEAR_ABBRIEVIATIONS,
+    WEAR_TO_MAX
 )
 from batch import analyze_batch_loop
 from concurrent.futures import ThreadPoolExecutor
@@ -40,14 +43,29 @@ def add_skins(lowest_prices: dict):
                 return
             skin_name, max_float = user_input.split("/")
             skin_name = skin_name.strip()
-            max_float = float(max_float.strip())
-            wlevel = what_wear(max_float)
+            max_float = max_float.strip()
+            print(f"{max_float} type: {type(max_float)}")
+            try:
+                max_float = float(max_float.strip())
+                wlevel = what_wear(max_float)
+            except ValueError: 
+                if str(max_float).lower() in WEAR_ABBRIEVIATIONS:
+                    wlevel = WEAR_ABBRIEVIATIONS.index(max_float)
+                    max_float = WEAR_TO_MAX[wlevel]
+                else:
+                    logger.error("Invalid input format. Please enter in the format: Skin name / Max Float")
+                    user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
+                    continue
+
             cur_lowest_price = get_lowest_price_skin_data_db(skin_name, wlevel, SKIN_DATA_DB)
             user_input = input(f"The current lowest price for {skin_name} at a wear of {wears[wlevel]} is ${cur_lowest_price} CAD\nPlease input a price maximum in CAD: ")
-            try:
-                max_price = float(user_input.strip())
-            except ValueError:
-                print("invalid input")
+            max_price = ""
+            while not isinstance(max_price, float):
+                try:
+                    max_price = float(user_input.strip())
+                except ValueError:
+                    print("Invalid Price")
+                    user_input = input(f"The current lowest price for {skin_name} at a wear of {wears[wlevel]} is ${cur_lowest_price} CAD\nPlease input a price maximum in CAD: ")
             lowest_prices[f"{skin_name} {wears[wlevel]}"] = cur_lowest_price
             insert_tracked_table_db(LISTINGS_DB, [[skin_name, max_float, max_price]])
             logger.info(f"Added skin to monitor: {skin_name} with max price {max_price} and max float {max_float} and wear {wears[wlevel]}")
@@ -76,11 +94,20 @@ def help():
     print(f"continue: Continue to the next step to begin scraping listings")
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler('bot.log'),
+            logging.StreamHandler()
+        ]
+    )
     logger.info("Starting CS:GO Trading Bot...")
-    create_skin_table_db(LISTINGS_DB)
+    create_skin_listings_table_db(LISTINGS_DB)
     create_tracked_table_db(LISTINGS_DB)
+    create_all_historical_listings_table_db(LISTINGS_DB)
     logger.info(f"Database initialized: {LISTINGS_DB}")
-
+    
     # AK-47 | Ice Coaled / 0.09
     # AK-47 | Ice Coaled / 0.185
     # AK-47 | Slate / 0.09  
@@ -93,17 +120,17 @@ if __name__ == "__main__":
     new_skins = []
     print(f"There are currently {len(skins)} skins being tracked. ")
     lowest_prices = {}
-
+    
     user_actions = {
         "add": lambda: add_skins(lowest_prices),
         "remove": lambda: remove_skins(),
-        "help" : lambda: help()
+        "help" : lambda: help(),
+        "exit" : lambda: exit()
     }
     print_tracked()
     user_input = prompt_actions_user(user_actions)
     while user_input != "continue":
         try:
-            print_tracked()
             user_actions[user_input]()
             user_input = prompt_actions_user(user_actions)
         except Exception as e:
