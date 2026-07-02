@@ -102,12 +102,12 @@ if __name__ == "__main__":
     historical_options = load_all_skin_names_all_historical_data_db(LISTINGS_DB)
     options = " --- ".join([f'"{name[0]}"' for name in historical_options])
     print(f"These are your options: {options}\n") 
-    skin_name = None
-    while skin_name not in options:
+    while True:
         skin_name = input("Please enter your choice: ")
-        if skin_name not in options:
-            print(f"{skin_name} is not a part of the options.\n")
-            print(f"These are your options: {options}\n")
+        if skin_name in options:
+            break
+        print(f"{skin_name} is not a part of the options.\n")
+        print(f"These are your options: {options}\n")
 
     wear_buckets = calculate_wear_buckets(skin_name)
     float_ranges, listing_volume, price_harmonic_means = split_wear_bucket_data(wear_buckets)
