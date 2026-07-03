@@ -1,5 +1,6 @@
 import sqlite3
 import logging
+from math import floor
 from contextlib import closing
 from .assorted_utils import headers, get_skin_code, WEAR_ABBRIEVIATIONS
 from .dataclass_utils import listingData
@@ -261,3 +262,10 @@ def insert_skin_float_prices_skin_data_db(skin_name: str, prices: list, db_name:
                 (skin_name, x, price) for x, price in enumerate(prices)
             )
             conn.executemany("INSERT OR REPLACE INTO float_prices (skin_name, float_bucket, average_price) VALUES(?, ?, ?)", values)
+
+def get_skin_float_price_skin_data_db(skin_name: str, float_val: float, db_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        float_bucket =  floor(float_val * 100)
+        average_price = conn.execute("SELECT average_price FROM float_prices WHERE skin_name=? AND float_bucket=?", (skin_name, float_bucket)).fetchone()
+        return average_price

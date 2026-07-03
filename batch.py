@@ -6,8 +6,11 @@ from google.genai import types, errors
 from pydantic import BaseModel, Field
 from typing import List
 from tenacity import retry, wait_exponential_jitter, retry_if_exception_type
-from utilities import load_all_data_listings_db
-
+from utilities import (
+    load_all_data_listings_db,
+    get_skin_float_price_skin_data_db,
+    SKIN_DATA_DB
+)
 logger = logging.getLogger("Batching")
 
 class SkinDeal(BaseModel):
@@ -121,8 +124,9 @@ def analyze_batch_loop(db: str, lowest_market_prices: dict[str:float|str]):
             logger.debug("Analysis cycle complete, sleeping 60 minutes")
             time.sleep(3600)
 
-# def calculate_overpay_percentage(skin_name: str, float_val: float, price: float) -> float:
-
+def calculate_overpay_percentage(skin_name: str, float_val: float, price: float) -> float:
+    average_price = get_skin_float_price_skin_data_db(skin_name, float_val, SKIN_DATA_DB)[0]
+    return round((price / average_price - 1) * 100, 4)
 
 if __name__ == "__main__":
-    print()
+    print(calculate_overpay_percentage("AK-47 | Ice Coaled", 0.09999, 20.0))
