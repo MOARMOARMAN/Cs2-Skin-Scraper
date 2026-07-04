@@ -44,7 +44,7 @@ from .db_utils import (
     # Float_Prices skin data functions
     create_float_prices_skin_data_db,
     insert_skin_float_prices_skin_data_db,
-    get_skin_float_price_skin_data_db
+    get_price_float_buckets_skin_data_db
 )
 
 from .dataclass_utils import (

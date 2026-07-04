@@ -263,9 +263,14 @@ def insert_skin_float_prices_skin_data_db(skin_name: str, prices: list, db_name:
             )
             conn.executemany("INSERT OR REPLACE INTO float_prices (skin_name, float_bucket, average_price) VALUES(?, ?, ?)", values)
 
-def get_skin_float_price_skin_data_db(skin_name: str, float_val: float, db_name: str):
+# listings is list[float_val, price, listingID]
+def get_price_float_buckets_skin_data_db(skin_name: str, db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
-        float_bucket =  floor(float_val * 100)
-        average_price = conn.execute("SELECT average_price FROM float_prices WHERE skin_name=? AND float_bucket=?", (skin_name, float_bucket)).fetchone()
-        return average_price
+        price_buckets = {}
+        stored_buckets = conn.execute("SELECT float_bucket, average_price FROM float_prices WHERE skin_name=?", (skin_name,)).fetchall()
+        # bucket = (float_bucket, average_price)
+        for bucket in stored_buckets:
+            price_buckets[bucket[0]] = bucket[1]
+
+        return price_buckets

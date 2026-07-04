@@ -146,7 +146,7 @@ def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
                     del_missing_ID_listing_db(search_name, toRemoveIDs, LISTINGS_DB)
                     for listingID in scout_results:
                         valid_listings[listingID] = scout_results[listingID]
-                    write_listings_db(search_name, valid_listings, LISTINGS_DB)
+                    write_listings_db(skin_name, valid_listings, LISTINGS_DB)
                     logger.info(f"{skin_name} Loop complete. Resting to avoid rate limits...")
                 time.sleep(random.randint(120, 180))
             except Exception as e:
