@@ -17,6 +17,8 @@ from utilities import (
 )
 logger = logging.getLogger("Batching")
 
+OVERPAY_PERCENTAGE_THRESHOLD = -10
+
 class SkinDeal(BaseModel):
     listing_id: str = Field(description="The unique alphanumeric identifier of the specific listing row.")
     skin_name: str = Field(description="The exact name of the skin this listing belongs to (e.g., 'AK-47 | Redline (Field-Tested)').")
@@ -128,7 +130,7 @@ def analyze_batch_loop(db: str, lowest_market_prices: dict[str:float|str]):
             logger.debug("Analysis cycle complete, sleeping 60 minutes")
             time.sleep(3600)
 
-def calculate_overpay_percentage(listings: dict, skin_name: str, skin_listings: dict):
+def calculate_overpay_percentages(listings: dict, skin_name: str, skin_listings: dict):
     float_price_buckets = get_price_float_buckets_skin_data_db(skin_name, SKIN_DATA_DB)
     for listing_ID, listing_data in skin_listings.items():
         float_val = listing_data.float_val
@@ -143,18 +145,25 @@ def calculate_overpay_percentage(listings: dict, skin_name: str, skin_listings: 
             "overpay_percentage": overpay_percentage
         }
 
-def overpay_percentages():
+def generate_overpay_percentages():
     listings = {}
     load_all_data_listings_db(listings, LISTINGS_DB)
     results = {}
     for skin_name, skin_listings in listings.items():
         update_wear_bucket_data_for_skin(skin_name)
-        calculate_overpay_percentage(results, skin_name, skin_listings)
+        calculate_overpay_percentages(results, skin_name, skin_listings)
     sorted_results = sorted(results.items(), key=lambda x: x[1]["overpay_percentage"])
-    print(sorted_results)
-    
+    return sorted_results
+
+def analyze_batch_overpay():
+    sorted_overpay_results = generate_overpay_percentages()
+    filtered_overpay_results = {}
+    for listing_ID, listing_info in sorted_overpay_results:
+        if listing_info["overpay_percentage"] < OVERPAY_PERCENTAGE_THRESHOLD:
+            filtered_overpay_results[listing_ID] = listing_info
+    return filtered_overpay_results
 
 
 
 if __name__ == "__main__":
-    overpay_percentages()
+    print(analyze_batch_overpay())
