@@ -7,9 +7,12 @@ from .dataclass_utils import listingData
 
 logger = logging.getLogger("CS2-System.DB")
 
-def get_skin_code_db(db_name: str, search_name: str):
+def get_skin_code_db(db_name: str, search_name: str = "", skin_name: str = ""):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
-        skin_name = search_name.rsplit(" (", 1)[0]
+        if not skin_name:
+            if not search_name:
+                logger.error("Please provide at least a search_name or skin_name.")
+            skin_name = search_name.rsplit(" (", 1)[0]
         skin_code = conn.execute(f"SELECT skin_code FROM skin_data WHERE skin_name = ?", (skin_name,)).fetchone()
         if skin_code:
             logger.info(f"skin code {skin_code[0]} exists for {skin_name}")

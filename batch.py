@@ -13,7 +13,8 @@ from utilities import (
     get_price_float_buckets_skin_data_db,
     SKIN_DATA_DB,
     LISTINGS_DB,
-    listingData
+    listingData,
+    get_skin_code_db
 )
 logger = logging.getLogger("Batching")
 
@@ -161,7 +162,7 @@ def generate_overpay_percentages():
     sorted_results = sorted(results.items(), key=lambda x: x[1]["overpay_percentage"])
     return sorted_results
 
-def analyze_batch_overpay():
+def analyze_batch_overpay() -> None|dict[str, dict]:
     sorted_overpay_results = generate_overpay_percentages()
     if not sorted_overpay_results:
         return None
@@ -176,12 +177,25 @@ def analyze_batch_overpay_loop():
     while True:
         start = time.perf_counter()
         underpriced_listings = analyze_batch_overpay()
+        # Example listing link:
+        # https://steamcommunity.com/market/listings/730/G180720B7093004?detail=525379962958603527
         if underpriced_listings:
-            logger.info(f"There is/are {len(underpriced_listings)} underpriced listings \n{underpriced_listings}\n")
+            logger.info(f"There is/are {len(underpriced_listings)} underpriced listings\n")
+            count = 1
+            for listing_ID, data in underpriced_listings.items():
+                skin_code = get_skin_code_db(SKIN_DATA_DB, data.get("name"))
+                purchase_link = f"https://steamcommunity.com/market/listings/730/{skin_code}?detail={listing_ID}"
+
+                print(f"\n{count}:\n    Link to Purchase: {purchase_link}")
+                print(f">>>>>Float>>>>>: {data.get("float")}")
+                print(f">>>>>Price>>>>>: {data.get("price")}")
+                print(f">>>>>Price_deviation>>>>>: %{data.get("overpay_percentage")}")
+                
+            print("\n\n\n")
         else:
             logger.info(f"There are currently no listings that are underpriced.")
         logger.info(f"batch analysis took {(time.perf_counter() - start) * 1000}")
-        time.sleep(10)
+        time.sleep(30)
 
 if __name__ == "__main__":
     print(analyze_batch_overpay())
