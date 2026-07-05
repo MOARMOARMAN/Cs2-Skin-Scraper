@@ -17,7 +17,7 @@ from utilities import (
 )
 logger = logging.getLogger("Batching")
 
-OVERPAY_PERCENTAGE_THRESHOLD = -5
+OVERPAY_PERCENTAGE_THRESHOLD = -10
 
 class SkinDeal(BaseModel):
     listing_id: str = Field(description="The unique alphanumeric identifier of the specific listing row.")
@@ -153,6 +153,7 @@ def generate_overpay_percentages():
         return None
     results = {}
     for skin_name, skin_listings in listings.items():
+        print(f"There are a total of {len(skin_listings)} listings for {skin_name}")
         update_wear_bucket_data_for_skin(skin_name)
         calculate_overpay_percentages(results, skin_name, skin_listings)
 

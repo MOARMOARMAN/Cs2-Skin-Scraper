@@ -125,7 +125,7 @@ def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
         return
     skin_wear = wears[wlevel]
     search_name = f"{skin_name} {skin_wear}"
-    load_data_listings_db(search_name, valid_listings, LISTINGS_DB)
+    load_data_listings_db(skin_name, valid_listings, LISTINGS_DB)
     scout_code = get_skin_code_db(SKIN_DATA_DB, search_name)
     if not scout_code:
         logger.error("could not access the scout_code in any form.")
@@ -143,11 +143,15 @@ def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
                         if listingID not in currentlyAvailableIDS:
                             toRemoveIDs.append((listingID,))
                             del valid_listings[listingID]
+                    print(f"ids that do exist {currentlyAvailableIDS}")
+                    print(f"ids that shouldn't exist. {toRemoveIDs}")
                     del_missing_ID_listing_db(skin_name, toRemoveIDs, LISTINGS_DB)
                     for listingID in scout_results:
                         valid_listings[listingID] = scout_results[listingID]
                     write_listings_db(skin_name, valid_listings, LISTINGS_DB)
                     logger.info(f"{skin_name} Loop complete. Resting to avoid rate limits...")
+                else:
+                    logger.info(f"{skin_name} Loop is empty")
                 time.sleep(random.randint(120, 180))
             except Exception as e:
                 logger.error(f"Loop Failed: {e}")
