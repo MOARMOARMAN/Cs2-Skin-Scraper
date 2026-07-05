@@ -16,7 +16,7 @@ from utilities import (
     WEAR_ABBRIEVIATIONS,
     WEAR_TO_MAX
 )
-from batch import analyze_batch_loop
+from batch import analyze_batch_overpay_loop
 from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger("Tracker")
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     if not get_tracked_listings_table_db(LISTINGS_DB):
         logger.error("Empty input and no skins chosen for tracking.")
         exit()
-    clear_db_skins(LISTINGS_DB)
+    # clear_db_skins(LISTINGS_DB)
     # id, name, float, price
     updated_tracked = get_tracked_listings_table_db(LISTINGS_DB)
     updated_skins = [[skin[1], skin[2], skin[3]] for skin in updated_tracked]
@@ -152,4 +152,4 @@ if __name__ == "__main__":
             logger.info(f"Spawning scouting thread for {skin[0]} at max float of {skin[1]} with max price of {skin[2]}")
             executor.submit(scouting_loop, skin[0], skin[1], skin[2])
         logger.info(f"Spawning batch analysis thread")
-        executor.submit(analyze_batch_loop, LISTINGS_DB, lowest_prices)
+        executor.submit(analyze_batch_overpay_loop)

@@ -103,7 +103,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
             available_skins[listingID] = listingData(float_val=float_val, price=converted_price)
         if offset % 100 == 0:
             logger.info(f"Processed up to offset {offset + 20} for {search_name}")
-        time.sleep(random.uniform(20, 30))
+        time.sleep(random.uniform(15, 30))
     write_to_historical_db(search_name.rsplit('(', 1)[0].strip(), available_skins, LISTINGS_DB)
     return valid_skins
 
@@ -143,7 +143,7 @@ def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
                         if listingID not in currentlyAvailableIDS:
                             toRemoveIDs.append((listingID,))
                             del valid_listings[listingID]
-                    del_missing_ID_listing_db(search_name, toRemoveIDs, LISTINGS_DB)
+                    del_missing_ID_listing_db(skin_name, toRemoveIDs, LISTINGS_DB)
                     for listingID in scout_results:
                         valid_listings[listingID] = scout_results[listingID]
                     write_listings_db(skin_name, valid_listings, LISTINGS_DB)

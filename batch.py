@@ -17,7 +17,7 @@ from utilities import (
 )
 logger = logging.getLogger("Batching")
 
-OVERPAY_PERCENTAGE_THRESHOLD = -10
+OVERPAY_PERCENTAGE_THRESHOLD = -5
 
 class SkinDeal(BaseModel):
     listing_id: str = Field(description="The unique alphanumeric identifier of the specific listing row.")
@@ -135,7 +135,7 @@ def calculate_overpay_percentages(listings: dict, skin_name: str, skin_listings:
     for listing_ID, listing_data in skin_listings.items():
         float_val = listing_data.float_val
         price = listing_data.price
-        average_price = float_price_buckets[floor(float_val * 100)]
+        average_price = float_price_buckets.get(int(floor(float_val * 100)))
         overpay_percentage = round((price / average_price - 1) * 100, 4)
 
         listings[listing_ID] = {
@@ -144,26 +144,43 @@ def calculate_overpay_percentages(listings: dict, skin_name: str, skin_listings:
             "price": price,
             "overpay_percentage": overpay_percentage
         }
+    return None
 
 def generate_overpay_percentages():
     listings = {}
     load_all_data_listings_db(listings, LISTINGS_DB)
+    if not listings:
+        return None
     results = {}
     for skin_name, skin_listings in listings.items():
         update_wear_bucket_data_for_skin(skin_name)
         calculate_overpay_percentages(results, skin_name, skin_listings)
+
+    # Want lowest priced listings
     sorted_results = sorted(results.items(), key=lambda x: x[1]["overpay_percentage"])
     return sorted_results
 
 def analyze_batch_overpay():
     sorted_overpay_results = generate_overpay_percentages()
+    if not sorted_overpay_results:
+        return None
     filtered_overpay_results = {}
     for listing_ID, listing_info in sorted_overpay_results:
         if listing_info["overpay_percentage"] < OVERPAY_PERCENTAGE_THRESHOLD:
             filtered_overpay_results[listing_ID] = listing_info
     return filtered_overpay_results
 
-
+def analyze_batch_overpay_loop():
+    time.sleep(10)
+    while True:
+        start = time.perf_counter()
+        underpriced_listings = analyze_batch_overpay()
+        if underpriced_listings:
+            logger.info(f"There is/are {len(underpriced_listings)} underpriced listings \n{underpriced_listings}\n")
+        else:
+            logger.info(f"There are currently no listings that are underpriced.")
+        logger.info(f"batch analysis took {(time.perf_counter() - start) * 1000}")
+        time.sleep(10)
 
 if __name__ == "__main__":
     print(analyze_batch_overpay())
