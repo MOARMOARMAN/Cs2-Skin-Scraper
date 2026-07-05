@@ -25,10 +25,10 @@ WEAR_RANGES = {
 WEAR_ABBRIEVIATIONS = ["fn", "mw", "ft", "ww", "bs"]
 WEAR_TO_MAX = [0.0699, 0.1499, 0.3799, 0.4499, 0.9999]
 CURRENCY_TO_CAD = {
-    "HKD": 0.177,   # 1 Hong Kong Dollar ~ 0.18 CAD
-    "USD": 1.370,   # 1 US Dollar ~ 1.37 CAD
-    "EUR": 1.480,   # 1 Euro ~ 1.48 CAD
-    "GBP": 1.740,   # 1 British Pound ~ 1.74 CAD
+    "HKD": 0.181,   # 1 Hong Kong Dollar ~ 0.18 CAD
+    "USD": 1.420,   # 1 US Dollar ~ 1.42 CAD
+    "EUR": 1.624,   # 1 Euro ~ 1.62 CAD
+    "GBP": 1.895,   # 1 British Pound ~ 1.90 CAD
     "CAD": 1.000    # Base currency fallback
 }
 
