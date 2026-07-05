@@ -129,6 +129,8 @@ def get_tracked_listings_table_db(db_name: str):
         tracked_listings = conn.execute("SELECT * FROM tracked_skins").fetchall()
         return tracked_listings
 
+# ______________________________________________________________ historical_data.db functions ___________________________________________________________________
+
 def create_all_historical_listings_table_db(db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA journal_mode=WAL;")

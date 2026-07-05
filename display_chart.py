@@ -3,8 +3,8 @@ from utilities import (
     load_all_skin_names_all_historical_data_db,
     insert_skin_float_prices_skin_data_db,
     create_float_prices_skin_data_db,
-    LISTINGS_DB,
     SKIN_DATA_DB,
+    HISTORICAL_DATA_DB,
     WearBucket
 )
 import plotly.graph_objects as go
@@ -56,7 +56,7 @@ LISTINGS_TO_INCLUDE = 10
 LISTING_PRICING_MULTIPLIER = 1.3
 
 def calculate_wear_buckets(skin_name: str) -> list[WearBucket]:
-    listings_for_skin = load_for_skin_name_all_historical_listings_db(skin_name, LISTINGS_DB)
+    listings_for_skin = load_for_skin_name_all_historical_listings_db(skin_name, HISTORICAL_DATA_DB)
 
     # [harmonic sum of price, listing count, listings included, lowest price]
     wear_buckets = [WearBucket() for _ in range(100)]
@@ -99,7 +99,7 @@ def update_wear_bucket_data_for_skin(skin_name: str):
 
 if __name__ == "__main__":
     create_float_prices_skin_data_db(SKIN_DATA_DB)
-    historical_options = load_all_skin_names_all_historical_data_db(LISTINGS_DB)
+    historical_options = load_all_skin_names_all_historical_data_db(HISTORICAL_DATA_DB)
     options = " --- ".join([f'"{name[0]}"' for name in historical_options])
     print(f"These are your options: {options}\n") 
     while True:

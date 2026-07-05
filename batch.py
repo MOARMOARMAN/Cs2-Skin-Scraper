@@ -7,12 +7,12 @@ from utilities import (
     get_price_float_buckets_skin_data_db,
     SKIN_DATA_DB,
     LISTINGS_DB,
-    listingData,
-    get_skin_code_db
+    get_skin_code_db,
+    discord_notification
 )
 logger = logging.getLogger("Batching")
 
-OVERPAY_PERCENTAGE_THRESHOLD = -10
+OVERPAY_PERCENTAGE_THRESHOLD = -15
 
 def calculate_overpay_percentages(listings: dict, skin_name: str, skin_listings: dict):
     float_price_buckets = get_price_float_buckets_skin_data_db(skin_name, SKIN_DATA_DB)
@@ -20,6 +20,8 @@ def calculate_overpay_percentages(listings: dict, skin_name: str, skin_listings:
         float_val = listing_data.float_val
         price = listing_data.price
         average_price = float_price_buckets.get(int(floor(float_val * 100)))
+        if average_price == 0:
+            continue
         overpay_percentage = round((price / average_price - 1) * 100, 4)
 
         listings[listing_ID] = {
@@ -56,7 +58,6 @@ def analyze_batch_overpay() -> None|dict[str, dict]:
     return filtered_overpay_results
 
 def analyze_batch_overpay_loop():
-    time.sleep(10)
     while True:
         start = time.perf_counter()
         underpriced_listings = analyze_batch_overpay()
@@ -68,12 +69,15 @@ def analyze_batch_overpay_loop():
             for listing_ID, data in underpriced_listings.items():
                 skin_code = get_skin_code_db(SKIN_DATA_DB, data.get("name"))
                 purchase_link = f"https://steamcommunity.com/market/listings/730/{skin_code}?detail={listing_ID}"
-
-                print(f"\n{count}:\n    Link to Purchase: {purchase_link}")
-                print(f">>>>>Float>>>>>: {data.get("float")}")
-                print(f">>>>>Price>>>>>: {data.get("price")}")
-                print(f">>>>>Price_deviation>>>>>: %{data.get("overpay_percentage")}")
+                message = ""
+                message += f"\n{count}:\n    Link to Purchase: {purchase_link}"
+                message += f"\n>>>>>Float>>>>>: {data.get("float")}"
+                message += f"\n>>>>>Price>>>>>: {data.get("price")}"
+                message += f"\n>>>>>Price_deviation>>>>>: {data.get("overpay_percentage")}%\n"
+                print(message) 
+                discord_notification(message)
                 
+                count += 1
             print("\n\n\n")
         else:
             logger.info(f"There are currently no listings that are underpriced.")
@@ -81,4 +85,4 @@ def analyze_batch_overpay_loop():
         time.sleep(30)
 
 if __name__ == "__main__":
-    print(analyze_batch_overpay())
+    print(analyze_batch_overpay_loop())

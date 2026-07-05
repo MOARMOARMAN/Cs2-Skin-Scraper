@@ -7,6 +7,7 @@ from utilities import (
     what_wear,
     LISTINGS_DB,
     SKIN_DATA_DB,
+    HISTORICAL_DATA_DB,
     create_tracked_table_db,
     delete_entry_tracked_table_db,
     get_tracked_listings_table_db,
@@ -105,7 +106,7 @@ if __name__ == "__main__":
     logger.info("Starting CS:GO Trading Bot...")
     create_skin_listings_table_db(LISTINGS_DB)
     create_tracked_table_db(LISTINGS_DB)
-    create_all_historical_listings_table_db(LISTINGS_DB)
+    create_all_historical_listings_table_db(HISTORICAL_DATA_DB)
     logger.info(f"Database initialized: {LISTINGS_DB}")
     
     # AK-47 | Ice Coaled / 0.09

@@ -10,8 +10,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATABASES_DIR = PROJECT_ROOT / "databases"
 SKIN_DATA_DB = DATABASES_DIR / "skin_data.db"
 LISTINGS_DB = DATABASES_DIR / "listings.db"
+HISTORICAL_DATA_DB = DATABASES_DIR / "historical_data.db"
 user_agent = os.getenv("STEAM_USER_AGENT")
 logger = logging.getLogger("CS2-System")
+discord_webhook_url = os.getenv("DISCORD_WEBHOOK")
 
 # Tuple of Possible Wears
 wears = ("(Factory New)", "(Minimal Wear)", "(Field-Tested)", "(Well-Worn)", "(Battle-Scarred)")
@@ -63,8 +65,8 @@ def what_wear(float_val: float):
 
 # Helper to retry transient network errors on POST requests
 @retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential_jitter(initial=1, max=10),
+    stop=stop_after_attempt(5),
+    wait=wait_exponential_jitter(initial=20, max=100),
     retry=retry_if_exception_type(requests.exceptions.RequestException),
 )
 def post_with_retry(session: requests.Session, url: str, json_payload: dict, headers: dict, cookies: dict, timeout: int = 15):
@@ -198,3 +200,9 @@ def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_c
         return -1
     
     return return_subtotal
+
+def discord_notification(message: str):
+    webhook_payload = {
+        "content": message
+    }
+    post_to_discord = requests.post(url=discord_webhook_url, json=webhook_payload)
