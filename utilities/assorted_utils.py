@@ -86,7 +86,7 @@ def post_with_retry(session: requests.Session, url: str, json_payload: dict, hea
 
 # Helper to retry transient network errors on GET requests
 @retry(
-    stop=stop_after_attempt(3),
+    stop=stop_after_attempt(5),
     wait=wait_exponential_jitter(initial=1, max=10),
     retry=retry_if_exception_type(requests.exceptions.RequestException),
 )

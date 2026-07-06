@@ -98,8 +98,9 @@ if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
+        encoding="utf-8",
         handlers=[
-            logging.FileHandler('bot.log'),
+            logging.FileHandler('bot.log', encoding="utf-8"),
             logging.StreamHandler()
         ]
     )
