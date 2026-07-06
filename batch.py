@@ -53,6 +53,8 @@ def analyze_batch_overpay() -> None|dict[str, dict]:
         return None
     filtered_overpay_results = {}
     for listing_ID, listing_info in sorted_overpay_results:
+        if not listing_info:
+            continue
         if listing_info["overpay_percentage"] < OVERPAY_PERCENTAGE_THRESHOLD:
             filtered_overpay_results[listing_ID] = listing_info
     return filtered_overpay_results

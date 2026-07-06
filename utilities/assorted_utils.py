@@ -202,7 +202,10 @@ def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_c
     return return_subtotal
 
 def discord_notification(message: str):
-    webhook_payload = {
-        "content": message
-    }
-    post_to_discord = requests.post(url=discord_webhook_url, json=webhook_payload)
+    try:
+        webhook_payload = {
+            "content": message
+        }
+        post_to_discord = requests.post(url=discord_webhook_url, json=webhook_payload)
+    except Exception as e:
+        logger.error(f"Discord Notification failed because of: {e}")
