@@ -1,3 +1,18 @@
+# CS2 Market Data Pipeline
+# Copyright (C) 2026 Charles Wang
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import logging
 import os
 import requests
@@ -69,12 +84,12 @@ def what_wear(float_val: float):
     wait=wait_exponential_jitter(initial=20, max=100),
     retry=retry_if_exception_type(requests.exceptions.RequestException),
 )
-def post_with_retry(session: requests.Session, url: str, json_payload: dict, headers: dict, cookies: dict, timeout: int = 15):
+def post_with_retry(session: requests.Session, url: str, json_payload: dict, local_headers: dict, cookies: dict, timeout: int = 15):
     """POST with retries for transient network errors.
 
     Raises the last requests exception when retries are exhausted.
     """
-    resp = session.post(url, json=json_payload, headers=headers, cookies=cookies, timeout=timeout)
+    resp = session.post(url, json=json_payload, headers=local_headers, cookies=cookies, timeout=timeout)
     # If server replies with 5xx or 429, raise to trigger retry
     if resp.status_code == 429 or resp.status_code > 500:
         logger.warning(f"POST to {url} returned {resp.status_code}; raising to retry")
@@ -90,14 +105,14 @@ def post_with_retry(session: requests.Session, url: str, json_payload: dict, hea
     wait=wait_exponential_jitter(initial=1, max=10),
     retry=retry_if_exception_type(requests.exceptions.RequestException),
 )
-def get_with_retry(session: requests.Session | None, url: str, headers: dict | None = None, timeout: int = 10):
+def get_with_retry(session: requests.Session | None, url: str, local_headers: dict | None = None, timeout: int = 10):
     """GET with retries for transient network errors.
 
     If `session` is provided it will be used, otherwise `requests` module is used.
     Raises the last requests exception when retries are exhausted.
     """
     sess = session if session is not None else requests
-    resp = sess.get(url, headers=headers, timeout=timeout)
+    resp = sess.get(url, headers=local_headers, timeout=timeout)
     if resp.status_code == 429 or resp.status_code > 500:
         logger.warning(f"GET to {url} returned {resp.status_code}; raising to retry")
         resp.raise_for_status()
@@ -134,7 +149,7 @@ def setup_session_cookies():
         return []
 
 def get_skin_code(search_name: str):
-    response = get_with_retry(None, url=f"https://steamcommunity.com/market/listings/730/{search_name}", headers=headers)
+    response = get_with_retry(None, url=f"https://steamcommunity.com/market/listings/730/{search_name}", local_headers=headers)
     return response.url.split("/")[-1]
 
 def price_conversion(salePriceText: str, price: float):
@@ -173,9 +188,10 @@ def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_c
         "start": 0,
     }]
     # Steam forces 20 listings at a time.
-    headers["Referer"] = f"https://steamcommunity.com/market/listings/730/{scout_code}"
+    local_headers = headers.copy()
+    local_headers["Referer"] = f"https://steamcommunity.com/market/listings/730/{scout_code}"
     try:
-        scout_r = post_with_retry(scraper_session, f"https://steamcommunity.com/market/listings/730/{scout_code}", Payload, headers, cookies) # type: ignore
+        scout_r = post_with_retry(scraper_session, f"https://steamcommunity.com/market/listings/730/{scout_code}", Payload, local_headers, cookies) # type: ignore
     except Exception as e:
         logger.error(f"Initial scout request failed for {search_name}: {e}")
         return 0

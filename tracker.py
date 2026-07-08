@@ -1,3 +1,18 @@
+# CS2 Market Data Pipeline
+# Copyright (C) 2026 Charles Wang
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import logging
 from scraper import scouting_loop
 from utilities import (
@@ -143,7 +158,7 @@ if __name__ == "__main__":
     if not get_tracked_listings_table_db(LISTINGS_DB):
         logger.error("Empty input and no skins chosen for tracking.")
         exit()
-    # clear_db_skins(LISTINGS_DB)
+    clear_db_skins(LISTINGS_DB)
     # id, name, float, price
     updated_tracked = get_tracked_listings_table_db(LISTINGS_DB)
     updated_skins = [[skin[1], skin[2], skin[3]] for skin in updated_tracked]

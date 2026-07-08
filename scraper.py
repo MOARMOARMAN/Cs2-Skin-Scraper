@@ -1,3 +1,18 @@
+# CS2 Market Data Pipeline
+# Copyright (C) 2026 Charles Wang
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import TYPE_CHECKING
 import logging
 import time
@@ -39,9 +54,10 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
         "price":{"eCurrency":20, "unMax":max_price * 400},
         "start": 0,
     }]
-    headers["Referer"] = f"https://steamcommunity.com/market/listings/730/{scout_code}"
+    local_headers = headers.copy()
+    local_headers["Referer"] = f"https://steamcommunity.com/market/listings/730/{scout_code}"
     try:
-        scout_r = post_with_retry(scraper_session, f"https://steamcommunity.com/market/listings/730/{scout_code}", Payload, headers, cookies) # type: ignore
+        scout_r = post_with_retry(scraper_session, f"https://steamcommunity.com/market/listings/730/{scout_code}", Payload, local_headers, cookies) # type: ignore
     except Exception as e:
         logger.error(f"Initial scout request failed for {search_name}: {e}")
         return {}
@@ -66,7 +82,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
                 scraper_session,
                 f"https://steamcommunity.com/market/listings/730/{scout_code}",
                 Payload, # type: ignore
-                headers,
+                local_headers,
                 cookies,
             )
         except Exception as e:
