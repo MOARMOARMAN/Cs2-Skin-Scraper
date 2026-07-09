@@ -23,13 +23,20 @@ from utilities import (
     LISTINGS_DB,
     SKIN_DATA_DB,
     HISTORICAL_DATA_DB,
+    RELEVANT_CURRENCIES,
     create_tracked_table_db,
     delete_entry_tracked_table_db,
     get_tracked_listings_table_db,
     get_lowest_price_skin_data_db,
     insert_tracked_table_db,
     create_all_historical_listings_table_db,
+    create_currency_exchange_table_db,
+    update_currency_exchange_table_db,
+    get_currency_exchange_rates_for_currency_db,
+    get_exchange_rate,
+    update_currency_exchange_rates,
     WEAR_ABBRIEVIATIONS,
+    CURRENCY_EXCHANGE_RATE,
     WEAR_TO_MAX
 )
 from batch import analyze_batch_overpay_loop
@@ -103,6 +110,24 @@ def remove_skins():
         except ValueError:
             print("Please enter a valid ID number!\n\n")
 
+def update_exchange_rates():
+    print(CURRENCY_EXCHANGE_RATE)
+    user_input = ""
+    while user_input not in RELEVANT_CURRENCIES:
+        user_input = input("\nPlease input CAD / USD / EUR / HKD / GBP for currency of choice: ").upper()
+    
+    rates = {}
+    for currency in RELEVANT_CURRENCIES:
+        rates[currency] = get_exchange_rate(currency, user_input)
+    print(rates)
+    update_currency_exchange_table_db(user_input, rates, SKIN_DATA_DB)
+    new_rates = get_currency_exchange_rates_for_currency_db(user_input, SKIN_DATA_DB)
+    update_currency_exchange_rates(new_rates)
+    print(f"The currently used exchange rates for currency {user_input} are:")
+    for currency, rate in CURRENCY_EXCHANGE_RATE.items():
+        print(f"{currency} to {user_input} is {rate}")
+
+
 def help():
     print(f"\nDescriptions of each Tool:")
     print(f"add: Add skins to be tracked by the scraper")
@@ -123,14 +148,8 @@ if __name__ == "__main__":
     create_skin_listings_table_db(LISTINGS_DB)
     create_tracked_table_db(LISTINGS_DB)
     create_all_historical_listings_table_db(HISTORICAL_DATA_DB)
-    logger.info(f"Database initialized: {LISTINGS_DB}")
+    create_currency_exchange_table_db(SKIN_DATA_DB)
     
-    # AK-47 | Ice Coaled / 0.09
-    # AK-47 | Ice Coaled / 0.185
-    # AK-47 | Slate / 0.09  
-    # Dual Berettas | Polished Malachite / 0.085
-    # SG 553 | Basket Halftone / 0.06
-    # 
     # tracked [[id, name, float, price], ...]
     tracked = get_tracked_listings_table_db(LISTINGS_DB)
     skins = [[skin[1], skin[2], skin[3], what_wear(skin[2])] for skin in tracked]
@@ -142,7 +161,8 @@ if __name__ == "__main__":
         "add": lambda: add_skins(lowest_prices),
         "remove": lambda: remove_skins(),
         "help" : lambda: help(),
-        "exit" : lambda: exit()
+        "exit" : lambda: exit(),
+        "update exchange rates" : lambda: update_exchange_rates()
     }
     print_tracked()
     user_input = prompt_actions_user(user_actions)

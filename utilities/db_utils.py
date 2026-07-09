@@ -294,3 +294,39 @@ def get_price_float_buckets_skin_data_db(skin_name: str, db_name: str):
             price_buckets[bucket[0]] = bucket[1]
 
         return price_buckets
+
+def create_currency_exchange_table_db(db_name: str) -> None:
+    """Creates a currency exchange rates table."""
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn: 
+        with conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS currency_exchange_rates (
+                    currency_from TEXT NOT NULL,
+                    currency_to TEXT NOT NULL,
+                    rate REAL NOT NULL,
+                    time_inserted TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (currency_from, currency_to)
+                )
+            """)
+            
+            # Create indexes for faster queries on currency pairs
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_currency_exchange ON currency_exchange_rates (currency_to)")
+            
+def update_currency_exchange_table_db(currency_to: str, from_rates: dict[str, float], db_name: str) -> None:
+    """Updates the currency exchange rates within the currency exchange rate table."""
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        with conn:
+            values = [
+                (currency_from, currency_to, rate) for currency_from, rate in from_rates.items()
+            ]
+            conn.executemany("""INSERT OR REPLACE INTO currency_exchange_rates (currency_from, currency_to, rate) VALUES(?,?,?)""", values)
+
+def get_currency_exchange_rates_for_currency_db(currency: str, db_name: str) -> dict[str, float]:
+    """Retrieves the currency exchange rates for a specific currency from others."""
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        rates = conn.execute("SELECT currency_from, rate FROM currency_exchange_rates WHERE currency_to=?", (currency,)).fetchall()
+        exchange_rates = {currency_from:rate for currency_from, rate in rates}
+        return exchange_rates
+
