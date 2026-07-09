@@ -233,6 +233,10 @@ def discord_notification(message: str):
 def get_exchange_rate(base: str, quote: str) -> float:
     return get_with_retry(None, url=f"https://api.frankfurter.dev/v2/rate/{base}/{quote}").json().get("rate")
 
+def initialise_currency_exchange_rates(cad_rates: dict[str, float]):
+    global CURRENCY_EXCHANGE_RATE
+    CURRENCY_EXCHANGE_RATE
+
 def update_currency_exchange_rates(new_rates: dict[str, float]):
     global CURRENCY_EXCHANGE_RATE
     CURRENCY_EXCHANGE_RATE.clear()

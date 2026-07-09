@@ -110,12 +110,18 @@ def remove_skins():
         except ValueError:
             print("Please enter a valid ID number!\n\n")
 
-def update_exchange_rates():
+def update_exchange_rates_input():
     print(CURRENCY_EXCHANGE_RATE)
     user_input = ""
     while user_input not in RELEVANT_CURRENCIES:
         user_input = input("\nPlease input CAD / USD / EUR / HKD / GBP for currency of choice: ").upper()
     
+    update_exchange_rates(user_input)
+    print(f"The currently used exchange rates for currency {user_input} are:")
+    for currency, rate in CURRENCY_EXCHANGE_RATE.items():
+        print(f"{currency} to {user_input} is {rate}")
+
+def update_exchange_rates(user_input: str):
     rates = {}
     for currency in RELEVANT_CURRENCIES:
         rates[currency] = get_exchange_rate(currency, user_input)
@@ -123,10 +129,6 @@ def update_exchange_rates():
     update_currency_exchange_table_db(user_input, rates, SKIN_DATA_DB)
     new_rates = get_currency_exchange_rates_for_currency_db(user_input, SKIN_DATA_DB)
     update_currency_exchange_rates(new_rates)
-    print(f"The currently used exchange rates for currency {user_input} are:")
-    for currency, rate in CURRENCY_EXCHANGE_RATE.items():
-        print(f"{currency} to {user_input} is {rate}")
-
 
 def help():
     print(f"\nDescriptions of each Tool:")
@@ -149,6 +151,13 @@ if __name__ == "__main__":
     create_tracked_table_db(LISTINGS_DB)
     create_all_historical_listings_table_db(HISTORICAL_DATA_DB)
     create_currency_exchange_table_db(SKIN_DATA_DB)
+
+    # Create the CURRENCY_EXCHANGE_RATES
+    cad_rates = get_currency_exchange_rates_for_currency_db("CAD", SKIN_DATA_DB)
+    if len(cad_rates) != len(RELEVANT_CURRENCIES):
+        update_exchange_rates("CAD")
+    else:
+        update_currency_exchange_rates(cad_rates)
     
     # tracked [[id, name, float, price], ...]
     tracked = get_tracked_listings_table_db(LISTINGS_DB)
@@ -162,7 +171,7 @@ if __name__ == "__main__":
         "remove": lambda: remove_skins(),
         "help" : lambda: help(),
         "exit" : lambda: exit(),
-        "update exchange rates" : lambda: update_exchange_rates()
+        "update exchange rates" : lambda: update_exchange_rates_input()
     }
     print_tracked()
     user_input = prompt_actions_user(user_actions)
