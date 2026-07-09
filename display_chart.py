@@ -68,7 +68,7 @@ def show_graph(float_ranges: list, listing_volume: list, price_harmonic_means: l
     fig.show()
 
 LISTINGS_TO_INCLUDE = 10
-LISTING_PRICING_MULTIPLIER = 2.5
+LISTING_PRICING_MULTIPLIER = 1.8
 
 def calculate_wear_buckets(skin_name: str) -> list[WearBucket]:
     listings_for_skin = load_for_skin_name_all_historical_listings_db(skin_name, HISTORICAL_DATA_DB)
