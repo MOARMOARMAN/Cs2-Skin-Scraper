@@ -9,11 +9,14 @@ from .assorted_utils import (
     price_conversion,
     get_skin_code, 
     discord_notification,
+    get_exchange_rate,
+    update_currency_exchange_rates,
     SKIN_DATA_DB,
     LISTINGS_DB,
     HISTORICAL_DATA_DB,
     WEAR_RANGES,
-    CURRENCY_TO_CAD,
+    CURRENCY_EXCHANGE_RATE,
+    RELEVANT_CURRENCIES,
     WEAR_ABBRIEVIATIONS,
     WEAR_TO_MAX
 )
@@ -46,7 +49,11 @@ from .db_utils import (
     # Float_Prices skin data functions
     create_float_prices_skin_data_db,
     insert_skin_float_prices_skin_data_db,
-    get_price_float_buckets_skin_data_db
+    get_price_float_buckets_skin_data_db,
+    # Exchange rate skin data functions
+    get_currency_exchange_rates_for_currency_db,
+    update_currency_exchange_table_db,
+    create_currency_exchange_table_db 
 )
 
 from .dataclass_utils import (

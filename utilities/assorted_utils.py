@@ -30,6 +30,8 @@ user_agent = os.getenv("STEAM_USER_AGENT")
 logger = logging.getLogger("CS2-System")
 discord_webhook_url = os.getenv("DISCORD_WEBHOOK")
 
+PREFERRED_CURRENCY = "CAD"
+
 # Tuple of Possible Wears
 wears = ("(Factory New)", "(Minimal Wear)", "(Field-Tested)", "(Well-Worn)", "(Battle-Scarred)")
 WEAR_RANGES = {
@@ -41,13 +43,15 @@ WEAR_RANGES = {
 }
 WEAR_ABBRIEVIATIONS = ["fn", "mw", "ft", "ww", "bs"]
 WEAR_TO_MAX = [0.0699, 0.1499, 0.3799, 0.4499, 0.9999]
-CURRENCY_TO_CAD = {
+CURRENCY_EXCHANGE_RATE = {
     "HKD": 0.181,   # 1 Hong Kong Dollar ~ 0.18 CAD
     "USD": 1.420,   # 1 US Dollar ~ 1.42 CAD
     "EUR": 1.624,   # 1 Euro ~ 1.62 CAD
     "GBP": 1.895,   # 1 British Pound ~ 1.90 CAD
     "CAD": 1.000    # Base currency fallback
 }
+
+RELEVANT_CURRENCIES = ["HKD", "USD", "EUR", "GBP", "CAD"]
 
 headers = {
     "Host": "steamcommunity.com",
@@ -156,9 +160,9 @@ def price_conversion(salePriceText: str, price: float):
     if "CA" not in salePriceText:
         #print("Needs Converting")
         if "HK" in salePriceText:
-            converted_price = round(price * CURRENCY_TO_CAD["HKD"] / 100, 2)
+            converted_price = round(price * CURRENCY_EXCHANGE_RATE["HKD"] / 100, 2)
         else:
-            converted_price = round(price * CURRENCY_TO_CAD["USD"] / 100, 2)
+            converted_price = round(price * CURRENCY_EXCHANGE_RATE["USD"] / 100, 2)
     else:
         converted_price = price / 100
     return converted_price
@@ -225,3 +229,15 @@ def discord_notification(message: str):
         post_to_discord = requests.post(url=discord_webhook_url, json=webhook_payload)
     except Exception as e:
         logger.error(f"Discord Notification failed because of: {e}")
+
+def get_exchange_rate(base: str, quote: str) -> float:
+    return get_with_retry(None, url=f"https://api.frankfurter.dev/v2/rate/{base}/{quote}").json().get("rate")
+
+def initialise_currency_exchange_rates(cad_rates: dict[str, float]):
+    global CURRENCY_EXCHANGE_RATE
+    CURRENCY_EXCHANGE_RATE
+
+def update_currency_exchange_rates(new_rates: dict[str, float]):
+    global CURRENCY_EXCHANGE_RATE
+    CURRENCY_EXCHANGE_RATE.clear()
+    CURRENCY_EXCHANGE_RATE.update(new_rates)
