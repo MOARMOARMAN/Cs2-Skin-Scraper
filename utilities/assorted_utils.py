@@ -56,11 +56,13 @@ CURRENCY_EXCHANGE_RATE = {
 RELEVANT_CURRENCIES = ["HKD", "USD", "EUR", "GBP", "CAD"]
 
 headers = {
+    "Accept": "*/*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Connection": "keep-alive",
     "Host": "steamcommunity.com",
     "Origin": "https://steamcommunity.com",
     # Just an Example, is updated later in the scouting loop
     "Referer": "https://steamcommunity.com/market/listings/730/G1802208A0A3004",
-    "X-Requested-With": "XMLHttpRequest",
     "Content-Type": "application/json; charset=utf-8",
     # THE SECRET HANDSHAKE
     "x-valve-action-type": "4OPT6VBA:Search",
@@ -69,7 +71,12 @@ headers = {
     "User-Agent": user_agent,
     "sec-fetch-mode": "cors",
     "sec-fetch-site": "same-origin",
-    "sec-fetch-dest": "empty"
+    "sec-fetch-dest": "empty",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-ch-viewport-height": "932",
+    "sec-ch-viewport-width": "637"
 }
 
 def what_wear(float_val: float):
@@ -92,7 +99,7 @@ def is_retryable_error(exception):
 # Helper to retry transient network errors on POST requests
 @retry(
     stop=stop_after_attempt(5),
-    wait=wait_exponential_jitter(initial=60, max=300),
+    wait=wait_exponential_jitter(initial=60, max=1500),
     retry=retry_if_exception(is_retryable_error),
 )
 def post_with_retry(session: requests.Session, url: str, json_payload: dict, local_headers: dict, cookies: dict, timeout: int = 15):
@@ -152,8 +159,11 @@ def setup_session_cookies():
             logger.warning("Using fallback session ID from environment")
             scraper_session.cookies.set('sessionid', session_id, domain='steamcommunity.com')
         cookies = {
-            "sessionid": session_id,
-            "timezoneName": "America/New_York",
+            "marketPrefs":"%7B%22itemSort%22%3A1%2C%22itemSortDir%22%3A0%2C%22itemSortProperty%22%3A2%7D",
+            "sessionid":"b474ed7d95b7df4260d4c320",
+            "steamCountry":"US%7Ce79b3001e60d17b2cb2750215a34f985",
+            "clientHints":"%7B%22vw%22%3A%7B%22v%22%3A536%2C%22s%22%3A1%7D%2C%22vh%22%3A%7B%22v%22%3A932%2C%22s%22%3A1%7D%7D",
+            "timezoneName":"Asia%2FShanghai"
         }
         scraper_session.cookies.update(cookies)
         return [scraper_session, cookies]

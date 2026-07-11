@@ -91,14 +91,11 @@ def analyze_batch_overpay_loop():
                 message += f"\n>>>>>Float>>>>>: {data.get("float")}"
                 message += f"\n>>>>>Price>>>>>: {data.get("price")}"
                 message += f"\n>>>>>Price_deviation>>>>>: {data.get("overpay_percentage")}%\n"
-                print(message) 
                 discord_notification(message)
                 
                 count += 1
-            print("\n\n\n")
         else:
-            logger.info(f"There are currently no listings that are underpriced.")
-        logger.info(f"batch analysis took {(time.perf_counter() - start) * 1000}")
+            discord_notification("There are currently no listings that are underpriced.")
         time.sleep(30)
 
 if __name__ == "__main__":
