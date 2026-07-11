@@ -134,6 +134,8 @@ def help():
     print(f"\nDescriptions of each Tool:")
     print(f"add: Add skins to be tracked by the scraper")
     print(f"remove: Remove skins from the list of tracked skins")
+    print(f"exit: Exits the program saving the currently tracked skins.")
+    print(f"update exchange rates: Choose the currency that is preferred and updates the exchange rates as of today.")
     print(f"continue: Continue to the next step to begin scraping listings")
 
 if __name__ == "__main__":

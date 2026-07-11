@@ -107,9 +107,9 @@ def post_with_retry(session: requests.Session, url: str, json_payload: dict, loc
     start = time.perf_counter()
     resp = session.post(url, json=json_payload, headers=local_headers, cookies=cookies, timeout=timeout)
     # If server replies with 5xx or 429, raise to trigger retry
-    logger.info(f"{resp.headers}")
-    logger.info(f"{resp.text[:500]}")
-    logger.info(f"took {time.perf_counter() - start}")
+    # logger.info(f"{resp.headers}")
+    # logger.info(f"{resp.text[:500]}")
+    # logger.info(f"took {time.perf_counter() - start}")
     if resp.status_code == 429 or resp.status_code >= 500:
         if resp.status_code == 500:
             logger.info(f"POST to {url} returned 500; treating as empty response")
