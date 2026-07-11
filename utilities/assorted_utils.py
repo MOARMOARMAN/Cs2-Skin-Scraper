@@ -16,7 +16,9 @@
 import logging
 import os
 import requests
-from tenacity import retry, stop_after_attempt, wait_exponential_jitter, retry_if_exception_type
+import time
+from tenacity import retry, stop_after_attempt, wait_exponential_jitter, retry_if_exception
+from requests.exceptions import HTTPError
 from collections import namedtuple
 from typing import Callable
 from pathlib import Path
@@ -54,11 +56,13 @@ CURRENCY_EXCHANGE_RATE = {
 RELEVANT_CURRENCIES = ["HKD", "USD", "EUR", "GBP", "CAD"]
 
 headers = {
+    "Accept": "*/*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Connection": "keep-alive",
     "Host": "steamcommunity.com",
     "Origin": "https://steamcommunity.com",
     # Just an Example, is updated later in the scouting loop
     "Referer": "https://steamcommunity.com/market/listings/730/G1802208A0A3004",
-    "X-Requested-With": "XMLHttpRequest",
     "Content-Type": "application/json; charset=utf-8",
     # THE SECRET HANDSHAKE
     "x-valve-action-type": "4OPT6VBA:Search",
@@ -67,7 +71,12 @@ headers = {
     "User-Agent": user_agent,
     "sec-fetch-mode": "cors",
     "sec-fetch-site": "same-origin",
-    "sec-fetch-dest": "empty"
+    "sec-fetch-dest": "empty",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-ch-viewport-height": "932",
+    "sec-ch-viewport-width": "637"
 }
 
 def what_wear(float_val: float):
@@ -82,32 +91,39 @@ def what_wear(float_val: float):
     else:
         return 4
 
+def is_retryable_error(exception):
+    if isinstance(exception, requests.exceptions.HTTPError):
+        return exception.response.status_code == 429 or exception.response.status_code >= 500   
+    return isinstance(exception, requests.exceptions.RequestException)
+
 # Helper to retry transient network errors on POST requests
 @retry(
     stop=stop_after_attempt(5),
-    wait=wait_exponential_jitter(initial=20, max=100),
-    retry=retry_if_exception_type(requests.exceptions.RequestException),
+    wait=wait_exponential_jitter(initial=60, max=1500),
+    retry=retry_if_exception(is_retryable_error),
 )
 def post_with_retry(session: requests.Session, url: str, json_payload: dict, local_headers: dict, cookies: dict, timeout: int = 15):
-    """POST with retries for transient network errors.
-
-    Raises the last requests exception when retries are exhausted.
-    """
+    """POST request wrapper with retries for transient HTTP/network failures."""
+    start = time.perf_counter()
     resp = session.post(url, json=json_payload, headers=local_headers, cookies=cookies, timeout=timeout)
     # If server replies with 5xx or 429, raise to trigger retry
-    if resp.status_code == 429 or resp.status_code > 500:
-        logger.warning(f"POST to {url} returned {resp.status_code}; raising to retry")
-        resp.raise_for_status()
-    elif resp.status_code == 500:
-        logger.info(f"POST to {url} returned 500; treating as empty response")
-        resp = requests.Response()
+    logger.info(f"{resp.headers}")
+    logger.info(f"{resp.text[:500]}")
+    logger.info(f"took {time.perf_counter() - start}")
+    if resp.status_code == 429 or resp.status_code >= 500:
+        if resp.status_code == 500:
+            logger.info(f"POST to {url} returned 500; treating as empty response")
+            resp = requests.Response()
+        else:
+            logger.warning(f"POST to {url} returned {resp.status_code}; raising to retry")
+            resp.raise_for_status()
     return resp
 
 # Helper to retry transient network errors on GET requests
 @retry(
     stop=stop_after_attempt(5),
     wait=wait_exponential_jitter(initial=1, max=10),
-    retry=retry_if_exception_type(requests.exceptions.RequestException),
+    retry=retry_if_exception(is_retryable_error),
 )
 def get_with_retry(session: requests.Session | None, url: str, local_headers: dict | None = None, timeout: int = 10):
     """GET with retries for transient network errors.
@@ -143,8 +159,11 @@ def setup_session_cookies():
             logger.warning("Using fallback session ID from environment")
             scraper_session.cookies.set('sessionid', session_id, domain='steamcommunity.com')
         cookies = {
-            "sessionid": session_id,
-            "timezoneName": "America/New_York",
+            "marketPrefs":"%7B%22itemSort%22%3A1%2C%22itemSortDir%22%3A0%2C%22itemSortProperty%22%3A2%7D",
+            "sessionid":"b474ed7d95b7df4260d4c320",
+            "steamCountry":"US%7Ce79b3001e60d17b2cb2750215a34f985",
+            "clientHints":"%7B%22vw%22%3A%7B%22v%22%3A536%2C%22s%22%3A1%7D%2C%22vh%22%3A%7B%22v%22%3A932%2C%22s%22%3A1%7D%7D",
+            "timezoneName":"Asia%2FShanghai"
         }
         scraper_session.cookies.update(cookies)
         return [scraper_session, cookies]

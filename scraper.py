@@ -47,7 +47,6 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
     Payload = [{
         "appid":730,
         "strItemName": scout_code, # Unique identifier, will have to calculate later
-        "sort":{"field":1,"direction":0,"assetpropertyid":2},
         "filters":{"Exterior":[f"WearCategory{wear}"]}, # Set these using the inputs
         "accessoryFilters":{},
         "propertyFilters":{},
@@ -55,9 +54,15 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
         "start": 0,
     }]
     local_headers = headers.copy()
-    local_headers["Referer"] = f"https://steamcommunity.com/market/listings/730/{scout_code}"
+    local_headers["Referer"] = (
+        f"https://steamcommunity.com/market/listings/730/{scout_code}"
+        f"?price_max={int(max_price * 400)}"
+        f"&price_currency=20"
+        f"&category_Exterior=WearCategory{wear}"
+        f"&appid=730"
+    )
     try:
-        scout_r = post_with_retry(scraper_session, f"https://steamcommunity.com/market/listings/730/{scout_code}", Payload, local_headers, cookies) # type: ignore
+        scout_r = post_with_retry(scraper_session, local_headers["Referer"], Payload, local_headers, cookies) # type: ignore
     except Exception as e:
         logger.error(f"Initial scout request failed for {search_name}: {e}")
         return {}
@@ -66,12 +71,6 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
     if scout_r.status_code == 200:
         total_listings = scout_r.json().get('total_count', 0)
         logger.info(f"Total Listings: {total_listings}. Scanning top: {total_listings} items for {search_name}")
-    elif scout_r.status_code == 429:
-        logger.warning("Steam rate limit reached. Sleeping 300 seconds...")
-        time.sleep(300)
-        return []
-    elif scout_r.status_code == 500:
-        logger.info(f"No listings found for {search_name} under this float value {max_float} and price {max_price}.")
     else:
         logger.error(f"Unexpected status code {scout_r.status_code} for {search_name}")
         return []
@@ -80,7 +79,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
         try:
             r = post_with_retry(
                 scraper_session,
-                f"https://steamcommunity.com/market/listings/730/{scout_code}",
+                local_headers["Referer"], 
                 Payload, # type: ignore
                 local_headers,
                 cookies,
@@ -121,6 +120,8 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
         if offset % 100 == 0:
             logger.info(f"Processed up to offset {offset + 20} for {search_name}")
         time.sleep(random.uniform(45, 75))
+        if random.random() <= 0.1:
+            time.sleep(random.uniform(300,600))
     write_to_historical_db(search_name.rsplit('(', 1)[0].strip(), available_skins, HISTORICAL_DATA_DB)
     return valid_skins
 
