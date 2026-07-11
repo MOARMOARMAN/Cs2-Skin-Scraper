@@ -16,7 +16,9 @@
 import logging
 import os
 import requests
-from tenacity import retry, stop_after_attempt, wait_exponential_jitter, retry_if_exception_type
+import time
+from tenacity import retry, stop_after_attempt, wait_exponential_jitter, retry_if_exception
+from requests.exceptions import HTTPError
 from collections import namedtuple
 from typing import Callable
 from pathlib import Path
@@ -82,32 +84,39 @@ def what_wear(float_val: float):
     else:
         return 4
 
+def is_retryable_error(exception):
+    if isinstance(exception, requests.exceptions.HTTPError):
+        return exception.response.status_code == 429 or exception.response.status_code >= 500   
+    return isinstance(exception, requests.exceptions.RequestException)
+
 # Helper to retry transient network errors on POST requests
 @retry(
     stop=stop_after_attempt(5),
-    wait=wait_exponential_jitter(initial=20, max=100),
-    retry=retry_if_exception_type(requests.exceptions.RequestException),
+    wait=wait_exponential_jitter(initial=60, max=300),
+    retry=retry_if_exception(is_retryable_error),
 )
 def post_with_retry(session: requests.Session, url: str, json_payload: dict, local_headers: dict, cookies: dict, timeout: int = 15):
-    """POST with retries for transient network errors.
-
-    Raises the last requests exception when retries are exhausted.
-    """
+    """POST request wrapper with retries for transient HTTP/network failures."""
+    start = time.perf_counter()
     resp = session.post(url, json=json_payload, headers=local_headers, cookies=cookies, timeout=timeout)
     # If server replies with 5xx or 429, raise to trigger retry
-    if resp.status_code == 429 or resp.status_code > 500:
-        logger.warning(f"POST to {url} returned {resp.status_code}; raising to retry")
-        resp.raise_for_status()
-    elif resp.status_code == 500:
-        logger.info(f"POST to {url} returned 500; treating as empty response")
-        resp = requests.Response()
+    logger.info(f"{resp.headers}")
+    logger.info(f"{resp.text[:500]}")
+    logger.info(f"took {time.perf_counter() - start}")
+    if resp.status_code == 429 or resp.status_code >= 500:
+        if resp.status_code == 500:
+            logger.info(f"POST to {url} returned 500; treating as empty response")
+            resp = requests.Response()
+        else:
+            logger.warning(f"POST to {url} returned {resp.status_code}; raising to retry")
+            resp.raise_for_status()
     return resp
 
 # Helper to retry transient network errors on GET requests
 @retry(
     stop=stop_after_attempt(5),
     wait=wait_exponential_jitter(initial=1, max=10),
-    retry=retry_if_exception_type(requests.exceptions.RequestException),
+    retry=retry_if_exception(is_retryable_error),
 )
 def get_with_retry(session: requests.Session | None, url: str, local_headers: dict | None = None, timeout: int = 10):
     """GET with retries for transient network errors.
