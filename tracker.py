@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import logging
 from scraper import scouting_loop
+from display_chart import update_wear_bucket_data_for_skin
 from utilities import (
     create_skin_listings_table_db, 
     clear_db_skins, 
@@ -34,6 +35,7 @@ from utilities import (
     update_currency_exchange_table_db,
     get_currency_exchange_rates_for_currency_db,
     get_exchange_rate,
+    get_price_for_name_and_float_skin_data_db,
     update_currency_exchange_rates,
     WEAR_ABBRIEVIATIONS,
     CURRENCY_EXCHANGE_RATE,
@@ -130,6 +132,27 @@ def update_exchange_rates(user_input: str):
     new_rates = get_currency_exchange_rates_for_currency_db(user_input, SKIN_DATA_DB)
     update_currency_exchange_rates(new_rates)
 
+def recommend_sale_price():
+    user_input = ""
+    while user_input != "!":
+        try:
+            user_input = input("\nSkin name / Float (Type ! to stop entering)\n")
+            if user_input == "!":
+                return
+            skin_name, float_val = user_input.split("/")
+            skin_name = skin_name.strip()
+            float_val = float(float_val.strip()) 
+            update_wear_bucket_data_for_skin(skin_name)
+            average_price = get_price_for_name_and_float_skin_data_db(skin_name, float_val, SKIN_DATA_DB)
+            average_price = round(average_price, 2)
+            if average_price:
+                print(f"\nThe recommended listing price for {skin_name} at {float_val} is ${average_price}\n")
+            else:
+                print(f"\nThere is no recommended price for {skin_name} at {float_val} within the database currently.\n")
+        except ValueError:
+            logger.error("Invalid input format. Please enter in the format: Skin name / Float")
+            user_input = input("\nSkin name / Float (Type ! to stop entering)\n")
+
 def help():
     print(f"\nDescriptions of each Tool:")
     print(f"add: Add skins to be tracked by the scraper")
@@ -173,7 +196,8 @@ if __name__ == "__main__":
         "remove": lambda: remove_skins(),
         "help" : lambda: help(),
         "exit" : lambda: exit(),
-        "update exchange rates" : lambda: update_exchange_rates_input()
+        "update exchange rates" : lambda: update_exchange_rates_input(),
+        "recommendation" : lambda: recommend_sale_price()
     }
     print_tracked()
     user_input = prompt_actions_user(user_actions)
