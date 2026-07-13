@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import logging
 from scraper import scouting_loop
+from display_chart import update_wear_bucket_data_for_skin
 from utilities import (
     create_skin_listings_table_db, 
     clear_db_skins, 
@@ -141,6 +142,7 @@ def recommend_sale_price():
             skin_name, float_val = user_input.split("/")
             skin_name = skin_name.strip()
             float_val = float(float_val.strip()) 
+            update_wear_bucket_data_for_skin(skin_name)
             average_price = get_price_for_name_and_float_skin_data_db(skin_name, float_val, SKIN_DATA_DB)
             average_price = round(average_price, 2)
             if average_price:
