@@ -295,6 +295,14 @@ def get_price_float_buckets_skin_data_db(skin_name: str, db_name: str):
 
         return price_buckets
 
+def get_price_for_name_and_float_skin_data_db(skin_name: str, float_val: float, db_name: str):
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        float_bucket = int(float_val // 0.01)
+        values = (skin_name, float_bucket)
+        average_price = conn.execute("SELECT average_price FROM float_prices WHERE skin_name=? AND float_bucket=?", values).fetchone()[0]
+        return average_price
+
 def create_currency_exchange_table_db(db_name: str) -> None:
     """Creates a currency exchange rates table."""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn: 

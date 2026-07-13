@@ -50,6 +50,7 @@ from .db_utils import (
     create_float_prices_skin_data_db,
     insert_skin_float_prices_skin_data_db,
     get_price_float_buckets_skin_data_db,
+    get_price_for_name_and_float_skin_data_db,
     # Exchange rate skin data functions
     get_currency_exchange_rates_for_currency_db,
     update_currency_exchange_table_db,
