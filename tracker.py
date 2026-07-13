@@ -133,22 +133,23 @@ def update_exchange_rates(user_input: str):
 
 def recommend_sale_price():
     user_input = ""
-    try:
-        user_input = input("\nSkin name / Max Float (Type ! to cancel and return)\n")
-        if user_input == "!":
-            return
-        skin_name, float_val = user_input.split("/")
-        skin_name = skin_name.strip()
-        float_val = float(float_val.strip()) 
-        average_price = get_price_for_name_and_float_skin_data_db(skin_name, float_val, SKIN_DATA_DB)
-        average_price = round(average_price, 2)
-        if average_price:
-            print(f"\nThe recommended listing price for {skin_name} at {float_val} is ${average_price}\n")
-        else:
-            print(f"\nThere is no recommended price for {skin_name} at {float_val} within the database currently.\n")
-    except ValueError:
-        logger.error("Invalid input format. Please enter in the format: Skin name / Float")
-        user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
+    while user_input != "!":
+        try:
+            user_input = input("\nSkin name / Float (Type ! to stop entering)\n")
+            if user_input == "!":
+                return
+            skin_name, float_val = user_input.split("/")
+            skin_name = skin_name.strip()
+            float_val = float(float_val.strip()) 
+            average_price = get_price_for_name_and_float_skin_data_db(skin_name, float_val, SKIN_DATA_DB)
+            average_price = round(average_price, 2)
+            if average_price:
+                print(f"\nThe recommended listing price for {skin_name} at {float_val} is ${average_price}\n")
+            else:
+                print(f"\nThere is no recommended price for {skin_name} at {float_val} within the database currently.\n")
+        except ValueError:
+            logger.error("Invalid input format. Please enter in the format: Skin name / Float")
+            user_input = input("\nSkin name / Float (Type ! to stop entering)\n")
 
 def help():
     print(f"\nDescriptions of each Tool:")
