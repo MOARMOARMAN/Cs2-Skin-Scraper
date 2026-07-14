@@ -11,6 +11,7 @@ from .assorted_utils import (
     discord_notification,
     get_exchange_rate,
     update_currency_exchange_rates,
+    seconds_to_time,
     SKIN_DATA_DB,
     LISTINGS_DB,
     HISTORICAL_DATA_DB,
@@ -18,7 +19,8 @@ from .assorted_utils import (
     CURRENCY_EXCHANGE_RATE,
     RELEVANT_CURRENCIES,
     WEAR_ABBRIEVIATIONS,
-    WEAR_TO_MAX
+    WEAR_TO_MAX,
+    MAX_SCRAPE_TIME
 )
 
 from .db_utils import (

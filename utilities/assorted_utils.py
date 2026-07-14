@@ -32,6 +32,7 @@ user_agent = os.getenv("STEAM_USER_AGENT")
 logger = logging.getLogger("CS2-System")
 discord_webhook_url = os.getenv("DISCORD_WEBHOOK")
 
+MAX_SCRAPE_TIME = 14400
 PREFERRED_CURRENCY = "CAD"
 
 # Tuple of Possible Wears
@@ -221,6 +222,7 @@ def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_c
     return_subtotal = ""
     try:
         listings = scout_r.json().get('listings')
+        print("got to here")
         if not listings:
             logger.error(f"No listings found or strSubtotal for {search_name}")
             return -1
@@ -260,3 +262,17 @@ def update_currency_exchange_rates(new_rates: dict[str, float]):
     global CURRENCY_EXCHANGE_RATE
     CURRENCY_EXCHANGE_RATE.clear()
     CURRENCY_EXCHANGE_RATE.update(new_rates)
+
+def seconds_to_time(seconds: float) -> str:
+    s = seconds % 60
+    m = int((seconds % 3600) // 60)
+    h = int(seconds // 3600)
+    result = ""
+    if h:
+        result += f"{h} hour(s) "
+    if m:
+        result += f"{m} minute(s) "
+    if s:
+        result += f"{s} second(s)"
+    return result 
+    
