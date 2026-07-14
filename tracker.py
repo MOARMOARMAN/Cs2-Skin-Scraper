@@ -226,9 +226,6 @@ if __name__ == "__main__":
     updated_tracked = get_tracked_listings_table_db(LISTINGS_DB)
     updated_skins = [[skin[1], skin[2], skin[3]] for skin in updated_tracked]
 
-    stop_event = threading.Event()
-    start_time = time.time()
-
     logger.info(f"Monitoring {len(updated_skins)} skins with {len(updated_skins) + 1} worker threads")
     logger.info(f"These are the updated skins {updated_skins}")
     for num, skin in enumerate(updated_skins):
@@ -246,6 +243,8 @@ if __name__ == "__main__":
     bt.daemon = True
     bt.start()
 
+    start_time = time.time()
+    stop_event = threading.Event()
     print("Press ! to exit the script and all threads.")
     try:
         while True:
@@ -253,8 +252,10 @@ if __name__ == "__main__":
 
             if event.event_type ==  keyboard.KEY_DOWN:
                 if event.name == "!" or event.name == "shift+1":
-                    print("ending threads.")
+                    time_elapsed = time.time() - start_time
+                    print(f"ending threads after {seconds_to_time(time_elapsed)}")
                     sys.exit(0)
     except KeyboardInterrupt:
-        print("ending threads")
+        time_elapsed = time.time() - start_time
+        print(f"ending threads after {seconds_to_time(time_elapsed)}")
         sys.exit(0)
