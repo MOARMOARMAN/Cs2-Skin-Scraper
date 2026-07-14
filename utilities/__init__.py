@@ -19,7 +19,8 @@ from .assorted_utils import (
     CURRENCY_EXCHANGE_RATE,
     RELEVANT_CURRENCIES,
     WEAR_ABBRIEVIATIONS,
-    WEAR_TO_MAX
+    WEAR_TO_MAX,
+    MAX_SCRAPE_TIME
 )
 
 from .db_utils import (

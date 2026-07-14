@@ -32,6 +32,7 @@ user_agent = os.getenv("STEAM_USER_AGENT")
 logger = logging.getLogger("CS2-System")
 discord_webhook_url = os.getenv("DISCORD_WEBHOOK")
 
+MAX_SCRAPE_TIME = 14400
 PREFERRED_CURRENCY = "CAD"
 
 # Tuple of Possible Wears
@@ -263,10 +264,15 @@ def update_currency_exchange_rates(new_rates: dict[str, float]):
     CURRENCY_EXCHANGE_RATE.update(new_rates)
 
 def seconds_to_time(seconds: float) -> str:
-    if seconds < 60:
-        return f"{seconds} seconds"
-    elif seconds < 3600:
-        return f"{seconds // 60} minutes and {seconds % 60} seconds"
-    else:
-        return f"{seconds // 3600} hours, {(seconds % 3600) // 60} minutes and {seconds % 60} seconds"
+    s = seconds % 60
+    m = int((seconds % 3600) // 60)
+    h = int(seconds // 3600)
+    result = ""
+    if h:
+        result += f"{h} hour(s) "
+    if m:
+        result += f"{m} minute(s) "
+    if s:
+        result += f"{s} second(s)"
+    return result 
     

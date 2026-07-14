@@ -45,7 +45,8 @@ from utilities import (
     seconds_to_time,
     WEAR_ABBRIEVIATIONS,
     CURRENCY_EXCHANGE_RATE,
-    WEAR_TO_MAX
+    WEAR_TO_MAX,
+    MAX_SCRAPE_TIME
 )
 from batch import analyze_batch_overpay_loop
 from concurrent.futures import ThreadPoolExecutor
@@ -168,6 +169,9 @@ def help():
     print(f"recommendation: Provides you the recommended listing price based on the specific float bucket that a skin belongs to.")
     print(f"continue: Continue to the next step to begin scraping listings. Press ! to exit when the script is running.")
 
+def shutdown_script_after(seconds: float):
+    print(f"Shut down after {seconds_to_time(seconds)}")
+    sys.exit(0)
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -231,7 +235,7 @@ if __name__ == "__main__":
     for num, skin in enumerate(updated_skins):
         logger.info(f"Spawning scouting thread for {skin[0]} at max float of {skin[1]} with max price of {skin[2]}")
         st = threading.Timer(
-            interval=random.uniform(num * 7, num * 10),
+            interval=random.uniform((num + 1) * 7, (num + 1) * 10),
             function=scouting_loop,
             args=(skin[0], skin[1], skin[2]),
         )
@@ -242,6 +246,9 @@ if __name__ == "__main__":
     bt = threading.Timer(1000, analyze_batch_overpay_loop)
     bt.daemon = True
     bt.start()
+
+
+    end_thread = threading.Timer(interval=MAX_SCRAPE_TIME, function=shutdown_script_after, args=(MAX_SCRAPE_TIME,))
 
     start_time = time.time()
     stop_event = threading.Event()
