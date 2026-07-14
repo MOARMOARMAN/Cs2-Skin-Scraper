@@ -127,7 +127,6 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
 
 def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
     logger.info(f"Scouting Loop for {skin_name} has been started")
-    time.sleep(random.randint(3,20))
     valid_listings = {}
     wlevel = what_wear(maximum_float)
     session_cookies = setup_session_cookies()

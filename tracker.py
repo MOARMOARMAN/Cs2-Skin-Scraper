@@ -14,6 +14,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import logging
+import keyboard
+import threading
+import sys
+import time
+import random
 from scraper import scouting_loop
 from display_chart import update_wear_bucket_data_for_skin
 from utilities import (
@@ -37,6 +42,7 @@ from utilities import (
     get_exchange_rate,
     get_price_for_name_and_float_skin_data_db,
     update_currency_exchange_rates,
+    seconds_to_time,
     WEAR_ABBRIEVIATIONS,
     CURRENCY_EXCHANGE_RATE,
     WEAR_TO_MAX
@@ -159,7 +165,9 @@ def help():
     print(f"remove: Remove skins from the list of tracked skins")
     print(f"exit: Exits the program saving the currently tracked skins.")
     print(f"update exchange rates: Choose the currency that is preferred and updates the exchange rates as of today.")
-    print(f"continue: Continue to the next step to begin scraping listings")
+    print(f"recommendation: Provides you the recommended listing price based on the specific float bucket that a skin belongs to.")
+    print(f"continue: Continue to the next step to begin scraping listings. Press ! to exit when the script is running.")
+
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -195,7 +203,7 @@ if __name__ == "__main__":
         "add": lambda: add_skins(lowest_prices),
         "remove": lambda: remove_skins(),
         "help" : lambda: help(),
-        "exit" : lambda: exit(),
+        "exit" : lambda: sys.exit(0),
         "update exchange rates" : lambda: update_exchange_rates_input(),
         "recommendation" : lambda: recommend_sale_price()
     }
@@ -217,11 +225,36 @@ if __name__ == "__main__":
     # id, name, float, price
     updated_tracked = get_tracked_listings_table_db(LISTINGS_DB)
     updated_skins = [[skin[1], skin[2], skin[3]] for skin in updated_tracked]
+
+    stop_event = threading.Event()
+    start_time = time.time()
+
     logger.info(f"Monitoring {len(updated_skins)} skins with {len(updated_skins) + 1} worker threads")
     logger.info(f"These are the updated skins {updated_skins}")
-    with ThreadPoolExecutor(max_workers=len(updated_skins) + 1) as executor:
-        for skin in updated_skins:
-            logger.info(f"Spawning scouting thread for {skin[0]} at max float of {skin[1]} with max price of {skin[2]}")
-            executor.submit(scouting_loop, skin[0], skin[1], skin[2])
-        logger.info(f"Spawning batch analysis thread")
-        executor.submit(analyze_batch_overpay_loop)
+    for num, skin in enumerate(updated_skins):
+        logger.info(f"Spawning scouting thread for {skin[0]} at max float of {skin[1]} with max price of {skin[2]}")
+        st = threading.Timer(
+            interval=random.uniform(num * 7, num * 10),
+            function=scouting_loop,
+            args=(skin[0], skin[1], skin[2]),
+        )
+        st.daemon = True
+        st.start()
+    
+    logger.info(f"Spawning batch analysis thread")
+    bt = threading.Timer(1000, analyze_batch_overpay_loop)
+    bt.daemon = True
+    bt.start()
+
+    print("Press ! to exit the script and all threads.")
+    try:
+        while True:
+            event = keyboard.read_event()
+
+            if event.event_type ==  keyboard.KEY_DOWN:
+                if event.name == "!" or event.name == "shift+1":
+                    print("ending threads.")
+                    sys.exit(0)
+    except KeyboardInterrupt:
+        print("ending threads")
+        sys.exit(0)

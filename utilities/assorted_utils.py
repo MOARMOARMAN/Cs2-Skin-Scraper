@@ -221,6 +221,7 @@ def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_c
     return_subtotal = ""
     try:
         listings = scout_r.json().get('listings')
+        print("got to here")
         if not listings:
             logger.error(f"No listings found or strSubtotal for {search_name}")
             return -1
@@ -260,3 +261,12 @@ def update_currency_exchange_rates(new_rates: dict[str, float]):
     global CURRENCY_EXCHANGE_RATE
     CURRENCY_EXCHANGE_RATE.clear()
     CURRENCY_EXCHANGE_RATE.update(new_rates)
+
+def seconds_to_time(seconds: float) -> str:
+    if seconds < 60:
+        return f"{seconds} seconds"
+    elif seconds < 3600:
+        return f"{seconds // 60} minutes and {seconds % 60} seconds"
+    else:
+        return f"{seconds // 3600} hours, {(seconds % 3600) // 60} minutes and {seconds % 60} seconds"
+    
