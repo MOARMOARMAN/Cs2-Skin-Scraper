@@ -14,8 +14,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import logging
-import keyboard
 import threading
+import msvcrt
 import sys
 import time
 import random
@@ -255,10 +255,10 @@ if __name__ == "__main__":
     print("Press ! to exit the script and all threads.")
     try:
         while True:
-            event = keyboard.read_event()
+            if msvcrt.kbhit(): 
+                key = msvcrt.getwch()
 
-            if event.event_type ==  keyboard.KEY_DOWN:
-                if event.name == "!" or event.name == "shift+1":
+                if key == "!" or key == "shift+!":
                     time_elapsed = time.time() - start_time
                     print(f"ending threads after {seconds_to_time(time_elapsed)}")
                     sys.exit(0)
