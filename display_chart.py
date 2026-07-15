@@ -112,15 +112,17 @@ def update_wear_bucket_data_for_skin(skin_name: str):
     float_ranges, listing_volume, price_harmonic_means = split_wear_bucket_data(wear_buckets)
     insert_skin_float_prices_skin_data_db(skin_name, price_harmonic_means, SKIN_DATA_DB)
 
-if __name__ == "__main__":
+def display_skin_chart():
     create_float_prices_skin_data_db(SKIN_DATA_DB)
     historical_options = load_all_skin_names_all_historical_data_db(HISTORICAL_DATA_DB)
     options = " --- ".join([f'"{name[0]}"' for name in historical_options])
-    print(f"These are your options: {options}\n") 
+    print(f"\nThese are your options: {options}\n") 
     while True:
-        skin_name = input("Please enter your choice: ")
+        skin_name = input("Please enter your choice (Enter ! to cancel): ")
         if skin_name in options:
             break
+        elif skin_name == "!":
+            return
         print(f"{skin_name} is not a part of the options.\n")
         print(f"These are your options: {options}\n")
 
@@ -129,3 +131,5 @@ if __name__ == "__main__":
 
     insert_skin_float_prices_skin_data_db(skin_name, price_harmonic_means, SKIN_DATA_DB)
     show_graph(float_ranges, listing_volume, price_harmonic_means)
+if __name__ == "__main__":
+    display_skin_chart()

@@ -20,7 +20,7 @@ import sys
 import time
 import random
 from scraper import scouting_loop
-from display_chart import update_wear_bucket_data_for_skin
+from display_chart import update_wear_bucket_data_for_skin, display_skin_chart
 from utilities import (
     create_skin_listings_table_db, 
     clear_db_skins, 
@@ -167,6 +167,7 @@ def help():
     print(f"exit: Exits the program saving the currently tracked skins.")
     print(f"update exchange rates: Choose the currency that is preferred and updates the exchange rates as of today.")
     print(f"recommendation: Provides you the recommended listing price based on the specific float bucket that a skin belongs to.")
+    print(f"display chart: Enter the name of a skin with historical data and view the price/float-volume chart")
     print(f"continue: Continue to the next step to begin scraping listings. Press ! to exit when the script is running.")
 
 def shutdown_script_after(seconds: float):
@@ -209,7 +210,8 @@ if __name__ == "__main__":
         "help" : lambda: help(),
         "exit" : lambda: sys.exit(0),
         "update exchange rates" : lambda: update_exchange_rates_input(),
-        "recommendation" : lambda: recommend_sale_price()
+        "recommendation" : lambda: recommend_sale_price(),
+        "display chart" : lambda: display_skin_chart()
     }
     print_tracked()
     user_input = prompt_actions_user(user_actions)
