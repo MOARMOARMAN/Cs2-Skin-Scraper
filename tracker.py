@@ -251,6 +251,7 @@ if __name__ == "__main__":
 
 
     end_thread = threading.Timer(interval=MAX_SCRAPE_TIME, function=shutdown_script_after, args=(MAX_SCRAPE_TIME,))
+    end_thread.start()
 
     start_time = time.time()
     stop_event = threading.Event()
