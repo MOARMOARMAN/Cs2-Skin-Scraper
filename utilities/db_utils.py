@@ -98,8 +98,8 @@ def load_data_listings_db(skin_name: str, valid_listings: dict, db_name: str) ->
                 logger.error(f"Database error loading {skin_name}: {e}")
                 raise
 
-# For loading data of the entire database. (batch)
-def load_all_data_listings_db(valid_skins: dict, db_name: str):
+def load_all_data_listings_db(valid_skins: dict, db_name: str) -> None:
+    """Loads every single skin in the skin_listings table into valid_skins, the passed in dict."""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
         try:
@@ -116,13 +116,15 @@ def load_all_data_listings_db(valid_skins: dict, db_name: str):
                 logger.error(f"Database error: {e}")
                 raise   
 
-def create_tracked_table_db(db_name: str):
+def create_tracked_table_db(db_name: str) -> None:
+    """Creates a table on listings.db for currently tracked skins"""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
             conn.execute("CREATE TABLE IF NOT EXISTS tracked_skins (id INTEGER PRIMARY KEY, skin_name TEXT, max_float_val REAL, max_price REAL)")
 
-def populate_tracked_table_db(db_name: str, skins: list):
+def populate_tracked_table_db(db_name: str, skins: list) -> None:
+    """populates the tracked skins table with """
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
