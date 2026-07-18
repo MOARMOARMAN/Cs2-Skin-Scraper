@@ -15,6 +15,7 @@ from .assorted_utils import (
     SKIN_DATA_DB,
     LISTINGS_DB,
     HISTORICAL_DATA_DB,
+    INVENTORY_DB,
     WEAR_RANGES,
     CURRENCY_EXCHANGE_RATE,
     RELEVANT_CURRENCIES,

@@ -345,3 +345,12 @@ def get_currency_exchange_rates_for_currency_db(currency: str, db_name: str) -> 
         exchange_rates = {currency_from:rate for currency_from, rate in rates}
         return exchange_rates
 
+
+# ______________________________________________________________ inventory.db functions ___________________________________________________________________
+
+def create_inventory_skins_table_db(db_name: str) -> None:
+    """Creates the inventory_skins table in inventory.db"""
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("CREATE TABLE IF NOT EXISTS inventory_skins (skin_name TEXT, )")
