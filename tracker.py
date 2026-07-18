@@ -170,9 +170,9 @@ def help():
     print(f"display chart: Enter the name of a skin with historical data and view the price/float-volume chart")
     print(f"continue: Continue to the next step to begin scraping listings. Press ! to exit when the script is running.")
 
-def shutdown_script_after(seconds: float):
-    print(f"Shut down after {seconds_to_time(seconds)}")
-    sys.exit(0)
+def shutdown_script_after(stop_event: threading.Event):
+    stop_event.set()
+
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -249,23 +249,24 @@ if __name__ == "__main__":
     bt.daemon = True
     bt.start()
 
-
-    end_thread = threading.Timer(interval=MAX_SCRAPE_TIME, function=shutdown_script_after, args=(MAX_SCRAPE_TIME,))
+    stop_event = threading.Event()
+    end_thread = threading.Timer(interval=MAX_SCRAPE_TIME, function=shutdown_script_after, args=(stop_event,))
     end_thread.start()
 
     start_time = time.time()
-    stop_event = threading.Event()
     print("Press ! to exit the script and all threads.")
     try:
         while True:
+            if stop_event.is_set():
+                sys.exit(0)
             if msvcrt.kbhit(): 
                 key = msvcrt.getwch()
 
-                if key == "!" or key == "shift+!":
+                if key == "!":
                     time_elapsed = time.time() - start_time
-                    print(f"ending threads after {seconds_to_time(time_elapsed)}")
                     sys.exit(0)
     except KeyboardInterrupt:
+        sys.exit(0)
+    finally:
         time_elapsed = time.time() - start_time
         print(f"ending threads after {seconds_to_time(time_elapsed)}")
-        sys.exit(0)

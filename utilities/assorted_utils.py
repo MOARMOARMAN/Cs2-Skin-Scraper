@@ -28,6 +28,7 @@ DATABASES_DIR = PROJECT_ROOT / "databases"
 SKIN_DATA_DB = DATABASES_DIR / "skin_data.db"
 LISTINGS_DB = DATABASES_DIR / "listings.db"
 HISTORICAL_DATA_DB = DATABASES_DIR / "historical_data.db"
+INVENTORY_DB = DATABASES_DIR / "inventory.db"
 user_agent = os.getenv("STEAM_USER_AGENT")
 logger = logging.getLogger("CS2-System")
 discord_webhook_url = os.getenv("DISCORD_WEBHOOK")
