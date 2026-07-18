@@ -349,8 +349,84 @@ def get_currency_exchange_rates_for_currency_db(currency: str, db_name: str) -> 
 # ______________________________________________________________ inventory.db functions ___________________________________________________________________
 
 def create_inventory_skins_table_db(db_name: str) -> None:
-    """Creates the inventory_skins table in inventory.db"""
+    """Creates the inventory_skins table in inventory.db which will hold the skins that exist in the inventory currently"""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         conn.execute("PRAGMA journal_mode=WAL;")
-        conn.execute("CREATE TABLE IF NOT EXISTS inventory_skins (skin_name TEXT, )")
+        with conn:
+            conn.execute("""CREATE TABLE IF NOT EXISTS inventory_skins (
+                id INTEGER PRIMARY KEY,
+                skin_name TEXT,
+                float_val REAL,
+                purchase_price REAL,
+                expected_sale_price REAL,
+                profit REAL,
+                recorded_at TEXT DEFAULT CURRENT_DATE
+            )""")
+
+def add_inventory_skins_table_db(skin_name: str, float_val: float, skin_price: float, db_name: str) -> None:
+    """Adds in the base values for a skin given the name, float and price. Always inserts (never updates)."""
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;") 
+        with conn:
+            conn.execute("""INSERT INTO inventory_skins (skin_name, float_val, purchase_price, expected_sale_price) 
+                VALUES (?, ?, ?, ?)""", (skin_name.strip('"'), float_val, skin_price, skin_price))
+
+def remove_inventory_skins_table_db(skin_id: int, db_name: str) -> None:
+    """Removes a specific skin from the inventory based on the skin_id."""
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;") 
+        with conn:
+            conn.execute("DELETE FROM inventory_skins WHERE id=?", (skin_id,))
+
+def update_expected_sale_price_inventory_skins_table_db(skin_id: int, new_sale_price: float, db_name: str) -> None:
+    """Modifies the expected sale price for a specific skin and recalculates profit automatically.
+
+    PROFIT FORMULA: profit = expected_sale_price - purchase_price
+
+    The purchase_price is preserved (never changes), so when you update expected_sale_price,
+    the profit is automatically calculated as: new_profit = new_sale_price - original_purchase_price
+    """
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;") 
+        with conn:
+            # CRITICAL: Fetch the original purchase_price first (this never changes!)
+            current_data = conn.execute(
+                "SELECT purchase_price FROM inventory_skins WHERE id=?",
+                (skin_id,)
+            ).fetchone()
+
+            if current_data:
+                original_purchase_price = current_data[0]
+                # Calculate correct profit using the formula: profit = sale_price - purchase_price
+                new_profit = round(new_sale_price - original_purchase_price, 2)
+
+                # Update both values with the CORRECT calculated profit
+                conn.execute("""UPDATE inventory_skins 
+                    SET expected_sale_price=?, profit=? 
+                        WHERE id=?""", (new_sale_price, new_profit, skin_id))
+            else:
+                logger.error(f"Skin with id {skin_id} not found")
+
+def load_all_inventory_skins_table_db(db_name: str) -> dict:
+    """Loads all inventory from inventory.db into a dict keyed by skin_id (primary key)."""
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;") 
+        try:
+            inventory_data = conn.execute("SELECT id, skin_name, float_val, purchase_price, expected_sale_price, profit, recorded_at FROM inventory_skins").fetchall()
+            logger.debug(f"Loaded {len(inventory_data)} total inventory entries from database")
+            
+            # Return dict keyed by ID for easy lookup
+            inventory_dict = {row[0]: {"skin_name": row[1], "float_val": row[2], "purchase_price": row[3], 
+                                       "expected_sale_price": row[4], "profit": row[5], "recorded_at": row[6]} 
+                             for row in inventory_data}
+            
+            return inventory_dict
+        except sqlite3.OperationalError as e:
+            if "no such table" in str(e):
+                logger.warning("Table inventory_skins doesn't exist yet")
+                return {}
+            else:
+                logger.error(f"Database error loading inventory: {e}")
+                raise
+    
