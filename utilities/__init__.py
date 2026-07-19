@@ -62,11 +62,15 @@ from .db_utils import (
     create_inventory_skins_table_db,
     add_inventory_skins_table_db,
     remove_inventory_skins_table_db,
-    update_expected_sale_price_inventory_skins_table_db,
     load_all_inventory_skins_table_db
 )
 
 from .dataclass_utils import (
     WearBucket,
     listingData
+)
+
+from .schemas import (
+    InventoryItemIn,
+    InventoryItemOut
 )

@@ -377,19 +377,17 @@ def remove_inventory_skins_table_db(skin_id: int, db_name: str) -> None:
         with conn:
             conn.execute("DELETE FROM inventory_skins WHERE id=?", (skin_id,))
 
-def load_all_inventory_skins_table_db(db_name: str) -> dict:
-    """Loads all inventory from inventory.db into a dict keyed by skin_id (primary key)."""
+def load_all_inventory_skins_table_db(db_name: str) -> list:
+    """Loads all inventory from inventory.db into a list"""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
         try:
             inventory_data = conn.execute("SELECT id, skin_name, float_val, purchase_price, recorded_at FROM inventory_skins").fetchall()
             logger.debug(f"Loaded {len(inventory_data)} total inventory entries from database")
             
+            inventory_list = [[*row] for row in inventory_data]
             # Return dict keyed by ID for easy lookup
-            inventory_dict = {row[0]: {"skin_name": row[1], "float_val": row[2], "purchase_price": row[3], 
-                                       "recorded_at": row[4]} 
-                             for row in inventory_data}
-            return inventory_dict
+            return inventory_list
         except sqlite3.OperationalError as e:
             if "no such table" in str(e):
                 logger.warning("Table inventory_skins doesn't exist yet")
