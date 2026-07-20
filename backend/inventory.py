@@ -1,4 +1,4 @@
-from utilities import (
+from .utilities import (
     INVENTORY_DB,
     create_inventory_skins_table_db,
     remove_inventory_skins_table_db,

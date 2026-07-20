@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 import logging
 import time
 import random
-from utilities import (
+from .utilities import (
     write_listings_db, 
     write_to_historical_db,
     del_missing_ID_listing_db, 

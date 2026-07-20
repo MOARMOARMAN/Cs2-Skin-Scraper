@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from utilities import populate_prices_skin_data_db, price_check, get_skin_code_db, SKIN_DATA_DB
+from .utilities import populate_prices_skin_data_db, price_check, get_skin_code_db, SKIN_DATA_DB
 import time
 import random
 import sqlite3

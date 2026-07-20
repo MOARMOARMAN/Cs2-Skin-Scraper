@@ -16,8 +16,8 @@
 from math import floor
 import time
 import logging
-from display_chart import update_wear_bucket_data_for_skin
-from utilities import (
+from .display_chart import update_wear_bucket_data_for_skin
+from .utilities import (
     load_all_data_listings_db,
     get_price_float_buckets_skin_data_db,
     SKIN_DATA_DB,

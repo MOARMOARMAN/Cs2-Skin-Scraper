@@ -19,9 +19,9 @@ import msvcrt
 import sys
 import time
 import random
-from scraper import scouting_loop
-from display_chart import update_wear_bucket_data_for_skin, display_skin_chart
-from utilities import (
+from backend.scraper import scouting_loop
+from backend.display_chart import update_wear_bucket_data_for_skin, display_skin_chart
+from backend.utilities import (
     create_skin_listings_table_db, 
     clear_db_skins, 
     wears, 
@@ -48,7 +48,7 @@ from utilities import (
     WEAR_TO_MAX,
     MAX_SCRAPE_TIME
 )
-from batch import analyze_batch_overpay_loop
+from backend.batch import analyze_batch_overpay_loop
 from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger("Tracker")
@@ -251,6 +251,7 @@ if __name__ == "__main__":
 
     stop_event = threading.Event()
     end_thread = threading.Timer(interval=MAX_SCRAPE_TIME, function=shutdown_script_after, args=(stop_event,))
+    end_thread.daemon = True
     end_thread.start()
 
     start_time = time.time()

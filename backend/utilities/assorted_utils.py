@@ -23,7 +23,7 @@ from collections import namedtuple
 from typing import Callable
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATABASES_DIR = PROJECT_ROOT / "databases"
 SKIN_DATA_DB = DATABASES_DIR / "skin_data.db"
 LISTINGS_DB = DATABASES_DIR / "listings.db"
