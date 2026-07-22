@@ -67,7 +67,7 @@ headers = {
     "Referer": "https://steamcommunity.com/market/listings/730/G1802208A0A3004",
     "Content-Type": "application/json; charset=utf-8",
     # THE SECRET HANDSHAKE
-    "x-valve-action-type": "4OPT6VBA:Search",
+    "x-valve-action-type": "8cnlIgBs66uLKD68o1fzpLlHFSHv52c4l9_ohRpMLzk:Search",
     "x-valve-request-type": "routeAction",
     # MAPPING BROWSER ID
     "User-Agent": user_agent,
@@ -104,7 +104,7 @@ def is_retryable_error(exception):
     wait=wait_exponential_jitter(initial=60, max=1500),
     retry=retry_if_exception(is_retryable_error),
 )
-def post_with_retry(session: requests.Session, url: str, json_payload: dict, local_headers: dict, cookies: dict, timeout: int = 15):
+def post_with_retry(session: requests.Session, url: str, json_payload: dict, local_headers: dict, cookies: dict, timeout: int = 15) -> requests.Response:
     """POST request wrapper with retries for transient HTTP/network failures."""
     start = time.perf_counter()
     resp = session.post(url, json=json_payload, headers=local_headers, cookies=cookies, timeout=timeout)

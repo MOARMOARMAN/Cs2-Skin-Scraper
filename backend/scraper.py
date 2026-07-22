@@ -134,7 +134,7 @@ def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
         logger.error("Session setup failed and resulted in empty session and cookies")
         return 0
     else:
-        logger.info(f"Session connected successfully to steam for {skin_name}")
+        logger.info(f"Session and cookies setup successfully for {skin_name}")
     scraper_session = session_cookies[0]
     cookies = session_cookies[1]
     if wlevel < 0 or wlevel > 4:
