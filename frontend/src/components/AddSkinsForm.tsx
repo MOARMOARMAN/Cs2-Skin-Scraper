@@ -2,20 +2,37 @@ import { useState } from 'react'
 import {
     addSkin, type NewSkin
 } from '../api/inventory'
+import {
+   validateFloatValue,
+   validatePurchasePrice,
+   validateSkinName 
+} from '../utils/validation'
 
 export default function addSkinForm() {
     const [skinName, setSkinName] = useState('');
-    const [floatValue, setFloatValue] = useState('')
-    const [purchasePrice, setPurchasePrice] = useState('')
+    const [floatValue, setFloatValue] = useState('');
+    const [purchasePrice, setPurchasePrice] = useState('');
+    const [validationError, setValidationError] = useState<string | null>(null);
 
     function handleSubmit() {
-        const skin: NewSkin = {
-            skin_name: skinName,
-            float_val: parseFloat(floatValue),
-            purchase_price: parseFloat(purchasePrice)
+        const trimmedName = skinName.trim();
+        let nameError = validateSkinName(trimmedName);
+        let floatError = validateFloatValue(floatValue);
+        let priceError = validatePurchasePrice(purchasePrice);
+        const error = nameError ?? floatError ?? priceError;
+        setValidationError(error);
+        
+        if (error != null) {
+            return
         }
 
-        addSkin(skin)
+        const skin: NewSkin = {
+            skin_name: trimmedName,
+            float_val: parseFloat(floatValue),
+            purchase_price: parseFloat(purchasePrice)
+        };
+
+        addSkin(skin);
     };
 
 
@@ -28,6 +45,7 @@ export default function addSkinForm() {
             <p>Purchase Price</p>
             <input value={purchasePrice} onChange={(event) => setPurchasePrice(event.target.value)}/>
             <button onClick={handleSubmit}>Add {skinName} at {floatValue} purchased at {purchasePrice}</button>
+            <p>{validationError}</p>
         </>
-    )
+    );
 }
