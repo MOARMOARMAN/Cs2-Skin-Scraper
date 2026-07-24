@@ -10,9 +10,16 @@ from .utilities import (
     InventoryItemIn
 )
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from math import floor
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def compute_current_value(skin_name: str, float_val: float) -> float:
     """Reuses your existing float_prices baseline table."""

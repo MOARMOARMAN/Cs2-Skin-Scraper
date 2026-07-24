@@ -32,7 +32,8 @@ def launch_processes():
     webbrowser.open_new_tab("http://localhost:5173")
 
     try:
-        api_process.wait()
+        while True:
+            time.sleep(1)
     except KeyboardInterrupt:
         print("\nStopping dashboard...")
 

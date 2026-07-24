@@ -11,3 +11,4 @@ skin_data.db-shm
 skin_data.db-wal
 *.db-shm
 *.db-wal
+inventory.db*
