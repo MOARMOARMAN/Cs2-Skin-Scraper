@@ -385,8 +385,8 @@ def load_all_inventory_skins_table_db(db_name: str) -> list:
             inventory_data = conn.execute("SELECT id, skin_name, float_val, purchase_price, recorded_at FROM inventory_skins").fetchall()
             logger.debug(f"Loaded {len(inventory_data)} total inventory entries from database")
             
-            inventory_list = [[*row] for row in inventory_data]
-            # Return dict keyed by ID for easy lookup
+            #id, name, float, price, recorded_at
+            inventory_list = [[int(row[0]), row[1], float(row[2]), float(row[3]), row[4]] for row in inventory_data]
             return inventory_list
         except sqlite3.OperationalError as e:
             if "no such table" in str(e):

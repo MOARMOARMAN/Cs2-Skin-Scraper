@@ -35,7 +35,11 @@ def get_inventory():
         current_value = compute_current_value(item[1], item[2])
         profit = round(current_value - item[3], 2)
         result.append(InventoryItemOut(
-            **item,
+            id_=item[0],
+            skin_name=item[1],
+            float_val=item[2],
+            purchase_price=item[3],
+            recorded_at=item[4],
             expected_sale_price=current_value,
             profit=profit
         ))
@@ -52,4 +56,4 @@ def delete_inventory_item(item_id: str):
     return {"status": "deleted"}
 
 if __name__  == "__main__":
-    create_inventory_skins_table_db(INVENTORY_DB)
+    print(get_inventory())

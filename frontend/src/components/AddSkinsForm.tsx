@@ -33,7 +33,7 @@ export default function addSkinForm() {
         };
 
         addSkin(skin);
-    };
+    }
 
 
     return (
