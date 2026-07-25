@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useState } from 'react';
 import {
     addSkin, type NewSkin
-} from '../api/inventory'
+} from '../api/inventory';
 import {
    validateFloatValue,
    validatePurchasePrice,
    validateSkinName 
-} from '../utils/validation'
+} from '../utils/validation';
 
 export default function addSkinForm() {
     const [skinName, setSkinName] = useState('');

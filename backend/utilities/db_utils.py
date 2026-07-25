@@ -370,12 +370,13 @@ def add_inventory_skins_table_db(skin_name: str, float_val: float, skin_price: f
             conn.execute("""INSERT INTO inventory_skins (skin_name, float_val, purchase_price) 
                 VALUES (?, ?, ?)""", (skin_name.strip('"'), float_val, skin_price))
 
-def remove_inventory_skins_table_db(skin_id: int, db_name: str) -> None:
+def remove_inventory_skins_table_db(skin_id: int, db_name: str) -> bool:
     """Removes a specific skin from the inventory based on the skin_id."""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
         with conn:
-            conn.execute("DELETE FROM inventory_skins WHERE id=?", (skin_id,))
+            row_count = conn.execute("DELETE FROM inventory_skins WHERE id=?", (skin_id,)).rowcount
+            return row_count > 0
 
 def load_all_inventory_skins_table_db(db_name: str) -> list:
     """Loads all inventory from inventory.db into a list"""

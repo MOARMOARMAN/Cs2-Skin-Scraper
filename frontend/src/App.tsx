@@ -5,6 +5,7 @@ import heroImg from './assets/hero.png'
 import './App.css'
 import AddSkinForm from './components/AddSkinsForm'
 import AddInventoryDisplay from './components/AddInventoryDisplay'
+import AddRemoveSkinForm from './components/RemoveSkinsForm'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -14,6 +15,7 @@ function App() {
       <section id="center">
         <AddSkinForm />
         <AddInventoryDisplay />
+        <AddRemoveSkinForm />
       </section>
     </>
   )

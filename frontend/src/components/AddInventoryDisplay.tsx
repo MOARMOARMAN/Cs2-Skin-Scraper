@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
 import {
     getInventory, type Skin
-} from '../api/inventory'
+} from '../api/inventory';
 
 export default function addInventoryDisplay() {
     const [inventorySkins, setInventorySkins] = useState<Skin[]>([]);
@@ -21,7 +21,8 @@ export default function addInventoryDisplay() {
     return (
         <>
             {inventorySkins.map((skin: Skin) => (
-                <p>{skin.skin_name}</p>
+                <p>{skin.id_} | {skin.skin_name} | {skin.float_val} | {skin.purchase_price} | {skin.recorded_at}</p>
+                
             ))}
         </>
     );

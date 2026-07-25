@@ -51,9 +51,12 @@ def add_inventory_item(item: InventoryItemIn):
     return {"status": "added"}
 
 @app.delete("/inventory/{item_id}")
-def delete_inventory_item(item_id: str):
-    remove_inventory_skins_table_db(item_id, INVENTORY_DB)
-    return {"status": "deleted"}
+def delete_inventory_item(item_id: int):
+    delete_state = remove_inventory_skins_table_db(item_id, INVENTORY_DB)
+    if delete_state:
+        return {"status": "deleted"}
+    else:
+        return {"status": "not deleted"}
 
 if __name__  == "__main__":
     print(get_inventory())
