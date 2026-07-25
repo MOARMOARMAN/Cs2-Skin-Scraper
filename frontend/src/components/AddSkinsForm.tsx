@@ -8,13 +8,18 @@ import {
    validateSkinName 
 } from '../utils/validation';
 
-export default function addSkinForm() {
+interface AddSkinFormProps {
+    onSkinAdded: () => Promise<void>;
+}
+
+export default function addSkinForm({ onSkinAdded }: AddSkinFormProps) {
     const [skinName, setSkinName] = useState('');
     const [floatValue, setFloatValue] = useState('');
     const [purchasePrice, setPurchasePrice] = useState('');
     const [validationError, setValidationError] = useState<string | null>(null);
+    const [stateText, setStateText] = useState('');
 
-    function handleSubmit() {
+    async function handleSubmit() {
         const trimmedName = skinName.trim();
         let nameError = validateSkinName(trimmedName);
         let floatError = validateFloatValue(floatValue);
@@ -32,7 +37,11 @@ export default function addSkinForm() {
             purchase_price: parseFloat(purchasePrice)
         };
 
-        addSkin(skin);
+        const addState = await addSkin(skin); 
+        if (addState.status == 'added') {
+            setStateText(`Added ${trimmedName} to the inventory successfully`);
+            onSkinAdded();
+        }
     }
 
 
@@ -46,6 +55,7 @@ export default function addSkinForm() {
             <input value={purchasePrice} onChange={(event) => setPurchasePrice(event.target.value)}/>
             <button onClick={handleSubmit}>Add {skinName} at {floatValue} purchased at {purchasePrice}</button>
             <p>{validationError}</p>
+            <p>{stateText}</p>
         </>
     );
 }

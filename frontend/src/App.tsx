@@ -1,21 +1,30 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useEffect, useState } from 'react'
 import './App.css'
 import AddSkinForm from './components/AddSkinsForm'
 import AddInventoryDisplay from './components/AddInventoryDisplay'
 import AddRemoveSkinForm from './components/RemoveSkinsForm'
+import {
+  type Skin, getInventory
+} from './api/inventory'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [inventorySkins, setInventorySkins] = useState<Skin[]>([]);
+
+  async function refreshInventory() {
+    const skins = await getInventory();
+    setInventorySkins(skins);
+  }
+
+  useEffect(() => {
+    refreshInventory();
+  }, []);
 
   return (
     <>
       <section id="center">
-        <AddSkinForm />
-        <AddInventoryDisplay />
-        <AddRemoveSkinForm />
+        <AddSkinForm onSkinAdded={refreshInventory} />
+        <AddInventoryDisplay inventorySkins={inventorySkins} />
+        <AddRemoveSkinForm onSkinRemoved={refreshInventory} />
       </section>
     </>
   )

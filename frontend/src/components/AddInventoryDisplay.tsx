@@ -3,20 +3,11 @@ import {
     getInventory, type Skin
 } from '../api/inventory';
 
-export default function addInventoryDisplay() {
-    const [inventorySkins, setInventorySkins] = useState<Skin[]>([]);
+interface AddInventoryDisplayProps {
+    inventorySkins: Skin[];
+}
 
-    useEffect(
-        () => {
-            async function loadInventory() {
-                const skins = await getInventory();
-                setInventorySkins(skins);
-            }
-
-            loadInventory();
-        },
-        []
-    );
+export default function addInventoryDisplay({inventorySkins}: AddInventoryDisplayProps) {
 
     return (
         <>
