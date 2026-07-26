@@ -40,10 +40,10 @@ logger = logging.getLogger("Scouting")
 if TYPE_CHECKING:
     import requests
 
-def scout(search_name: str, wear: int, max_float: float, max_price: float, scraper_session: requests.Session, cookies: dict, scout_code: str):
-    available_skins = {}
-    valid_skins = {}
-    scan_limit = 0
+def scout(search_name: str, wear: int, max_float: float, max_price: float, scraper_session: requests.Session, cookies: dict, scout_code: str) -> tuple[set[str], bool] | None:
+    scan_complete = False
+    skin_name = search_name.rsplit('(', 1)[0].strip()
+    existing_listing_ids = set()
     Payload = [{
         "appid":730,
         "strItemName": scout_code, # Unique identifier, will have to calculate later
@@ -65,16 +65,17 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
         scout_r = post_with_retry(scraper_session, local_headers["Referer"], Payload, local_headers, cookies) # type: ignore
     except Exception as e:
         logger.error(f"Initial scout request failed for {search_name}: {e}")
-        return {}
-    response_text = scout_r.text
+        return None
 
     if scout_r.status_code == 200:
         total_listings = scout_r.json().get('total_count', 0)
         logger.info(f"Total Listings: {total_listings}. Scanning top: {total_listings} items for {search_name}")
     else:
         logger.error(f"Unexpected status code {scout_r.status_code} for {search_name}")
-        return []
+        return None
     for offset in range (0, total_listings, 20):
+        available_skins = {}
+        valid_skins = {}
         Payload[0]['start'] = offset
         try:
             r = post_with_retry(
@@ -85,11 +86,13 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
                 cookies,
             )
         except Exception as e:
+            scan_complete = True
             logger.error(f"Request failed at offset {offset} for {search_name}: {e}")
             time.sleep(random.uniform(5, 10))
             continue
         data = r.json()
         if not data['listings']:
+            scan_complete = True
             continue
         for mkt_pos, item in enumerate(data['listings']):
             listingID = item['listingid']
@@ -117,17 +120,22 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
             if float_val < max_float and converted_price < max_price:
                 valid_skins[listingID] = listingData(float_val=float_val, price=converted_price)
             available_skins[listingID] = listingData(float_val=float_val, price=converted_price)
+            existing_listing_ids.add(listingID)
+         
+        write_to_historical_db(skin_name, available_skins, HISTORICAL_DATA_DB)
+        if valid_skins:
+            write_listings_db(skin_name, valid_skins, LISTINGS_DB)
         if offset % 100 == 0:
             logger.info(f"Processed up to offset {offset + 20} for {search_name}")
         time.sleep(random.uniform(45, 75))
         if random.random() <= 0.1:
             time.sleep(random.uniform(300,600))
-    write_to_historical_db(search_name.rsplit('(', 1)[0].strip(), available_skins, HISTORICAL_DATA_DB)
-    return valid_skins
+    return (existing_listing_ids, scan_complete)
+
 
 def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
     logger.info(f"Scouting Loop for {skin_name} has been started")
-    valid_listings = {}
+    previous_ids = set()
     wlevel = what_wear(maximum_float)
     session_cookies = setup_session_cookies()
     if not session_cookies:
@@ -142,7 +150,6 @@ def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
         return
     skin_wear = wears[wlevel]
     search_name = f"{skin_name} {skin_wear}"
-    load_data_listings_db(skin_name, valid_listings, LISTINGS_DB)
     scout_code = get_skin_code_db(SKIN_DATA_DB, skin_name=skin_name)
     if not scout_code:
         logger.error("could not access the scout_code in any form.")
@@ -154,18 +161,15 @@ def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
             try:
                 scout_results = scout(search_name, wlevel, maximum_float, maximum_price, scraper_session, cookies, scout_code)
                 if scout_results:
-                    currentlyAvailableIDS = [lID for lID in scout_results]
-                    toRemoveIDs = []
-                    for listingID in list(valid_listings):
-                        if listingID not in currentlyAvailableIDS:
-                            toRemoveIDs.append((listingID,))
-                            del valid_listings[listingID]
-                    # print(f"ids that do exist {currentlyAvailableIDS}")
-                    # print(f"ids that shouldn't exist. {toRemoveIDs}")
-                    del_missing_ID_listing_db(skin_name, toRemoveIDs, LISTINGS_DB)
-                    for listingID in scout_results:
-                        valid_listings[listingID] = scout_results[listingID]
-                    write_listings_db(skin_name, valid_listings, LISTINGS_DB)
+                    current_listing_ids, scan_completed = scout_results
+                    if not scan_completed:
+                        set_of_ids_to_remove = previous_ids - current_listing_ids
+                        ids_to_remove = [(listing_id, ) for listing_id in set_of_ids_to_remove]
+                        if ids_to_remove:
+                            del_missing_ID_listing_db(skin_name, ids_to_remove, LISTINGS_DB)
+                        previous_ids = current_listing_ids.copy()
+                    else:
+                        previous_ids.update(current_listing_ids)
                     logger.info(f"{skin_name} Loop complete. Resting to avoid rate limits...")
                 else:
                     logger.info(f"{skin_name} Loop is empty")

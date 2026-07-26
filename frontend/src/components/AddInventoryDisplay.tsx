@@ -12,7 +12,7 @@ export default function addInventoryDisplay({inventorySkins}: AddInventoryDispla
     return (
         <>
             {inventorySkins.map((skin: Skin) => (
-                <p>{skin.id_} | {skin.skin_name} | {skin.float_val} | {skin.purchase_price} | {skin.recorded_at}</p>
+                <p>{skin.id_} | {skin.skin_name} | {skin.float_val} | {skin.purchase_price} | {skin.recorded_at} | {skin.expected_sale_price} | {skin.profit}</p>
                 
             ))}
         </>
