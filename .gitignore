@@ -4,6 +4,7 @@ venv/
 __pycache__/
 listings.db*
 test.*
+test*.py
 unusedFunctions.py
 *.log
 scrape.py

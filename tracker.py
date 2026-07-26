@@ -245,7 +245,7 @@ if __name__ == "__main__":
         st.start()
     
     logger.info(f"Spawning batch analysis thread")
-    bt = threading.Timer(1000, analyze_batch_overpay_loop)
+    bt = threading.Timer(100, analyze_batch_overpay_loop)
     bt.daemon = True
     bt.start()
 

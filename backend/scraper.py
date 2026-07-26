@@ -41,7 +41,7 @@ if TYPE_CHECKING:
     import requests
 
 def scout(search_name: str, wear: int, max_float: float, max_price: float, scraper_session: requests.Session, cookies: dict, scout_code: str) -> tuple[set[str], bool] | None:
-    scan_complete = False
+    scan_complete = True
     skin_name = search_name.rsplit('(', 1)[0].strip()
     existing_listing_ids = set()
     Payload = [{
@@ -73,6 +73,10 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
     else:
         logger.error(f"Unexpected status code {scout_r.status_code} for {search_name}")
         return None
+    
+    if total_listings == 0:
+        logger.warning(f"No listings returned for {search_name}")
+        return None
     for offset in range (0, total_listings, 20):
         available_skins = {}
         valid_skins = {}
@@ -86,13 +90,13 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
                 cookies,
             )
         except Exception as e:
-            scan_complete = True
+            scan_complete = False
             logger.error(f"Request failed at offset {offset} for {search_name}: {e}")
             time.sleep(random.uniform(5, 10))
             continue
         data = r.json()
         if not data['listings']:
-            scan_complete = True
+            scan_complete = False
             continue
         for mkt_pos, item in enumerate(data['listings']):
             listingID = item['listingid']
@@ -162,7 +166,7 @@ def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
                 scout_results = scout(search_name, wlevel, maximum_float, maximum_price, scraper_session, cookies, scout_code)
                 if scout_results:
                     current_listing_ids, scan_completed = scout_results
-                    if not scan_completed:
+                    if scan_completed:
                         set_of_ids_to_remove = previous_ids - current_listing_ids
                         ids_to_remove = [(listing_id, ) for listing_id in set_of_ids_to_remove]
                         if ids_to_remove:

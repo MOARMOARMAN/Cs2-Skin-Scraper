@@ -82,6 +82,7 @@ def analyze_batch_overpay_loop():
         # https://steamcommunity.com/market/listings/730/G180720B7093004?detail=525379962958603527
         if underpriced_listings:
             logger.info(f"There is/are {len(underpriced_listings)} underpriced listings\n")
+            discord_notification("@everyone")
             count = 1
             for listing_ID, data in underpriced_listings.items():
                 skin_code = get_skin_code_db(SKIN_DATA_DB, data.get("name"))
@@ -94,8 +95,6 @@ def analyze_batch_overpay_loop():
                 discord_notification(message)
                 
                 count += 1
-        else:
-            discord_notification("There are currently no listings that are underpriced.")
         time.sleep(30)
 
 if __name__ == "__main__":
