@@ -34,7 +34,7 @@ def calculate_overpay_percentages(listings: dict, skin_name: str, skin_listings:
     for listing_ID, listing_data in skin_listings.items():
         float_val = listing_data.float_val
         price = listing_data.price
-        average_price = float_price_buckets.get(int(floor(float_val * 100)))
+        average_price = float_price_buckets.get(int(float_val // 0.01), 0)
         if average_price == 0:
             continue
         overpay_percentage = round((price / average_price - 1) * 100, 4)
