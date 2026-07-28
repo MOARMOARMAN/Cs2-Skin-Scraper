@@ -13,8 +13,10 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from .utilities import (
+from collections import Counter
+from utilities import (
     load_for_skin_name_all_historical_listings_db,
+    load_prices_for_float_and_name_all_historical_listings_db,
     load_all_skin_names_all_historical_data_db,
     insert_skin_float_prices_skin_data_db,
     create_float_prices_skin_data_db,
@@ -23,9 +25,10 @@ from .utilities import (
     WearBucket
 )
 import plotly.graph_objects as go
+import math
 from plotly.subplots import make_subplots
 
-def show_graph(float_ranges: list, listing_volume: list, price_harmonic_means: list):
+def show_float_bucket_graph(float_ranges: list, listing_volume: list, price_harmonic_means: list):
         # Create figure with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
@@ -67,8 +70,32 @@ def show_graph(float_ranges: list, listing_volume: list, price_harmonic_means: l
 
     fig.show()
 
+def show_pricing_distribution_graph(points: list[float], density: list[float]):
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter(
+            x=points,
+            y=density,
+            mode="lines",
+            name="KDE",
+            hovertemplate="Price: $CDN %{x:.2f}<br>Density: %{y:.6f}<extra></extra>"
+        )
+    )
+
+    fig.update_layout(
+        title="Seller Price Density",
+        xaxis_title="Price ($)",
+        yaxis_title="Density",
+    )
+
+    fig.show()
+
+
+
 LISTINGS_TO_INCLUDE = 30
 LISTING_PRICING_MULTIPLIER = 1.8
+GAUSSIAN_KDE_BANDWIDTH = 1.0
 
 def calculate_wear_buckets(skin_name: str) -> list[WearBucket]:
     listings_for_skin = load_for_skin_name_all_historical_listings_db(skin_name, HISTORICAL_DATA_DB)
@@ -130,6 +157,43 @@ def display_skin_chart():
     float_ranges, listing_volume, price_harmonic_means = split_wear_bucket_data(wear_buckets)
 
     insert_skin_float_prices_skin_data_db(skin_name, price_harmonic_means, SKIN_DATA_DB)
-    show_graph(float_ranges, listing_volume, price_harmonic_means)
+    show_float_bucket_graph(float_ranges, listing_volume, price_harmonic_means)
+
+def calculate_mean(values: list[float|int]) -> float: 
+    """rounded to 2 digits. Expects input to not be empty."""
+    return round((sum(values)/len(values)), 2)
+
+def calculate_median(values: list[float|int]) -> float: 
+    """Expects input to not be empty."""
+    length = len(values)
+    if length % 2 == 0:
+        return round((values[length / 2 - 1] + values[length / 2]), 2)
+    else:
+        return values[length // 2]
+    
+def gaussian_kde(data: list[float|int], points: list[float], bandwidth: float):
+    densities = []
+
+    for point in points:
+        total = 0
+
+        for value in data:
+            u = (point - value) / bandwidth
+            total += math.exp(-0.5 * u * u)
+
+        density = total / (len(data) * bandwidth * math.sqrt(2 * math.pi))
+
+        densities.append(density)
+    
+    return densities
+
+def display_seller_pricing_distribution_chart(skin_name: str, float_bucket: int):
+    listing_prices = load_prices_for_float_and_name_all_historical_listings_db(skin_name, 6, HISTORICAL_DATA_DB)
+    max_price = max(listing_prices)
+    min_price = min(listing_prices)
+    points = [min_price + 0.1 * i for i in range(int((max_price - min_price) / 0.1))]
+    density = gaussian_kde(listing_prices, points, GAUSSIAN_KDE_BANDWIDTH)
+    show_pricing_distribution_graph(points, density)
+
 if __name__ == "__main__":
-    display_skin_chart()
+    display_seller_pricing_distribution_chart("AK-47 | Ice Coaled", 6)
