@@ -123,7 +123,7 @@ def update_exchange_rates_input():
     print(CURRENCY_EXCHANGE_RATE)
     user_input = ""
     while user_input not in RELEVANT_CURRENCIES:
-        user_input = input("\nPlease input CAD / USD / EUR / HKD / GBP for currency of choice: ").upper()
+        user_input = input("\nPlease input CAD / USD / EUR / HKD / GBP / THB for currency of choice: ").upper()
     
     update_exchange_rates(user_input)
     print(f"The currently used exchange rates for currency {user_input} are:")

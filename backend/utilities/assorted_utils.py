@@ -51,14 +51,15 @@ WEAR_RANGES = {
 WEAR_ABBRIEVIATIONS = ["fn", "mw", "ft", "ww", "bs"]
 WEAR_TO_MAX = [0.0699, 0.1499, 0.3799, 0.4499, 0.9999]
 CURRENCY_EXCHANGE_RATE = {
-    "HKD": 0.181,   # 1 Hong Kong Dollar ~ 0.18 CAD
-    "USD": 1.420,   # 1 US Dollar ~ 1.42 CAD
-    "EUR": 1.624,   # 1 Euro ~ 1.62 CAD
-    "GBP": 1.895,   # 1 British Pound ~ 1.90 CAD
-    "CAD": 1.000    # Base currency fallback
+    "HKD": 0.181,  
+    "USD": 1.420,  
+    "EUR": 1.624,  
+    "GBP": 1.895,  
+    "CAD": 1.000,
+    "THB": 0.042, 
 }
 
-RELEVANT_CURRENCIES = ["HKD", "USD", "EUR", "GBP", "CAD"]
+RELEVANT_CURRENCIES = ["HKD", "USD", "EUR", "GBP", "CAD", "THB"]
 
 headers = {
     "Accept": "*/*",
@@ -181,14 +182,14 @@ def get_skin_code(search_name: str):
     return response.url.split("/")[-1]
 
 def price_conversion(salePriceText: str, price: float):
-    if "CA" not in salePriceText:
-        #print("Needs Converting")
-        if "HK" in salePriceText:
-            converted_price = round(price * CURRENCY_EXCHANGE_RATE["HKD"] / 100, 2)
-        else:
-            converted_price = round(price * CURRENCY_EXCHANGE_RATE["USD"] / 100, 2)
+    if "CA" in salePriceText:
+        converted_price = round(price * CURRENCY_EXCHANGE_RATE["CAD"] / 100, 2)
+    if "HK" in salePriceText:
+        converted_price = round(price * CURRENCY_EXCHANGE_RATE["HKD"] / 100, 2)
+    if "THB" in salePriceText:
+        converted_price = round(price * CURRENCY_EXCHANGE_RATE["THB"] / 100, 2)
     else:
-        converted_price = price / 100
+        converted_price = round(price * CURRENCY_EXCHANGE_RATE["USD"] / 100, 2)
     return converted_price
 
 def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_code: str|None = None):
