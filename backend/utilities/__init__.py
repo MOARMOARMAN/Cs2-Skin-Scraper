@@ -57,10 +57,20 @@ from .db_utils import (
     # Exchange rate skin data functions
     get_currency_exchange_rates_for_currency_db,
     update_currency_exchange_table_db,
-    create_currency_exchange_table_db 
+    create_currency_exchange_table_db,
+    # skins inventory functions
+    create_inventory_skins_table_db,
+    add_inventory_skins_table_db,
+    remove_inventory_skins_table_db,
+    load_all_inventory_skins_table_db
 )
 
 from .dataclass_utils import (
     WearBucket,
     listingData
+)
+
+from .schemas import (
+    InventoryItemIn,
+    InventoryItemOut
 )

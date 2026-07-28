@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from utilities import (
+from .utilities import (
     load_for_skin_name_all_historical_listings_db,
     load_all_skin_names_all_historical_data_db,
     insert_skin_float_prices_skin_data_db,

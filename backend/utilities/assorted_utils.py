@@ -22,8 +22,11 @@ from requests.exceptions import HTTPError
 from collections import namedtuple
 from typing import Callable
 from pathlib import Path
+from dotenv import load_dotenv
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv()
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATABASES_DIR = PROJECT_ROOT / "databases"
 SKIN_DATA_DB = DATABASES_DIR / "skin_data.db"
 LISTINGS_DB = DATABASES_DIR / "listings.db"
@@ -48,14 +51,15 @@ WEAR_RANGES = {
 WEAR_ABBRIEVIATIONS = ["fn", "mw", "ft", "ww", "bs"]
 WEAR_TO_MAX = [0.0699, 0.1499, 0.3799, 0.4499, 0.9999]
 CURRENCY_EXCHANGE_RATE = {
-    "HKD": 0.181,   # 1 Hong Kong Dollar ~ 0.18 CAD
-    "USD": 1.420,   # 1 US Dollar ~ 1.42 CAD
-    "EUR": 1.624,   # 1 Euro ~ 1.62 CAD
-    "GBP": 1.895,   # 1 British Pound ~ 1.90 CAD
-    "CAD": 1.000    # Base currency fallback
+    "HKD": 0.181,  
+    "USD": 1.420,  
+    "EUR": 1.624,  
+    "GBP": 1.895,  
+    "CAD": 1.000,
+    "THB": 0.042, 
 }
 
-RELEVANT_CURRENCIES = ["HKD", "USD", "EUR", "GBP", "CAD"]
+RELEVANT_CURRENCIES = ["HKD", "USD", "EUR", "GBP", "CAD", "THB"]
 
 headers = {
     "Accept": "*/*",
@@ -67,7 +71,7 @@ headers = {
     "Referer": "https://steamcommunity.com/market/listings/730/G1802208A0A3004",
     "Content-Type": "application/json; charset=utf-8",
     # THE SECRET HANDSHAKE
-    "x-valve-action-type": "4OPT6VBA:Search",
+    "x-valve-action-type": "8cnlIgBs66uLKD68o1fzpLlHFSHv52c4l9_ohRpMLzk:Search",
     "x-valve-request-type": "routeAction",
     # MAPPING BROWSER ID
     "User-Agent": user_agent,
@@ -104,7 +108,7 @@ def is_retryable_error(exception):
     wait=wait_exponential_jitter(initial=60, max=1500),
     retry=retry_if_exception(is_retryable_error),
 )
-def post_with_retry(session: requests.Session, url: str, json_payload: dict, local_headers: dict, cookies: dict, timeout: int = 15):
+def post_with_retry(session: requests.Session, url: str, json_payload: dict, local_headers: dict, cookies: dict, timeout: int = 15) -> requests.Response:
     """POST request wrapper with retries for transient HTTP/network failures."""
     start = time.perf_counter()
     resp = session.post(url, json=json_payload, headers=local_headers, cookies=cookies, timeout=timeout)
@@ -178,14 +182,14 @@ def get_skin_code(search_name: str):
     return response.url.split("/")[-1]
 
 def price_conversion(salePriceText: str, price: float):
-    if "CA" not in salePriceText:
-        #print("Needs Converting")
-        if "HK" in salePriceText:
-            converted_price = round(price * CURRENCY_EXCHANGE_RATE["HKD"] / 100, 2)
-        else:
-            converted_price = round(price * CURRENCY_EXCHANGE_RATE["USD"] / 100, 2)
+    if "CA" in salePriceText:
+        converted_price = round(price * CURRENCY_EXCHANGE_RATE["CAD"] / 100, 2)
+    if "HK" in salePriceText:
+        converted_price = round(price * CURRENCY_EXCHANGE_RATE["HKD"] / 100, 2)
+    if "THB" in salePriceText:
+        converted_price = round(price * CURRENCY_EXCHANGE_RATE["THB"] / 100, 2)
     else:
-        converted_price = price / 100
+        converted_price = round(price * CURRENCY_EXCHANGE_RATE["USD"] / 100, 2)
     return converted_price
 
 def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_code: str|None = None):

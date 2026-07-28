@@ -4,6 +4,7 @@ venv/
 __pycache__/
 listings.db*
 test.*
+test*.py
 unusedFunctions.py
 *.log
 scrape.py
@@ -11,3 +12,4 @@ skin_data.db-shm
 skin_data.db-wal
 *.db-shm
 *.db-wal
+inventory.db*

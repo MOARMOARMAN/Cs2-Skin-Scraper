@@ -16,8 +16,8 @@
 from math import floor
 import time
 import logging
-from display_chart import update_wear_bucket_data_for_skin
-from utilities import (
+from .display_chart import update_wear_bucket_data_for_skin
+from .utilities import (
     load_all_data_listings_db,
     get_price_float_buckets_skin_data_db,
     SKIN_DATA_DB,
@@ -34,7 +34,7 @@ def calculate_overpay_percentages(listings: dict, skin_name: str, skin_listings:
     for listing_ID, listing_data in skin_listings.items():
         float_val = listing_data.float_val
         price = listing_data.price
-        average_price = float_price_buckets.get(int(floor(float_val * 100)))
+        average_price = float_price_buckets.get(int(float_val // 0.01), 0)
         if average_price == 0:
             continue
         overpay_percentage = round((price / average_price - 1) * 100, 4)
@@ -82,20 +82,19 @@ def analyze_batch_overpay_loop():
         # https://steamcommunity.com/market/listings/730/G180720B7093004?detail=525379962958603527
         if underpriced_listings:
             logger.info(f"There is/are {len(underpriced_listings)} underpriced listings\n")
+            discord_notification("@everyone")
             count = 1
             for listing_ID, data in underpriced_listings.items():
                 skin_code = get_skin_code_db(SKIN_DATA_DB, data.get("name"))
                 purchase_link = f"https://steamcommunity.com/market/listings/730/{skin_code}?detail={listing_ID}"
                 message = ""
                 message += f"\n{count}:\n    Link to Purchase: {purchase_link}"
-                message += f"\n>>>>>Float>>>>>: {data.get("float")}"
-                message += f"\n>>>>>Price>>>>>: {data.get("price")}"
-                message += f"\n>>>>>Price_deviation>>>>>: {data.get("overpay_percentage")}%\n"
+                message += f"\nFloat: {data.get("float")}"
+                message += f"\nPrice: {data.get("price")}"
+                message += f"\nPrice_deviation: {data.get("overpay_percentage")}%\n"
                 discord_notification(message)
                 
                 count += 1
-        else:
-            discord_notification("There are currently no listings that are underpriced.")
         time.sleep(30)
 
 if __name__ == "__main__":
