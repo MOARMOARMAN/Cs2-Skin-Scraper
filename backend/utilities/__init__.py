@@ -47,6 +47,7 @@ from .db_utils import (
     create_all_historical_listings_table_db,
     write_to_historical_db,
     load_for_skin_name_all_historical_listings_db, # Expects a stripped name e.g. "AK-47 | Ice Coaled"
+    load_prices_for_float_and_name_all_historical_listings_db,
     load_all_skin_names_all_historical_data_db,
     del_from_historical_db,
     # Float_Prices skin data functions

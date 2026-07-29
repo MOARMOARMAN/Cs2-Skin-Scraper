@@ -195,6 +195,23 @@ def load_for_skin_name_all_historical_listings_db(skin_name: str, db_name: str):
                 logger.error(f"Database error loading {skin_name}: {e}")
                 raise
 
+def load_prices_for_float_and_name_all_historical_listings_db(skin_name: str, float_bucket: int, db_name: str):
+    """Load all historical listings for a specific skin and float bucket (0-99) -> ([0.00-0.01]-[0.99-1.00]). - returns dict with timestamp"""
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        min_float = float_bucket * 0.01
+        max_float = min_float + 0.01
+        try:
+            stored_skins = conn.execute("SELECT price FROM all_historical_listings WHERE skin_name = ? AND float_val >= ? AND float_val <= ? ORDER BY price", (skin_name, min_float, max_float)).fetchall()
+            logger.debug(f"Loaded {len(stored_skins)} historical listings for {skin_name}")
+            return [skin[0] for skin in stored_skins]
+        except sqlite3.OperationalError as e:
+            if "no such table" in str(e):
+                logger.warning("Table all_historical_listings doesn't exist yet")
+            else:
+                logger.error(f"Database error loading {skin_name}: {e}")
+                raise
+
 def load_all_skin_names_all_historical_data_db(db_name: str):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
