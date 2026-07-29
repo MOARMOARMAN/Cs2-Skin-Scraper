@@ -13,8 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from collections import Counter
-from utilities import (
+from .utilities import (
     load_for_skin_name_all_historical_listings_db,
     load_prices_for_float_and_name_all_historical_listings_db,
     load_all_skin_names_all_historical_data_db,
@@ -70,7 +69,7 @@ def show_float_bucket_graph(float_ranges: list, listing_volume: list, price_harm
 
     fig.show()
 
-def show_pricing_distribution_graph(points: list[float], density: list[float], volumes: list[float]):
+def show_pricing_distribution_graph(points: list[float], density: list[float], volumes: list[float], skin_name: str, min_float: float, max_float: float):
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
     fig.add_trace(
@@ -90,13 +89,13 @@ def show_pricing_distribution_graph(points: list[float], density: list[float], v
             x=points,
             y=volumes,
             name="Listing Volumes",
-            marker=dict(color="steelblue", opacity=0.5),
+            marker=dict(color="steelblue", opacity=0.75),
             hovertemplate="Price: $CDN %{x}<br>Volume: %{y}<extra></extra>"
         ),
         secondary_y=True,
     )
     fig.update_layout(
-        title="Seller Price Density with volume",
+        title=f"Seller Price Density with volume for {skin_name} for float {min_float}-{max_float}",
         xaxis_title="Price ($)",
         yaxis_title="Density",
     )
@@ -171,18 +170,6 @@ def display_skin_chart():
 
     insert_skin_float_prices_skin_data_db(skin_name, price_harmonic_means, SKIN_DATA_DB)
     show_float_bucket_graph(float_ranges, listing_volume, price_harmonic_means)
-
-def calculate_mean(values: list[float|int]) -> float: 
-    """rounded to 2 digits. Expects input to not be empty."""
-    return round((sum(values)/len(values)), 2)
-
-def calculate_median(values: list[float|int]) -> float: 
-    """Expects input to not be empty."""
-    length = len(values)
-    if length % 2 == 0:
-        return round((values[length / 2 - 1] + values[length / 2]), 2)
-    else:
-        return values[length // 2]
     
 def gaussian_kde(data: list[float|int], points: list[float], bandwidth: float):
     densities = []
@@ -211,14 +198,37 @@ def volume_spread(data: list[float|int], points: list[float]):
         volumes[points_index] += 1
     return volumes
 
-def display_seller_pricing_distribution_chart(skin_name: str, float_bucket: int):
-    listing_prices = load_prices_for_float_and_name_all_historical_listings_db(skin_name, 6, HISTORICAL_DATA_DB)
+def generate_pricing_distribution_chart_values(skin_name: str, float_bucket: int):
+    listing_prices = load_prices_for_float_and_name_all_historical_listings_db(skin_name, float_bucket, HISTORICAL_DATA_DB)
     max_price = max(listing_prices)
     min_price = min(listing_prices)
     points = [round(min_price + PRICING_BIN_SIZE * i, 2) for i in range(int((max_price - min_price) / PRICING_BIN_SIZE) + 1)]
     density = gaussian_kde(listing_prices, points, GAUSSIAN_KDE_BANDWIDTH)
     volumes = volume_spread(listing_prices, points)
-    show_pricing_distribution_graph(points, density, volumes)
+    return points, density, volumes
+
+def display_seller_pricing_distribution_chart():
+    create_float_prices_skin_data_db(SKIN_DATA_DB)
+    historical_options = load_all_skin_names_all_historical_data_db(HISTORICAL_DATA_DB)
+    options = " --- ".join([f'"{name[0]}"' for name in historical_options])
+    print(f"\nThese are your options: {options}\n") 
+    while True:
+        try:
+            user_input = input("\nSkin name / Bucket (0-99) -> ([0.00-0.01] - [0.99-1.00]) (Type ! to stop entering)\n")
+            if user_input == "!":
+                return
+            skin_name, bucket = user_input.split("/")
+            print(f"{bucket.strip()} {type(bucket)}")
+            skin_name = skin_name.strip()
+            bucket = int(bucket.strip())
+            min_float = bucket * 0.01 
+            print(f"{skin_name} {bucket} {type(bucket)}")
+            points, density, volumes = generate_pricing_distribution_chart_values(skin_name, bucket)
+            show_pricing_distribution_graph(points, density, volumes, skin_name, min_float, min_float + 0.01)
+        except ValueError:
+            print("Error")
+            user_input = input("\nSkin name / Bucket (0-99) -> ([0.00-0.01] - [0.99-1.00]) (Type ! to stop entering)\n")
 
 if __name__ == "__main__":
-    display_seller_pricing_distribution_chart("AK-47 | Ice Coaled", 6)
+    display_seller_pricing_distribution_chart()
+    # generate_pricing_distribution_chart("AK-47 | Ice Coaled", 6)

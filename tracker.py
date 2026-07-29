@@ -20,7 +20,7 @@ import sys
 import time
 import random
 from backend.scraper import scouting_loop
-from backend.display_chart import update_wear_bucket_data_for_skin, display_skin_chart
+from backend.display_chart import update_wear_bucket_data_for_skin, display_skin_chart, display_seller_pricing_distribution_chart
 from backend.utilities import (
     create_skin_listings_table_db, 
     clear_db_skins, 
@@ -49,7 +49,6 @@ from backend.utilities import (
     MAX_SCRAPE_TIME
 )
 from backend.batch import analyze_batch_overpay_loop
-from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger("Tracker")
 
@@ -160,6 +159,21 @@ def recommend_sale_price():
             logger.error("Invalid input format. Please enter in the format: Skin name / Float")
             user_input = input("\nSkin name / Float (Type ! to stop entering)\n")
 
+def display_chart_options():
+    chart_options = {
+        "1": lambda: display_skin_chart(),
+        "2": lambda: display_seller_pricing_distribution_chart(),
+    }
+    print("\nChart Options:")
+    print("(1) - display a chart that shows the price to float and volume relationship")
+    print("(2) - display a chart that represents the distribution of prices that sellers list a particular skin at for a particular float bucket.")
+    user_input = input("Please enter one of the numbers above or ! to cancel:\n") 
+    while user_input not in chart_options:
+        if user_input == "!":
+            return
+        user_input = input("Please enter one of the numbers above or ! to cancel:\n") 
+    chart_options[user_input]()
+
 def help():
     print(f"\nDescriptions of each Tool:")
     print(f"add: Add skins to be tracked by the scraper")
@@ -211,7 +225,7 @@ if __name__ == "__main__":
         "exit" : lambda: sys.exit(0),
         "update exchange rates" : lambda: update_exchange_rates_input(),
         "recommendation" : lambda: recommend_sale_price(),
-        "display chart" : lambda: display_skin_chart()
+        "display chart" : lambda: display_chart_options(),
     }
     print_tracked()
     user_input = prompt_actions_user(user_actions)
