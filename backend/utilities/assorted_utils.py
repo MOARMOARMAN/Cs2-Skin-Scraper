@@ -97,7 +97,7 @@ def what_wear(float_val: float) -> int:
     else:
         return 4
 
-def is_retryable_error(exception):
+def is_retryable_error(exception) -> bool:
     if isinstance(exception, requests.exceptions.HTTPError):
         return exception.response.status_code == 429 or exception.response.status_code >= 500   
     return isinstance(exception, requests.exceptions.RequestException)
@@ -278,6 +278,6 @@ def seconds_to_time(seconds: float) -> str:
     if m:
         result += f"{m} minute(s) "
     if s:
-        result += f"{s} second(s)"
-    return result 
+        result += f"{round(s, 2)} second(s)"
+    return result.strip()
     
