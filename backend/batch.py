@@ -23,14 +23,16 @@ from .utilities import (
     SKIN_DATA_DB,
     LISTINGS_DB,
     get_skin_code_db,
-    discord_notification
+    discord_notification,
+    listingData
 )
 logger = logging.getLogger("Batching")
 
 OVERPAY_PERCENTAGE_THRESHOLD = -15
 
-def calculate_overpay_percentages(listings: dict, skin_name: str, skin_listings: dict):
+def calculate_overpay_percentages(skin_name: str, skin_listings: dict[str, listingData]):
     float_price_buckets = get_price_float_buckets_skin_data_db(skin_name, SKIN_DATA_DB)
+    listings = {}
     for listing_ID, listing_data in skin_listings.items():
         float_val = listing_data.float_val
         price = listing_data.price
@@ -45,7 +47,7 @@ def calculate_overpay_percentages(listings: dict, skin_name: str, skin_listings:
             "price": price,
             "overpay_percentage": overpay_percentage
         }
-    return None
+    return listings
 
 def generate_overpay_percentages():
     listings = {}
@@ -56,7 +58,7 @@ def generate_overpay_percentages():
     for skin_name, skin_listings in listings.items():
         print(f"There are a total of {len(skin_listings)} listings for {skin_name}")
         update_wear_bucket_data_for_skin(skin_name)
-        calculate_overpay_percentages(results, skin_name, skin_listings)
+        results = calculate_overpay_percentages(skin_name, skin_listings)
 
     # Want lowest priced listings
     sorted_results = sorted(results.items(), key=lambda x: x[1]["overpay_percentage"])

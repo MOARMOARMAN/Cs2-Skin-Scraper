@@ -26,5 +26,3 @@ def test_what_wear(float_val: float, expected_result: int):
 ])
 def test_seconds_to_time(seconds: float, expected_result: str):
     assert seconds_to_time(seconds) == expected_result
-
-    
