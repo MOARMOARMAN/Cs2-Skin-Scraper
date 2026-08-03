@@ -85,7 +85,7 @@ headers = {
     "sec-ch-viewport-width": "637"
 }
 
-def what_wear(float_val: float):
+def what_wear(float_val: float) -> int:
     if float_val < 0.07:
         return 0
     elif float_val < 0.15:
