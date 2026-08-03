@@ -30,7 +30,7 @@ logger = logging.getLogger("Batching")
 
 OVERPAY_PERCENTAGE_THRESHOLD = -15
 
-def calculate_overpay_percentages(skin_name: str, skin_listings: dict[str, listingData]):
+def calculate_overpay_percentages(skin_name: str, skin_listings: dict[str, listingData]) -> dict[str, dict[str, str | float]]:
     float_price_buckets = get_price_float_buckets_skin_data_db(skin_name, SKIN_DATA_DB)
     listings = {}
     for listing_ID, listing_data in skin_listings.items():
@@ -39,7 +39,7 @@ def calculate_overpay_percentages(skin_name: str, skin_listings: dict[str, listi
         average_price = float_price_buckets.get(int(float_val // 0.01), 0)
         if average_price == 0:
             continue
-        overpay_percentage = round((price / average_price - 1) * 100, 4)
+        overpay_percentage: float = round((price / average_price - 1) * 100, 4)
 
         listings[listing_ID] = {
             "name": skin_name,
@@ -49,7 +49,7 @@ def calculate_overpay_percentages(skin_name: str, skin_listings: dict[str, listi
         }
     return listings
 
-def generate_overpay_percentages():
+def generate_overpay_percentages() -> list[tuple[str, dict[str, float | str]]] | None:
     listings = {}
     load_all_data_listings_db(listings, LISTINGS_DB)
     if not listings:
@@ -58,13 +58,13 @@ def generate_overpay_percentages():
     for skin_name, skin_listings in listings.items():
         print(f"There are a total of {len(skin_listings)} listings for {skin_name}")
         update_wear_bucket_data_for_skin(skin_name)
-        results = calculate_overpay_percentages(skin_name, skin_listings)
+        results.update(calculate_overpay_percentages(skin_name, skin_listings))
 
     # Want lowest priced listings
     sorted_results = sorted(results.items(), key=lambda x: x[1]["overpay_percentage"])
     return sorted_results
 
-def analyze_batch_overpay() -> None|dict[str, dict]:
+def analyze_batch_overpay() -> dict[str, dict[str, float | str]] | None:
     sorted_overpay_results = generate_overpay_percentages()
     if not sorted_overpay_results:
         return None
@@ -76,7 +76,7 @@ def analyze_batch_overpay() -> None|dict[str, dict]:
             filtered_overpay_results[listing_ID] = listing_info
     return filtered_overpay_results
 
-def analyze_batch_overpay_loop():
+def analyze_batch_overpay_loop() -> None:
     while True:
         start = time.perf_counter()
         underpriced_listings = analyze_batch_overpay()
