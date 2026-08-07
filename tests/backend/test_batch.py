@@ -28,4 +28,3 @@ def test_calculate_overpay_percentages(mock_get_db):
 
     assert result["2"]["overpay_percentage"] == -50.0 
 
-    

@@ -81,7 +81,7 @@ def add_skins(lowest_prices: dict):
                 wlevel = what_wear(max_float)
             except ValueError: 
                 if str(max_float).lower() in WEAR_ABBRIEVIATIONS:
-                    wlevel = WEAR_ABBRIEVIATIONS.index(max_float)
+                    wlevel = WEAR_ABBRIEVIATIONS.index(str(max_float)) 
                     max_float = WEAR_TO_MAX[wlevel]
                 else:
                     logger.error("Invalid input format. Please enter in the format: Skin name / Max Float")
@@ -98,7 +98,7 @@ def add_skins(lowest_prices: dict):
                     print("Invalid Price")
                     user_input = input(f"The current lowest price for {skin_name} at a wear of {wears[wlevel]} is ${cur_lowest_price} CAD\nPlease input a price maximum in CAD: ")
             lowest_prices[f"{skin_name} {wears[wlevel]}"] = cur_lowest_price
-            insert_tracked_table_db(LISTINGS_DB, [[skin_name, max_float, max_price]])
+            insert_tracked_table_db(LISTINGS_DB, (skin_name, max_float, max_price))
             logger.info(f"Added skin to monitor: {skin_name} with max price {max_price} and max float {max_float} and wear {wears[wlevel]}")
         except ValueError:
             logger.error("Invalid input format. Please enter in the format: Skin name / Max Float")
@@ -197,7 +197,7 @@ if __name__ == "__main__":
             logging.FileHandler('bot.log', encoding="utf-8"),
             logging.StreamHandler()
         ]
-    )
+    ) # type: ignore
     logger.info("Starting CS:GO Trading Bot...")
     create_skin_listings_table_db(LISTINGS_DB)
     create_tracked_table_db(LISTINGS_DB)

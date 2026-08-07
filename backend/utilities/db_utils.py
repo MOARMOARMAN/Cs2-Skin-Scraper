@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from pathlib import Path
 import sqlite3
 import logging
 from math import floor
@@ -22,7 +23,7 @@ from .dataclass_utils import listingData
 
 logger = logging.getLogger("CS2-System.DB")
 
-def get_skin_code_db(db_name: str, search_name: str = "", skin_name: str = "") -> str | None:
+def get_skin_code_db(db_name: str | Path, search_name: str = "", skin_name: str = "") -> str | None:
     """Get skin code from database and if it isn't in the database then get the skin code through a GET request"""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         if not skin_name:
@@ -44,7 +45,7 @@ def get_skin_code_db(db_name: str, search_name: str = "", skin_name: str = "") -
 
 # ______________________________________________________________ listings.db functions ___________________________________________________________________
 
-def create_skin_listings_table_db(db_name: str) -> None:
+def create_skin_listings_table_db(db_name: str | Path) -> None:
     """Creates the skin listings table which holds all scraped listings."""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA journal_mode=WAL;")
@@ -53,7 +54,7 @@ def create_skin_listings_table_db(db_name: str) -> None:
             conn.execute("CREATE TABLE IF NOT EXISTS skin_listings (listing_ID TEXT PRIMARY KEY, skin_name TEXT, float_val REAL, price REAL)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_skin_listings_skin_name ON skin_listings (skin_name)")
 
-def clear_db_skins(db_name: str) -> None:
+def clear_db_skins(db_name: str | Path) -> None:
     """Clear the listings.db of any listings in skin_listings"""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
@@ -61,7 +62,7 @@ def clear_db_skins(db_name: str) -> None:
             logger.debug(f"Clearing out active listings database.")
             conn.execute(f"DELETE FROM skin_listings")
 
-def write_listings_db(skin_name: str, valid_listings: dict, db_name: str) -> None:
+def write_listings_db(skin_name: str, valid_listings: dict, db_name: str | Path) -> None:
     """Inserts or replaces listings into skin_listings of listing.db with listing_ID as the primary key."""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
@@ -73,7 +74,7 @@ def write_listings_db(skin_name: str, valid_listings: dict, db_name: str) -> Non
             )
             conn.executemany("INSERT OR REPLACE INTO skin_listings (listing_ID, skin_name, float_val, price) VALUES(?, ?, ?, ?)", listingData)
 
-def del_missing_ID_listing_db(skin_name: str, gone_listingIDs: list, db_name: str) -> None:
+def del_missing_ID_listing_db(skin_name: str, gone_listingIDs: list, db_name: str | Path) -> None:
     """Deletes all listings of a specific id of a specific skin."""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
@@ -82,7 +83,7 @@ def del_missing_ID_listing_db(skin_name: str, gone_listingIDs: list, db_name: st
             delete_data = ((ID[0], skin_name) for ID in gone_listingIDs)
             conn.executemany("DELETE FROM skin_listings WHERE listing_ID = ? AND skin_name = ?", delete_data)
 
-def load_data_listings_db(skin_name: str, valid_listings: dict, db_name: str) -> None:
+def load_data_listings_db(skin_name: str, valid_listings: dict, db_name: str | Path) -> None:
     """Loads all listings into a passed in dict for a given skin_name"""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
@@ -98,7 +99,7 @@ def load_data_listings_db(skin_name: str, valid_listings: dict, db_name: str) ->
                 logger.error(f"Database error loading {skin_name}: {e}")
                 raise
 
-def load_all_data_listings_db(valid_skins: dict, db_name: str) -> None:
+def load_all_data_listings_db(valid_skins: dict, db_name: str | Path) -> None:
     """Loads every single skin in the skin_listings table into valid_skins, the passed in dict."""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
@@ -116,14 +117,14 @@ def load_all_data_listings_db(valid_skins: dict, db_name: str) -> None:
                 logger.error(f"Database error: {e}")
                 raise   
 
-def create_tracked_table_db(db_name: str) -> None:
+def create_tracked_table_db(db_name: str | Path) -> None:
     """Creates a table on listings.db for currently tracked skins"""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
             conn.execute("CREATE TABLE IF NOT EXISTS tracked_skins (id INTEGER PRIMARY KEY, skin_name TEXT, max_float_val REAL, max_price REAL)")
 
-def populate_tracked_table_db(db_name: str, skins: list) -> None:
+def populate_tracked_table_db(db_name: str | Path, skins: list) -> None:
     """populates the tracked skins table with """
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
@@ -133,27 +134,26 @@ def populate_tracked_table_db(db_name: str, skins: list) -> None:
             ]
             conn.executemany("INSERT OR REPLACE INTO tracked_skins (skin_name, max_float_val, max_price) VALUES(?, ?, ?)", values)
 
-def insert_tracked_table_db(db_name: str, skin: list):
+def insert_tracked_table_db(db_name: str | Path, skin: tuple):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
-            skin = tuple(skin)
             conn.executemany("INSERT OR REPLACE INTO tracked_skins (skin_name, max_float_val, max_price) VALUES(?, ?, ?)", skin)
 
-def delete_entry_tracked_table_db(id: int, db_name: str):
+def delete_entry_tracked_table_db(id: int, db_name: str | Path):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
             conn.execute("DELETE FROM tracked_skins WHERE id=?", (id, ))
 
-def get_tracked_listings_table_db(db_name: str):
+def get_tracked_listings_table_db(db_name: str | Path):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         tracked_listings = conn.execute("SELECT * FROM tracked_skins").fetchall()
         return tracked_listings
 
 # ______________________________________________________________ historical_data.db functions ___________________________________________________________________
 
-def create_all_historical_listings_table_db(db_name: str):
+def create_all_historical_listings_table_db(db_name: str | Path):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("PRAGMA synchronous=NORMAL;") 
@@ -168,7 +168,7 @@ def create_all_historical_listings_table_db(db_name: str):
             conn.execute("CREATE INDEX IF NOT EXISTS idx_all_historical_listings_skin_name ON all_historical_listings (skin_name)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_all_historical_listings_recorded_at ON all_historical_listings (recorded_at)")
 
-def write_to_historical_db(skin_name: str, valid_listings: dict, db_name: str):
+def write_to_historical_db(skin_name: str, valid_listings: dict, db_name: str | Path):
     """Write listings to historical table - follows same pattern as write_listings_db"""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
@@ -180,7 +180,7 @@ def write_to_historical_db(skin_name: str, valid_listings: dict, db_name: str):
             )
             conn.executemany("INSERT OR IGNORE INTO all_historical_listings (listing_ID, skin_name, float_val, price) VALUES(?, ?, ?, ?)", listingData)
 
-def load_for_skin_name_all_historical_listings_db(skin_name: str, db_name: str):
+def load_for_skin_name_all_historical_listings_db(skin_name: str, db_name: str | Path):
     """Load all historical listings for a specific skin - returns dict with timestamp"""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
@@ -195,7 +195,7 @@ def load_for_skin_name_all_historical_listings_db(skin_name: str, db_name: str):
                 logger.error(f"Database error loading {skin_name}: {e}")
                 raise
 
-def load_prices_for_float_and_name_all_historical_listings_db(skin_name: str, float_bucket: int, db_name: str):
+def load_prices_for_float_and_name_all_historical_listings_db(skin_name: str, float_bucket: int, db_name: str | Path):
     """Load all historical listings for a specific skin and float bucket (0-99) -> ([0.00-0.01]-[0.99-1.00]). - returns dict with timestamp"""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
@@ -212,7 +212,7 @@ def load_prices_for_float_and_name_all_historical_listings_db(skin_name: str, fl
                 logger.error(f"Database error loading {skin_name}: {e}")
                 raise
 
-def load_all_skin_names_all_historical_data_db(db_name: str):
+def load_all_skin_names_all_historical_data_db(db_name: str | Path):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         try:
@@ -226,7 +226,7 @@ def load_all_skin_names_all_historical_data_db(db_name: str):
                 logger.error(f"Loading skin names from all historical data table ERROR: {e}")
                 raise
             
-def del_from_historical_db(skin_name: str, listingIDs: list, db_name: str):
+def del_from_historical_db(skin_name: str, listingIDs: list, db_name: str | Path):
     """Delete listings from historical database"""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
@@ -237,28 +237,28 @@ def del_from_historical_db(skin_name: str, listingIDs: list, db_name: str):
 
 # ______________________________________________________________ skin_data.db functions ___________________________________________________________________
 
-def create_skin_data_table_db(db_name: str):
+def create_skin_data_table_db(db_name: str | Path):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
             conn.execute("CREATE TABLE IF NOT EXISTS skin_data (skin_name TEXT PRIMARY KEY, skin_code TEXT, fn REAL, mw REAL, ft REAL, ww REAL, bs REAL, rarity TEXT, collection TEXT, min_wear REAL, max_wear REAL)")
 
-def populate_names_skin_data_db(names: list, db_name: str):
+def populate_names_skin_data_db(names: list, db_name: str | Path):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
             values = [(name,) for name in names]
             conn.executemany("INSERT OR REPLACE INTO skin_data (skin_name) VALUES(?)", values)
 
-def populate_code_skin_data_db(skin_code: dict, db_name: str):
+def populate_code_skin_data_db(skin_code: dict, db_name: str | Path):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
             values = [(code, name,) for name, code in skin_code.items()]
             conn.executemany("UPDATE skin_data SET skin_code=? WHERE skin_name=?", values)
 
-def populate_extra_skin_data_db(extra_info: dict, db_name: str):
+def populate_extra_skin_data_db(extra_info: dict, db_name: str | Path):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
@@ -268,7 +268,7 @@ def populate_extra_skin_data_db(extra_info: dict, db_name: str):
                 values.append((*info, name,))
             conn.executemany("UPDATE skin_data SET rarity=?, collection=?, min_wear=?, max_wear=? WHERE skin_name=?", values)
 
-def populate_prices_skin_data_db(prices: dict, db_name: str):
+def populate_prices_skin_data_db(prices: dict, db_name: str | Path):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
@@ -278,12 +278,12 @@ def populate_prices_skin_data_db(prices: dict, db_name: str):
                 values.append((*price, name,))
             conn.executemany("UPDATE skin_data SET fn=?, mw=?, ft=?, ww=?, bs=? WHERE skin_name=?", values)
 
-def get_lowest_price_skin_data_db(skin_name: str, wear_level: int, db_name: str):
+def get_lowest_price_skin_data_db(skin_name: str, wear_level: int, db_name: str | Path):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         result = conn.execute(f"SELECT {WEAR_ABBRIEVIATIONS[wear_level]} FROM skin_data WHERE skin_name=?", (skin_name,)).fetchone()
         return result[0]
 
-def create_float_prices_skin_data_db(db_name: str):
+def create_float_prices_skin_data_db(db_name: str | Path):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("PRAGMA synchronous=NORMAL;")
@@ -298,7 +298,7 @@ def create_float_prices_skin_data_db(db_name: str):
             )""")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_skin_name_float_prices ON float_prices (skin_name)")
                 
-def insert_skin_float_prices_skin_data_db(skin_name: str, prices: list, db_name: str):
+def insert_skin_float_prices_skin_data_db(skin_name: str, prices: list, db_name: str | Path):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
@@ -308,7 +308,7 @@ def insert_skin_float_prices_skin_data_db(skin_name: str, prices: list, db_name:
             conn.executemany("INSERT OR REPLACE INTO float_prices (skin_name, float_bucket, average_price) VALUES(?, ?, ?)", values)
 
 # listings is list[float_val, price, listingID]
-def get_price_float_buckets_skin_data_db(skin_name: str, db_name: str):
+def get_price_float_buckets_skin_data_db(skin_name: str, db_name: str | Path):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         price_buckets = {}
@@ -319,7 +319,7 @@ def get_price_float_buckets_skin_data_db(skin_name: str, db_name: str):
 
         return price_buckets
 
-def get_price_for_name_and_float_skin_data_db(skin_name: str, float_val: float, db_name: str):
+def get_price_for_name_and_float_skin_data_db(skin_name: str, float_val: float, db_name: str | Path):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         float_bucket = int(float_val // 0.01)
@@ -327,7 +327,7 @@ def get_price_for_name_and_float_skin_data_db(skin_name: str, float_val: float, 
         average_price = conn.execute("SELECT average_price FROM float_prices WHERE skin_name=? AND float_bucket=?", values).fetchone()[0]
         return average_price
 
-def create_currency_exchange_table_db(db_name: str) -> None:
+def create_currency_exchange_table_db(db_name: str | Path) -> None:
     """Creates a currency exchange rates table."""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn: 
         with conn:
@@ -344,7 +344,7 @@ def create_currency_exchange_table_db(db_name: str) -> None:
             # Create indexes for faster queries on currency pairs
             conn.execute("CREATE INDEX IF NOT EXISTS idx_currency_exchange ON currency_exchange_rates (currency_to)")
             
-def update_currency_exchange_table_db(currency_to: str, from_rates: dict[str, float], db_name: str) -> None:
+def update_currency_exchange_table_db(currency_to: str, from_rates: dict[str, float], db_name: str | Path) -> None:
     """Updates the currency exchange rates within the currency exchange rate table."""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
@@ -354,7 +354,7 @@ def update_currency_exchange_table_db(currency_to: str, from_rates: dict[str, fl
             ]
             conn.executemany("""INSERT OR REPLACE INTO currency_exchange_rates (currency_from, currency_to, rate) VALUES(?,?,?)""", values)
 
-def get_currency_exchange_rates_for_currency_db(currency: str, db_name: str) -> dict[str, float]:
+def get_currency_exchange_rates_for_currency_db(currency: str, db_name: str | Path) -> dict[str, float]:
     """Retrieves the currency exchange rates for a specific currency from others."""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
@@ -365,7 +365,7 @@ def get_currency_exchange_rates_for_currency_db(currency: str, db_name: str) -> 
 
 # ______________________________________________________________ inventory.db functions ___________________________________________________________________
 
-def create_inventory_skins_table_db(db_name: str) -> None:
+def create_inventory_skins_table_db(db_name: str | Path) -> None:
     """Creates the inventory_skins table in inventory.db which will hold the skins that exist in the inventory currently"""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
@@ -379,7 +379,7 @@ def create_inventory_skins_table_db(db_name: str) -> None:
                 recorded_at TEXT DEFAULT CURRENT_DATE
             )""")
 
-def add_inventory_skins_table_db(skin_name: str, float_val: float, skin_price: float, db_name: str) -> None:
+def add_inventory_skins_table_db(skin_name: str, float_val: float, skin_price: float, db_name: str | Path) -> None:
     """Adds in the base values for a skin given the name, float and price. Always inserts (never updates)."""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
@@ -387,7 +387,7 @@ def add_inventory_skins_table_db(skin_name: str, float_val: float, skin_price: f
             conn.execute("""INSERT INTO inventory_skins (skin_name, float_val, purchase_price) 
                 VALUES (?, ?, ?)""", (skin_name.strip('"'), float_val, skin_price))
 
-def remove_inventory_skins_table_db(skin_id: int, db_name: str) -> bool:
+def remove_inventory_skins_table_db(skin_id: int, db_name: str | Path) -> bool:
     """Removes a specific skin from the inventory based on the skin_id."""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
@@ -395,7 +395,7 @@ def remove_inventory_skins_table_db(skin_id: int, db_name: str) -> bool:
             row_count = conn.execute("DELETE FROM inventory_skins WHERE id=?", (skin_id,)).rowcount
             return row_count > 0
 
-def load_all_inventory_skins_table_db(db_name: str) -> list:
+def load_all_inventory_skins_table_db(db_name: str | Path) -> list:
     """Loads all inventory from inventory.db into a list"""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;") 
@@ -409,7 +409,7 @@ def load_all_inventory_skins_table_db(db_name: str) -> list:
         except sqlite3.OperationalError as e:
             if "no such table" in str(e):
                 logger.warning("Table inventory_skins doesn't exist yet")
-                return {}
+                return []
             else:
                 logger.error(f"Database error loading inventory: {e}")
                 raise
