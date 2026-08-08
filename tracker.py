@@ -49,8 +49,7 @@ from backend.utilities import (
     MAX_SCRAPE_TIME
 )
 from backend.batch import analyze_batch_overpay_loop
-
-logger = logging.getLogger("Tracker")
+logger = logging.getLogger(__name__)
 
 def prompt_actions_user(actions: dict):
     actions_list = " | ".join(actions)

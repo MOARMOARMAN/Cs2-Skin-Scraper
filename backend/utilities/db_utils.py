@@ -138,7 +138,8 @@ def insert_tracked_table_db(db_name: str | Path, skin: tuple):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
-            conn.executemany("INSERT OR REPLACE INTO tracked_skins (skin_name, max_float_val, max_price) VALUES(?, ?, ?)", skin)
+            print(f"{skin}")
+            conn.execute("INSERT OR REPLACE INTO tracked_skins (skin_name, max_float_val, max_price) VALUES(?, ?, ?)", skin)
 
 def delete_entry_tracked_table_db(id: int, db_name: str | Path):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
