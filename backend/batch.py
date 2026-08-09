@@ -26,13 +26,21 @@ from .utilities import (
     discord_notification,
     listingData
 )
+from typing import TypedDict
+
+class ListingInfo(TypedDict):
+    name: str
+    float_val: float
+    price: float
+    overpay_percentage: float
+
 logger = logging.getLogger("Batching")
 
 OVERPAY_PERCENTAGE_THRESHOLD = -15
 
-def calculate_overpay_percentages(skin_name: str, skin_listings: dict[str, listingData]) -> dict[str, dict[str, str | float]]:
+def calculate_overpay_percentages(skin_name: str, skin_listings: dict[str, listingData]) -> dict[str, ListingInfo]:
     float_price_buckets = get_price_float_buckets_skin_data_db(skin_name, SKIN_DATA_DB)
-    listings = {}
+    listings: dict[str, ListingInfo] = {}
     for listing_ID, listing_data in skin_listings.items():
         float_val = listing_data.float_val
         price = listing_data.price
@@ -43,13 +51,13 @@ def calculate_overpay_percentages(skin_name: str, skin_listings: dict[str, listi
 
         listings[listing_ID] = {
             "name": skin_name,
-            "float": float_val,
+            "float_val": float_val,
             "price": price,
             "overpay_percentage": overpay_percentage
         }
     return listings
 
-def generate_overpay_percentages() -> list[tuple[str, dict[str, float | str]]] | None:
+def generate_overpay_percentages() -> list[tuple[str, ListingInfo]] | None:
     listings = {}
     load_all_data_listings_db(listings, LISTINGS_DB)
     if not listings:
@@ -64,7 +72,7 @@ def generate_overpay_percentages() -> list[tuple[str, dict[str, float | str]]] |
     sorted_results = sorted(results.items(), key=lambda x: x[1]["overpay_percentage"])
     return sorted_results
 
-def analyze_batch_overpay() -> dict[str, dict[str, float | str]] | None:
+def analyze_batch_overpay() -> dict[str, ListingInfo] | None:
     sorted_overpay_results = generate_overpay_percentages()
     if not sorted_overpay_results:
         return None
