@@ -99,7 +99,7 @@ def analyze_batch_overpay_loop() -> None:
                 purchase_link = f"https://steamcommunity.com/market/listings/730/{skin_code}?detail={listing_ID}"
                 message = ""
                 message += f"\n{count}:\n    Link to Purchase: {purchase_link}"
-                message += f"\nFloat: {data.get("float")}"
+                message += f"\nFloat: {data.get("float_val")}"
                 message += f"\nPrice: {data.get("price")}"
                 message += f"\nPrice_deviation: {data.get("overpay_percentage")}%\n"
                 discord_notification(message)
