@@ -177,11 +177,11 @@ def setup_session_cookies() -> list | None:
         logger.error("Steam session setup failure within setup_session_cookies")
         return None
 
-def get_skin_code(search_name: str):
+def get_skin_code(search_name: str) -> str:
     response = get_with_retry(None, url=f"https://steamcommunity.com/market/listings/730/{search_name}", local_headers=headers)
     return response.url.split("/")[-1]
 
-def price_conversion(salePriceText: str, price: float):
+def price_conversion(salePriceText: str, price: float) -> float:
     if "CA" in salePriceText:
         converted_price = round(price * CURRENCY_EXCHANGE_RATE["CAD"] / 100, 2)
     if "HK" in salePriceText:
@@ -192,7 +192,7 @@ def price_conversion(salePriceText: str, price: float):
         converted_price = round(price * CURRENCY_EXCHANGE_RATE["USD"] / 100, 2)
     return converted_price
 
-def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_code: str|None = None):
+def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_code: str|None = None) -> float | str:
     session_cookies = setup_session_cookies()
     if not session_cookies:
         logger.error("Session setup failed and resulted in empty session and cookies")
@@ -247,7 +247,7 @@ def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_c
     
     return return_subtotal
 
-def discord_notification(message: str):
+def discord_notification(message: str) -> None:
     try:
         webhook_payload = {
             "content": message
@@ -259,11 +259,11 @@ def discord_notification(message: str):
 def get_exchange_rate(base: str, quote: str) -> float:
     return get_with_retry(None, url=f"https://api.frankfurter.dev/v2/rate/{base}/{quote}").json().get("rate")
 
-def initialise_currency_exchange_rates(cad_rates: dict[str, float]):
+def initialise_currency_exchange_rates(cad_rates: dict[str, float]) -> None:
     global CURRENCY_EXCHANGE_RATE
     CURRENCY_EXCHANGE_RATE
 
-def update_currency_exchange_rates(new_rates: dict[str, float]):
+def update_currency_exchange_rates(new_rates: dict[str, float]) -> None:
     global CURRENCY_EXCHANGE_RATE
     CURRENCY_EXCHANGE_RATE.clear()
     CURRENCY_EXCHANGE_RATE.update(new_rates)
