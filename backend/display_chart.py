@@ -31,7 +31,7 @@ from plotly.subplots import make_subplots
 
 logger = logging.getLogger(__name__)
 
-def show_float_bucket_graph(float_ranges: list, listing_volume: list, price_harmonic_means: list):
+def show_float_bucket_graph(float_ranges: list, listing_volume: list, price_harmonic_means: list) -> None:
     # Create figure with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
@@ -73,7 +73,7 @@ def show_float_bucket_graph(float_ranges: list, listing_volume: list, price_harm
 
     fig.show()
 
-def show_pricing_distribution_graph(points: list[float], density: list[float], volumes: list[float], skin_name: str, min_float: float, max_float: float):
+def show_pricing_distribution_graph(points: list[float], density: list[float], volumes: list[float], skin_name: str, min_float: float, max_float: float) -> None:
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
     fig.add_trace(
@@ -139,7 +139,7 @@ def calculate_wear_buckets(skin_name: str) -> list[WearBucket] | None:
             wb.harmonic_sum += 1 / listing_price
     return wear_buckets
 
-def split_wear_bucket_data(wear_buckets: list[WearBucket]):
+def split_wear_bucket_data(wear_buckets: list[WearBucket]) -> tuple[list, list, list]:
     float_ranges = []
     listing_volume = []
     price_harmonic_means = []
@@ -153,7 +153,7 @@ def split_wear_bucket_data(wear_buckets: list[WearBucket]):
             price_harmonic_means.append(0)
     return float_ranges, listing_volume, price_harmonic_means
 
-def update_wear_bucket_data_for_skin(skin_name: str):
+def update_wear_bucket_data_for_skin(skin_name: str) -> None:
     wear_buckets = calculate_wear_buckets(skin_name)
     if wear_buckets is None:
         logger.warning(f"could not update wear bucket data for {skin_name}")
@@ -162,7 +162,7 @@ def update_wear_bucket_data_for_skin(skin_name: str):
     float_ranges, listing_volume, price_harmonic_means = split_wear_bucket_data(wear_buckets)
     insert_skin_float_prices_skin_data_db(skin_name, price_harmonic_means, SKIN_DATA_DB)
 
-def display_skin_chart():
+def display_skin_chart() -> None:
     create_float_prices_skin_data_db(SKIN_DATA_DB)
     historical_options = load_all_skin_names_all_historical_data_db(HISTORICAL_DATA_DB)
     if historical_options is None:
@@ -189,7 +189,7 @@ def display_skin_chart():
     insert_skin_float_prices_skin_data_db(skin_name, price_harmonic_means, SKIN_DATA_DB)
     show_float_bucket_graph(float_ranges, listing_volume, price_harmonic_means)
     
-def gaussian_kde(data: list[float|int], points: list[float], bandwidth: float):
+def gaussian_kde(data: list[float|int], points: list[float], bandwidth: float) -> list[float]:
     densities = []
 
     for point in points:
@@ -205,7 +205,7 @@ def gaussian_kde(data: list[float|int], points: list[float], bandwidth: float):
     
     return densities
 
-def volume_spread(data: list[float|int], points: list[float]):
+def volume_spread(data: list[float|int], points: list[float]) -> list[int]:
     """Requires sorted ascending data"""
     volumes = [0 for _ in range(len(points))]
     points_index = 0
@@ -224,7 +224,7 @@ def generate_pricing_distribution_chart_values(listing_prices: list, skin_name: 
     volumes = volume_spread(listing_prices, points)
     return points, density, volumes
 
-def display_seller_pricing_distribution_chart():
+def display_seller_pricing_distribution_chart() -> None:
     create_float_prices_skin_data_db(SKIN_DATA_DB)
     historical_options = load_all_skin_names_all_historical_data_db(HISTORICAL_DATA_DB)
     if historical_options is None:
@@ -236,7 +236,7 @@ def display_seller_pricing_distribution_chart():
         try:
             user_input = input("\nSkin name / Bucket (0-99) -> ([0.00-0.01] - [0.99-1.00]) (Type ! to stop entering)\n")
             if user_input == "!":
-                return
+                return None
             skin_name, bucket = user_input.split("/")
             print(f"{bucket.strip()} {type(bucket)}")
             skin_name = skin_name.strip()
