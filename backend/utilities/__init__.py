@@ -38,7 +38,6 @@ from .db_utils import (
     populate_extra_skin_data_db,
     populate_prices_skin_data_db,
     create_tracked_table_db,
-    populate_tracked_table_db,
     delete_entry_tracked_table_db,
     get_tracked_listings_table_db,
     get_lowest_price_skin_data_db,

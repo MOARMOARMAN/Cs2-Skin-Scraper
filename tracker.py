@@ -60,23 +60,24 @@ def print_tracked() -> None:
     tracked = get_tracked_listings_table_db(LISTINGS_DB)
     print("\nThese are the skins that are currently being tracked:")
     for skin in tracked:
-        print(f"id: {skin[0]} | skin_name: {skin[1]} | max_float: {skin[2]} | max_price: {skin[3]}$")
+        print(f"id: {skin[0]} | skin_name: {skin[1]} | min_float: {skin[2]} | max_float: {skin[3]} | max_price: {skin[4]}$")
 
 def add_skins(lowest_prices: dict) -> None:
     user_input = ""
     while user_input != '!':
         try:
             print_tracked()
-            user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
+            user_input = input("\nSkin name / Min Float / Max Float (Type ! to stop entering)\n")
             if user_input == "!":
                 print_tracked()
                 return None
-            skin_name, max_float = user_input.split("/")
+            skin_name, min_float, max_float = user_input.split("/")
             skin_name = skin_name.strip()
+            min_float = min_float.strip()
             max_float = max_float.strip()
-            print(f"{max_float} type: {type(max_float)}")
             try:
-                max_float = float(max_float.strip())
+                max_float = float(max_float)
+                min_float = float(min_float)
                 wlevel = what_wear(max_float)
             except ValueError: 
                 if str(max_float).lower() in WEAR_ABBRIEVIATIONS:
@@ -84,7 +85,7 @@ def add_skins(lowest_prices: dict) -> None:
                     max_float = WEAR_TO_MAX[wlevel]
                 else:
                     logger.error("Invalid input format. Please enter in the format: Skin name / Max Float")
-                    user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
+                    user_input = input("\nSkin name / Min Float / Max Float (Type ! to stop entering)\n")
                     continue
 
             cur_lowest_price = get_lowest_price_skin_data_db(skin_name, wlevel, SKIN_DATA_DB)
@@ -97,14 +98,13 @@ def add_skins(lowest_prices: dict) -> None:
                     print("Invalid Price")
                     user_input = input(f"The current lowest price for {skin_name} at a wear of {wears[wlevel]} is ${cur_lowest_price} CAD\nPlease input a price maximum in CAD: ")
             lowest_prices[f"{skin_name} {wears[wlevel]}"] = cur_lowest_price
-            insert_tracked_table_db(LISTINGS_DB, (skin_name, max_float, max_price))
+            insert_tracked_table_db(LISTINGS_DB, (skin_name, min_float, max_float, max_price))
             logger.info(f"Added skin to monitor: {skin_name} with max price {max_price} and max float {max_float} and wear {wears[wlevel]}")
         except ValueError:
-            logger.error("Invalid input format. Please enter in the format: Skin name / Max Float")
-            user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
+            logger.error("Invalid input format. Please enter in the format: Skin name / Min Float / Max Float")
+            user_input = input("\nSkin name / Min Float / Max Float (Type ! to stop entering)\n")
 
 def remove_skins() -> None:
-    ids = []
     user_input = ""
     while user_input != "!":
         try:
@@ -212,9 +212,10 @@ if __name__ == "__main__":
     else:
         update_currency_exchange_rates(cad_rates)
     
-    # tracked [[id, name, float, price], ...]
+    # tracked [[id, name, min_float, max_float, price], ...]
     tracked = get_tracked_listings_table_db(LISTINGS_DB)
-    skins = [[skin[1], skin[2], skin[3], what_wear(skin[2])] for skin in tracked]
+    print(tracked)
+    skins = [[skin[1], skin[2], skin[3], skin[4], what_wear(skin[3])] for skin in tracked]
     new_skins = []
     print(f"There are currently {len(skins)} skins being tracked. ")
     lowest_prices = {}
@@ -243,18 +244,18 @@ if __name__ == "__main__":
         logger.error("Empty input and no skins chosen for tracking.")
         exit()
     clear_db_skins(LISTINGS_DB)
-    # id, name, float, price
+    # id, name, min_float, max_float, price
     updated_tracked = get_tracked_listings_table_db(LISTINGS_DB)
-    updated_skins = [[skin[1], skin[2], skin[3]] for skin in updated_tracked]
+    updated_skins = [[skin[1], skin[2], skin[3], skin[4]] for skin in updated_tracked]
 
     logger.info(f"Monitoring {len(updated_skins)} skins with {len(updated_skins) + 1} worker threads")
     logger.info(f"These are the updated skins {updated_skins}")
     for num, skin in enumerate(updated_skins):
-        logger.info(f"Spawning scouting thread for {skin[0]} at max float of {skin[1]} with max price of {skin[2]}")
+        logger.info(f"Spawning scouting thread for {skin[0]} at min float of {skin[1]} and max float of {skin[2]} with max price of {skin[3]}")
         st = threading.Timer(
             interval=random.uniform((num + 1) * 7, (num + 1) * 10),
             function=scouting_loop,
-            args=(skin[0], skin[1], skin[2]),
+            args=(skin[0], skin[1], skin[2], skin[3]),
         )
         st.daemon = True
         st.start()
