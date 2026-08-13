@@ -49,21 +49,20 @@ from backend.utilities import (
     MAX_SCRAPE_TIME
 )
 from backend.batch import analyze_batch_overpay_loop
+logger = logging.getLogger(__name__)
 
-logger = logging.getLogger("Tracker")
-
-def prompt_actions_user(actions: dict):
+def prompt_actions_user(actions: dict) -> str:
     actions_list = " | ".join(actions)
     user_in = input(f"\nCommands {actions_list} | continue\n")
     return user_in
 
-def print_tracked():
+def print_tracked() -> None:
     tracked = get_tracked_listings_table_db(LISTINGS_DB)
     print("\nThese are the skins that are currently being tracked:")
     for skin in tracked:
         print(f"id: {skin[0]} | skin_name: {skin[1]} | max_float: {skin[2]} | max_price: {skin[3]}$")
 
-def add_skins(lowest_prices: dict):
+def add_skins(lowest_prices: dict) -> None:
     user_input = ""
     while user_input != '!':
         try:
@@ -71,7 +70,7 @@ def add_skins(lowest_prices: dict):
             user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
             if user_input == "!":
                 print_tracked()
-                return
+                return None
             skin_name, max_float = user_input.split("/")
             skin_name = skin_name.strip()
             max_float = max_float.strip()
@@ -81,7 +80,7 @@ def add_skins(lowest_prices: dict):
                 wlevel = what_wear(max_float)
             except ValueError: 
                 if str(max_float).lower() in WEAR_ABBRIEVIATIONS:
-                    wlevel = WEAR_ABBRIEVIATIONS.index(max_float)
+                    wlevel = WEAR_ABBRIEVIATIONS.index(str(max_float)) 
                     max_float = WEAR_TO_MAX[wlevel]
                 else:
                     logger.error("Invalid input format. Please enter in the format: Skin name / Max Float")
@@ -98,13 +97,13 @@ def add_skins(lowest_prices: dict):
                     print("Invalid Price")
                     user_input = input(f"The current lowest price for {skin_name} at a wear of {wears[wlevel]} is ${cur_lowest_price} CAD\nPlease input a price maximum in CAD: ")
             lowest_prices[f"{skin_name} {wears[wlevel]}"] = cur_lowest_price
-            insert_tracked_table_db(LISTINGS_DB, [[skin_name, max_float, max_price]])
+            insert_tracked_table_db(LISTINGS_DB, (skin_name, max_float, max_price))
             logger.info(f"Added skin to monitor: {skin_name} with max price {max_price} and max float {max_float} and wear {wears[wlevel]}")
         except ValueError:
             logger.error("Invalid input format. Please enter in the format: Skin name / Max Float")
             user_input = input("\nSkin name / Max Float (Type ! to stop entering)\n")
 
-def remove_skins():
+def remove_skins() -> None:
     ids = []
     user_input = ""
     while user_input != "!":
@@ -113,12 +112,12 @@ def remove_skins():
             user_input = input("\n\nWhich skin would you like to delete? (Type ! to stop entering)\nEnter the ID number: ")
             if user_input == "!":
                 print_tracked()
-                return
+                return None
             delete_entry_tracked_table_db(int(user_input), LISTINGS_DB)
         except ValueError:
             print("Please enter a valid ID number!\n\n")
 
-def update_exchange_rates_input():
+def update_exchange_rates_input() -> None:
     print(CURRENCY_EXCHANGE_RATE)
     user_input = ""
     while user_input not in RELEVANT_CURRENCIES:
@@ -129,7 +128,7 @@ def update_exchange_rates_input():
     for currency, rate in CURRENCY_EXCHANGE_RATE.items():
         print(f"{currency} to {user_input} is {rate}")
 
-def update_exchange_rates(user_input: str):
+def update_exchange_rates(user_input: str) -> None:
     rates = {}
     for currency in RELEVANT_CURRENCIES:
         rates[currency] = get_exchange_rate(currency, user_input)
@@ -138,13 +137,13 @@ def update_exchange_rates(user_input: str):
     new_rates = get_currency_exchange_rates_for_currency_db(user_input, SKIN_DATA_DB)
     update_currency_exchange_rates(new_rates)
 
-def recommend_sale_price():
+def recommend_sale_price() -> None:
     user_input = ""
     while user_input != "!":
         try:
             user_input = input("\nSkin name / Float (Type ! to stop entering)\n")
             if user_input == "!":
-                return
+                return None
             skin_name, float_val = user_input.split("/")
             skin_name = skin_name.strip()
             float_val = float(float_val.strip()) 
@@ -159,7 +158,7 @@ def recommend_sale_price():
             logger.error("Invalid input format. Please enter in the format: Skin name / Float")
             user_input = input("\nSkin name / Float (Type ! to stop entering)\n")
 
-def display_chart_options():
+def display_chart_options() -> None:
     chart_options = {
         "1": lambda: display_skin_chart(),
         "2": lambda: display_seller_pricing_distribution_chart(),
@@ -170,11 +169,11 @@ def display_chart_options():
     user_input = input("Please enter one of the numbers above or ! to cancel:\n") 
     while user_input not in chart_options:
         if user_input == "!":
-            return
+            return None
         user_input = input("Please enter one of the numbers above or ! to cancel:\n") 
     chart_options[user_input]()
 
-def help():
+def help() -> None:
     print(f"\nDescriptions of each Tool:")
     print(f"add: Add skins to be tracked by the scraper")
     print(f"remove: Remove skins from the list of tracked skins")
@@ -183,9 +182,11 @@ def help():
     print(f"recommendation: Provides you the recommended listing price based on the specific float bucket that a skin belongs to.")
     print(f"display chart: Enter the name of a skin with historical data and view the price/float-volume chart")
     print(f"continue: Continue to the next step to begin scraping listings. Press ! to exit when the script is running.")
+    return None
 
-def shutdown_script_after(stop_event: threading.Event):
+def shutdown_script_after(stop_event: threading.Event) -> None:
     stop_event.set()
+    return None
 
 
 if __name__ == "__main__":
@@ -197,7 +198,7 @@ if __name__ == "__main__":
             logging.FileHandler('bot.log', encoding="utf-8"),
             logging.StreamHandler()
         ]
-    )
+    ) # type: ignore
     logger.info("Starting CS:GO Trading Bot...")
     create_skin_listings_table_db(LISTINGS_DB)
     create_tracked_table_db(LISTINGS_DB)

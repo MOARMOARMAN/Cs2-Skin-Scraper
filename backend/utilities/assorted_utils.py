@@ -34,7 +34,7 @@ HISTORICAL_DATA_DB = DATABASES_DIR / "historical_data.db"
 INVENTORY_DB = DATABASES_DIR / "inventory.db"
 user_agent = os.getenv("STEAM_USER_AGENT")
 logger = logging.getLogger("CS2-System")
-discord_webhook_url = os.getenv("DISCORD_WEBHOOK")
+discord_webhook_url = os.getenv("DISCORD_WEBHOOK") or ""
 
 MAX_SCRAPE_TIME = 14400
 PREFERRED_CURRENCY = "CAD"
@@ -85,7 +85,7 @@ headers = {
     "sec-ch-viewport-width": "637"
 }
 
-def what_wear(float_val: float):
+def what_wear(float_val: float) -> int:
     if float_val < 0.07:
         return 0
     elif float_val < 0.15:
@@ -97,7 +97,7 @@ def what_wear(float_val: float):
     else:
         return 4
 
-def is_retryable_error(exception):
+def is_retryable_error(exception) -> bool:
     if isinstance(exception, requests.exceptions.HTTPError):
         return exception.response.status_code == 429 or exception.response.status_code >= 500   
     return isinstance(exception, requests.exceptions.RequestException)
@@ -131,7 +131,7 @@ def post_with_retry(session: requests.Session, url: str, json_payload: dict, loc
     wait=wait_exponential_jitter(initial=1, max=10),
     retry=retry_if_exception(is_retryable_error),
 )
-def get_with_retry(session: requests.Session | None, url: str, local_headers: dict | None = None, timeout: int = 10):
+def get_with_retry(session: requests.Session | None, url: str, local_headers: dict | None = None, timeout: int = 10) -> requests.Response:
     """GET with retries for transient network errors.
 
     If `session` is provided it will be used, otherwise `requests` module is used.
@@ -147,21 +147,21 @@ def get_with_retry(session: requests.Session | None, url: str, local_headers: di
         resp = requests.Response()
     return resp
 
-def setup_session_cookies():
+def setup_session_cookies() -> list | None:
     try:
         scraper_session = requests.Session()
         try:
             scraper_session.get("https://steamcommunity.com/market/")
         except Exception as e:
             logger.error(f"Failed to initialize Steam market session: {e}")
-            return
+            return None
         logger.info("Session to Steam Created.")
         session_id = scraper_session.cookies.get('sessionid', domain='steamcommunity.com')
         if not session_id:
             session_id = os.getenv("SESSION_ID_FALLBACK") # Your known good ID
             if not session_id:
                 logger.error("Failed to retrieve session ID from environment variables.")
-                return
+                return None
             logger.warning("Using fallback session ID from environment")
             scraper_session.cookies.set('sessionid', session_id, domain='steamcommunity.com')
         cookies = {
@@ -175,13 +175,13 @@ def setup_session_cookies():
         return [scraper_session, cookies]
     except Exception as e:
         logger.error("Steam session setup failure within setup_session_cookies")
-        return []
+        return None
 
-def get_skin_code(search_name: str):
+def get_skin_code(search_name: str) -> str:
     response = get_with_retry(None, url=f"https://steamcommunity.com/market/listings/730/{search_name}", local_headers=headers)
     return response.url.split("/")[-1]
 
-def price_conversion(salePriceText: str, price: float):
+def price_conversion(salePriceText: str, price: float) -> float:
     if "CA" in salePriceText:
         converted_price = round(price * CURRENCY_EXCHANGE_RATE["CAD"] / 100, 2)
     if "HK" in salePriceText:
@@ -192,7 +192,7 @@ def price_conversion(salePriceText: str, price: float):
         converted_price = round(price * CURRENCY_EXCHANGE_RATE["USD"] / 100, 2)
     return converted_price
 
-def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_code: str|None = None):
+def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_code: str|None = None) -> float | str:
     session_cookies = setup_session_cookies()
     if not session_cookies:
         logger.error("Session setup failed and resulted in empty session and cookies")
@@ -247,7 +247,7 @@ def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_c
     
     return return_subtotal
 
-def discord_notification(message: str):
+def discord_notification(message: str) -> None:
     try:
         webhook_payload = {
             "content": message
@@ -259,11 +259,10 @@ def discord_notification(message: str):
 def get_exchange_rate(base: str, quote: str) -> float:
     return get_with_retry(None, url=f"https://api.frankfurter.dev/v2/rate/{base}/{quote}").json().get("rate")
 
-def initialise_currency_exchange_rates(cad_rates: dict[str, float]):
+def initialise_currency_exchange_rates(cad_rates: dict[str, float]) -> None:
     global CURRENCY_EXCHANGE_RATE
-    CURRENCY_EXCHANGE_RATE
 
-def update_currency_exchange_rates(new_rates: dict[str, float]):
+def update_currency_exchange_rates(new_rates: dict[str, float]) -> None:
     global CURRENCY_EXCHANGE_RATE
     CURRENCY_EXCHANGE_RATE.clear()
     CURRENCY_EXCHANGE_RATE.update(new_rates)
@@ -278,6 +277,6 @@ def seconds_to_time(seconds: float) -> str:
     if m:
         result += f"{m} minute(s) "
     if s:
-        result += f"{s} second(s)"
-    return result 
+        result += f"{round(s, 2)} second(s)"
+    return result.strip()
     

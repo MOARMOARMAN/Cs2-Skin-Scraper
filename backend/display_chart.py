@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 from .utilities import (
     load_for_skin_name_all_historical_listings_db,
     load_prices_for_float_and_name_all_historical_listings_db,
@@ -23,11 +24,14 @@ from .utilities import (
     HISTORICAL_DATA_DB,
     WearBucket
 )
+import logging
 import plotly.graph_objects as go
 import math
 from plotly.subplots import make_subplots
 
-def show_float_bucket_graph(float_ranges: list, listing_volume: list, price_harmonic_means: list):
+logger = logging.getLogger(__name__)
+
+def show_float_bucket_graph(float_ranges: list, listing_volume: list, price_harmonic_means: list) -> None:
     # Create figure with secondary y-axis
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
@@ -69,7 +73,7 @@ def show_float_bucket_graph(float_ranges: list, listing_volume: list, price_harm
 
     fig.show()
 
-def show_pricing_distribution_graph(points: list[float], density: list[float], volumes: list[float], skin_name: str, min_float: float, max_float: float):
+def show_pricing_distribution_graph(points: list[float], density: list[float], volumes: list[float], skin_name: str, min_float: float, max_float: float) -> None:
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
     fig.add_trace(
@@ -109,8 +113,11 @@ LISTING_PRICING_MULTIPLIER = 1.8
 GAUSSIAN_KDE_BANDWIDTH = 1.0
 PRICING_BIN_SIZE = 0.1
 
-def calculate_wear_buckets(skin_name: str) -> list[WearBucket]:
+def calculate_wear_buckets(skin_name: str) -> list[WearBucket] | None:
     listings_for_skin = load_for_skin_name_all_historical_listings_db(skin_name, HISTORICAL_DATA_DB)
+    if listings_for_skin is None:
+        logger.warning(f"Cannot calculate wear buckets for {skin_name} as there are no listings for skin.")
+        return None
 
     # [harmonic sum of price, listing count, listings included, lowest price]
     wear_buckets = [WearBucket() for _ in range(100)]
@@ -132,7 +139,7 @@ def calculate_wear_buckets(skin_name: str) -> list[WearBucket]:
             wb.harmonic_sum += 1 / listing_price
     return wear_buckets
 
-def split_wear_bucket_data(wear_buckets: list[WearBucket]):
+def split_wear_bucket_data(wear_buckets: list[WearBucket]) -> tuple[list, list, list]:
     float_ranges = []
     listing_volume = []
     price_harmonic_means = []
@@ -146,14 +153,22 @@ def split_wear_bucket_data(wear_buckets: list[WearBucket]):
             price_harmonic_means.append(0)
     return float_ranges, listing_volume, price_harmonic_means
 
-def update_wear_bucket_data_for_skin(skin_name: str):
+def update_wear_bucket_data_for_skin(skin_name: str) -> None:
     wear_buckets = calculate_wear_buckets(skin_name)
+    if wear_buckets is None:
+        logger.warning(f"could not update wear bucket data for {skin_name}")
+        return None
+
     float_ranges, listing_volume, price_harmonic_means = split_wear_bucket_data(wear_buckets)
     insert_skin_float_prices_skin_data_db(skin_name, price_harmonic_means, SKIN_DATA_DB)
 
-def display_skin_chart():
+def display_skin_chart() -> None:
     create_float_prices_skin_data_db(SKIN_DATA_DB)
     historical_options = load_all_skin_names_all_historical_data_db(HISTORICAL_DATA_DB)
+    if historical_options is None:
+        logger.warning(f"Cannot display any form of charts as there is no historical data.")
+        return None
+
     options = " --- ".join([f'"{name[0]}"' for name in historical_options])
     print(f"\nThese are your options: {options}\n") 
     while True:
@@ -161,17 +176,20 @@ def display_skin_chart():
         if skin_name in options:
             break
         elif skin_name == "!":
-            return
+            return None
         print(f"{skin_name} is not a part of the options.\n")
         print(f"These are your options: {options}\n")
 
     wear_buckets = calculate_wear_buckets(skin_name)
+    if wear_buckets is None:
+        logger.error(f"Could not display chart for {skin_name} as wear buckets couldn't be calculated")
+        return None
     float_ranges, listing_volume, price_harmonic_means = split_wear_bucket_data(wear_buckets)
 
     insert_skin_float_prices_skin_data_db(skin_name, price_harmonic_means, SKIN_DATA_DB)
     show_float_bucket_graph(float_ranges, listing_volume, price_harmonic_means)
     
-def gaussian_kde(data: list[float|int], points: list[float], bandwidth: float):
+def gaussian_kde(data: list[float|int], points: list[float], bandwidth: float) -> list[float]:
     densities = []
 
     for point in points:
@@ -187,7 +205,7 @@ def gaussian_kde(data: list[float|int], points: list[float], bandwidth: float):
     
     return densities
 
-def volume_spread(data: list[float|int], points: list[float]):
+def volume_spread(data: list[float|int], points: list[float]) -> list[int]:
     """Requires sorted ascending data"""
     volumes = [0 for _ in range(len(points))]
     points_index = 0
@@ -198,8 +216,7 @@ def volume_spread(data: list[float|int], points: list[float]):
         volumes[points_index] += 1
     return volumes
 
-def generate_pricing_distribution_chart_values(skin_name: str, float_bucket: int):
-    listing_prices = load_prices_for_float_and_name_all_historical_listings_db(skin_name, float_bucket, HISTORICAL_DATA_DB)
+def generate_pricing_distribution_chart_values(listing_prices: list, skin_name: str, float_bucket: int) -> tuple[list, list, list]:
     max_price = max(listing_prices)
     min_price = min(listing_prices)
     points = [round(min_price + PRICING_BIN_SIZE * i, 2) for i in range(int((max_price - min_price) / PRICING_BIN_SIZE) + 1)]
@@ -207,23 +224,30 @@ def generate_pricing_distribution_chart_values(skin_name: str, float_bucket: int
     volumes = volume_spread(listing_prices, points)
     return points, density, volumes
 
-def display_seller_pricing_distribution_chart():
+def display_seller_pricing_distribution_chart() -> None:
     create_float_prices_skin_data_db(SKIN_DATA_DB)
     historical_options = load_all_skin_names_all_historical_data_db(HISTORICAL_DATA_DB)
+    if historical_options is None:
+        logger.warning(f"Cannot display any form of charts as there is no historical data.")
+        return None
     options = " --- ".join([f'"{name[0]}"' for name in historical_options])
     print(f"\nThese are your options: {options}\n") 
     while True:
         try:
             user_input = input("\nSkin name / Bucket (0-99) -> ([0.00-0.01] - [0.99-1.00]) (Type ! to stop entering)\n")
             if user_input == "!":
-                return
+                return None
             skin_name, bucket = user_input.split("/")
             print(f"{bucket.strip()} {type(bucket)}")
             skin_name = skin_name.strip()
             bucket = int(bucket.strip())
             min_float = bucket * 0.01 
             print(f"{skin_name} {bucket} {type(bucket)}")
-            points, density, volumes = generate_pricing_distribution_chart_values(skin_name, bucket)
+            listing_prices = load_prices_for_float_and_name_all_historical_listings_db(skin_name, bucket, HISTORICAL_DATA_DB)
+            if listing_prices is None:
+                logger.error(f"Cannot generate pricing distribution chart values for {skin_name} for float bucket {bucket} as there are no listings")
+                return None
+            points, density, volumes = generate_pricing_distribution_chart_values(listing_prices, skin_name, bucket)
             show_pricing_distribution_graph(points, density, volumes, skin_name, min_float, min_float + 0.01)
         except ValueError:
             print("Error")

@@ -144,21 +144,21 @@ def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
     session_cookies = setup_session_cookies()
     if not session_cookies:
         logger.error("Session setup failed and resulted in empty session and cookies")
-        return 0
+        return None
     else:
         logger.info(f"Session and cookies setup successfully for {skin_name}")
     scraper_session = session_cookies[0]
     cookies = session_cookies[1]
     if wlevel < 0 or wlevel > 4:
         logger.error(f"Invalid wear level: {wlevel}")
-        return
+        return None
     skin_wear = wears[wlevel]
     search_name = f"{skin_name} {skin_wear}"
     scout_code = get_skin_code_db(SKIN_DATA_DB, skin_name=skin_name)
     if not scout_code:
         logger.error("could not access the scout_code in any form.")
         time.sleep(60)
-        return
+        return None
     
     try:
         while True:
