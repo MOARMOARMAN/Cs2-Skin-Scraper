@@ -46,6 +46,7 @@ from backend.utilities import (
     WEAR_ABBRIEVIATIONS,
     CURRENCY_EXCHANGE_RATE,
     WEAR_TO_MAX,
+    WEAR_TO_MIN,
     MAX_SCRAPE_TIME
 )
 from backend.batch import analyze_batch_overpay_loop
@@ -67,26 +68,30 @@ def add_skins(lowest_prices: dict) -> None:
     while user_input != '!':
         try:
             print_tracked()
-            user_input = input("\nSkin name / Min Float / Max Float (Type ! to stop entering)\n")
+            user_input = input("\nSkin name / Min Float / Max Float or Skin name / Wear [fn, mw, ft, ww, bs] (Type ! to stop entering)\n")
             if user_input == "!":
                 print_tracked()
                 return None
-            skin_name, min_float, max_float = user_input.split("/")
-            skin_name = skin_name.strip()
-            min_float = min_float.strip()
-            max_float = max_float.strip()
-            try:
-                max_float = float(max_float)
-                min_float = float(min_float)
-                wlevel = what_wear(max_float)
-            except ValueError: 
-                if str(max_float).lower() in WEAR_ABBRIEVIATIONS:
-                    wlevel = WEAR_ABBRIEVIATIONS.index(str(max_float)) 
-                    max_float = WEAR_TO_MAX[wlevel]
-                else:
-                    logger.error("Invalid input format. Please enter in the format: Skin name / Max Float")
-                    user_input = input("\nSkin name / Min Float / Max Float (Type ! to stop entering)\n")
+            values = user_input.split("/")
+            if len(values) == 3:
+                skin_name = values[0].strip()
+                min_float = values[1].strip()
+                max_float = values[2].strip()
+                try:
+                    max_float = float(max_float)
+                    min_float = float(min_float)
+                    wlevel = what_wear(max_float)
+                except ValueError:
+                    logger.error("Invalid input format. Please enter in the format: Skin name / Min Float / Max Float or Skin name / Wear")
                     continue
+            elif len(values) == 2:
+                skin_name = values[0].strip()
+                wlevel = WEAR_ABBRIEVIATIONS.index(values[1].strip())
+                max_float = WEAR_TO_MAX[wlevel]
+                min_float = WEAR_TO_MIN[wlevel]
+            else:
+                logger.error("Invalid input format. Please enter in the format: Skin name / Min Float / Max Float or Skin name / Wear")
+                continue
 
             cur_lowest_price = get_lowest_price_skin_data_db(skin_name, wlevel, SKIN_DATA_DB)
             user_input = input(f"The current lowest price for {skin_name} at a wear of {wears[wlevel]} is ${cur_lowest_price} CAD\nPlease input a price maximum in CAD: ")
@@ -102,7 +107,7 @@ def add_skins(lowest_prices: dict) -> None:
             logger.info(f"Added skin to monitor: {skin_name} with max price {max_price} and max float {max_float} and wear {wears[wlevel]}")
         except ValueError:
             logger.error("Invalid input format. Please enter in the format: Skin name / Min Float / Max Float")
-            user_input = input("\nSkin name / Min Float / Max Float (Type ! to stop entering)\n")
+            continue
 
 def remove_skins() -> None:
     user_input = ""

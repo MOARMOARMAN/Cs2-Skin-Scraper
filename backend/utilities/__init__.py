@@ -21,6 +21,7 @@ from .assorted_utils import (
     RELEVANT_CURRENCIES,
     WEAR_ABBRIEVIATIONS,
     WEAR_TO_MAX,
+    WEAR_TO_MIN,
     MAX_SCRAPE_TIME
 )
 

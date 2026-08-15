@@ -50,6 +50,7 @@ WEAR_RANGES = {
 }
 WEAR_ABBRIEVIATIONS = ["fn", "mw", "ft", "ww", "bs"]
 WEAR_TO_MAX = [0.0699, 0.1499, 0.3799, 0.4499, 0.9999]
+WEAR_TO_MIN = [0, 0.07, 0.15, 0.38, 0.45]
 CURRENCY_EXCHANGE_RATE = {
     "HKD": 0.181,  
     "USD": 1.420,  
