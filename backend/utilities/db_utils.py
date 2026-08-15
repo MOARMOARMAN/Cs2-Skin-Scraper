@@ -122,24 +122,14 @@ def create_tracked_table_db(db_name: str | Path) -> None:
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
-            conn.execute("CREATE TABLE IF NOT EXISTS tracked_skins (id INTEGER PRIMARY KEY, skin_name TEXT, max_float_val REAL, max_price REAL)")
-
-def populate_tracked_table_db(db_name: str | Path, skins: list) -> None:
-    """populates the tracked skins table with """
-    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
-        conn.execute("PRAGMA synchronous=NORMAL;")
-        with conn:
-            values = [
-                (skin[0], skin[1], skin[2]) for skin in skins
-            ]
-            conn.executemany("INSERT OR REPLACE INTO tracked_skins (skin_name, max_float_val, max_price) VALUES(?, ?, ?)", values)
+            conn.execute("CREATE TABLE IF NOT EXISTS tracked_skins (id INTEGER PRIMARY KEY, skin_name TEXT, min_float_val REAL, max_float_val REAL, max_price REAL)")
 
 def insert_tracked_table_db(db_name: str | Path, skin: tuple):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
             print(f"{skin}")
-            conn.execute("INSERT OR REPLACE INTO tracked_skins (skin_name, max_float_val, max_price) VALUES(?, ?, ?)", skin)
+            conn.execute("INSERT OR REPLACE INTO tracked_skins (skin_name, min_float_val, max_float_val, max_price) VALUES(?, ?, ?, ?)", skin)
 
 def delete_entry_tracked_table_db(id: int, db_name: str | Path):
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:

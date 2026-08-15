@@ -40,7 +40,7 @@ logger = logging.getLogger("Scouting")
 if TYPE_CHECKING:
     import requests
 
-def scout(search_name: str, wear: int, max_float: float, max_price: float, scraper_session: requests.Session, cookies: dict, scout_code: str) -> tuple[set[str], bool] | None:
+def scout(search_name: str, wear: int, min_float: float, max_float: float, max_price: float, scraper_session: requests.Session, cookies: dict, scout_code: str) -> tuple[set[str], bool] | None:
     scan_complete = True
     skin_name = search_name.rsplit('(', 1)[0].strip()
     existing_listing_ids = set()
@@ -49,7 +49,11 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
         "strItemName": scout_code, # Unique identifier, will have to calculate later
         "filters":{"Exterior":[f"WearCategory{wear}"]}, # Set these using the inputs
         "accessoryFilters":{},
-        "propertyFilters":{},
+        "propertyFilters":{"2": {
+            "property_id": 2,
+            "float_max": max_float,
+            "float_min": min_float
+        }},
         "price":{"eCurrency":20, "unMax":max_price * 400},
         "start": 0,
     }]
@@ -69,7 +73,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
 
     if scout_r.status_code == 200:
         total_listings = scout_r.json().get('total_count', 0)
-        logger.info(f"Total Listings: {total_listings}. Scanning top: {total_listings} items for {search_name}")
+        logger.info(f"Total Listings: {total_listings}. Scanning top: {total_listings} items for {search_name} {min_float}-{max_float}")
     else:
         logger.error(f"Unexpected status code {scout_r.status_code} for {search_name}")
         return None
@@ -121,7 +125,7 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
                         continue
             salePriceText = item['strSubtotal']
             converted_price = price_conversion(salePriceText, price)
-            if float_val < max_float and converted_price < max_price:
+            if converted_price < max_price:
                 valid_skins[listingID] = listingData(float_val=float_val, price=converted_price)
             available_skins[listingID] = listingData(float_val=float_val, price=converted_price)
             existing_listing_ids.add(listingID)
@@ -130,14 +134,14 @@ def scout(search_name: str, wear: int, max_float: float, max_price: float, scrap
         if valid_skins:
             write_listings_db(skin_name, valid_skins, LISTINGS_DB)
         if offset % 100 == 0:
-            logger.info(f"Processed up to offset {offset + 20} for {search_name}")
+            logger.info(f"Processed up to offset {offset + 20} for {search_name} {min_float}-{max_float}")
         time.sleep(random.uniform(45, 75))
         if random.random() <= 0.1:
             time.sleep(random.uniform(300,600))
     return (existing_listing_ids, scan_complete)
 
 
-def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
+def scouting_loop(skin_name: str, minimum_float: float, maximum_float: float, maximum_price: float):
     logger.info(f"Scouting Loop for {skin_name} has been started")
     previous_ids = set()
     wlevel = what_wear(maximum_float)
@@ -163,7 +167,7 @@ def scouting_loop(skin_name: str, maximum_float: float, maximum_price: float):
     try:
         while True:
             try:
-                scout_results = scout(search_name, wlevel, maximum_float, maximum_price, scraper_session, cookies, scout_code)
+                scout_results = scout(search_name, wlevel, minimum_float, maximum_float, maximum_price, scraper_session, cookies, scout_code)
                 if scout_results:
                     current_listing_ids, scan_completed = scout_results
                     if scan_completed:
