@@ -63,7 +63,11 @@ from .db_utils import (
     create_inventory_skins_table_db,
     add_inventory_skins_table_db,
     remove_inventory_skins_table_db,
-    load_all_inventory_skins_table_db
+    load_all_inventory_skins_table_db,
+    # skins inventory transactions functions
+    create_transactions_table_db,
+    insert_transaction_transactions_table_db,
+    get_current_balance_transactions_table_db
 )
 
 from .dataclass_utils import (
