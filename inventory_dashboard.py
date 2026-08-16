@@ -6,6 +6,12 @@ import logging
 import sys
 from pathlib import Path
 from subprocess import Popen
+from backend.utilities import (
+    create_inventory_skins_table_db,
+    create_transactions_table_db,
+    INVENTORY_DB
+)
+
 
 logger = logging.getLogger("Inventory Dashboard")
 
@@ -38,5 +44,7 @@ def launch_processes():
         print("\nStopping dashboard...")
 
 if __name__ == "__main__":
+    create_inventory_skins_table_db(INVENTORY_DB)
+    create_transactions_table_db(INVENTORY_DB)
     launch_processes()
 
