@@ -415,7 +415,8 @@ def create_transactions_table_db(db_name: str | Path) -> None:
                 id INTEGER PRIMARY KEY,
                 transaction_type TEXT,
                 current_balance REAL,
-                transaction_details TEXT
+                transaction_details TEXT,
+                transaction_date TEXT DEFAULT CURRENT_DATE
             )""")
 
 def insert_transaction_transactions_table_db(transaction_type: str, change_amount: float, transaction_details: str, db_name: str) -> None:
@@ -431,7 +432,7 @@ def insert_transaction_transactions_table_db(transaction_type: str, change_amoun
             cur_value = prev_value + change_amount
             conn.execute("INSERT INTO transactions (transaction_type, current_balance, transaction_details) VALUES (?, ?, ?)", (transaction_type, cur_value, transaction_details))
 
-def get_current_balance_transactions_table_db(db_name: str) -> float | None:
+def get_current_balance_transactions_table_db(db_name: str | Path) -> float | None:
     """Returns the current balance of the transactions table."""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")

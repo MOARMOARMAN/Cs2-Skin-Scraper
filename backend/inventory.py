@@ -61,5 +61,10 @@ def delete_inventory_item(item_id: int):
     else:
         return {"status": "not deleted"}
 
+@app.get("/inventory/value")
+def get_inventory_value():
+    inventory_value = get_current_balance_transactions_table_db(INVENTORY_DB)
+    return inventory_value
+
 if __name__  == "__main__":
     print(get_inventory())
