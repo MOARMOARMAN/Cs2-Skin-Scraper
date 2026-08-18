@@ -16,6 +16,12 @@ export interface NewSkin {
     purchase_price: number;
 }
 
+export interface NewTransaction {
+    transaction_type: string;
+    transaction_value: number;
+    transaction_details: string;
+}
+
 export interface StatusResponse {
     status: string;
 }
@@ -62,11 +68,24 @@ export function getInventory(): Promise<Skin[]> {
     return getJson<Skin[]>(`${API_URL}/inventory`);
 }
 
+export function getBalance(): Promise<number> {
+    return getJson<number>(`${API_URL}/transactions/balance`);
+}
+
 export function addSkin(newSkin: NewSkin): Promise<StatusResponse> {
-    return postJson<NewSkin, StatusResponse>(`${API_URL}/inventory`, newSkin)
+    return postJson<NewSkin, StatusResponse>(`${API_URL}/inventory`, newSkin);
+}
+
+export function addTransaction(newTransaction: NewTransaction): Promise<StatusResponse> {
+    return postJson<NewTransaction, StatusResponse>(`${API_URL}/transactions`, newTransaction);
 }
 
 export function delSkin(id_: number): Promise<StatusResponse> {
     const url = `${API_URL}/inventory/${id_}`;
-    return delJson<StatusResponse>(url)
+    return delJson<StatusResponse>(url);
+}
+
+export function delTransaction(id_: number): Promise<StatusResponse> {
+    const url = `${API_URL}/transactions/${id_}`;
+    return delJson<StatusResponse>(url);
 }

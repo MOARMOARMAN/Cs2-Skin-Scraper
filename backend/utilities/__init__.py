@@ -67,7 +67,8 @@ from .db_utils import (
     # skins inventory transactions functions
     create_transactions_table_db,
     insert_transaction_transactions_table_db,
-    get_current_balance_transactions_table_db
+    get_current_balance_transactions_table_db,
+    remove_transaction_transactions_table_db
 )
 
 from .dataclass_utils import (
@@ -77,5 +78,6 @@ from .dataclass_utils import (
 
 from .schemas import (
     InventoryItemIn,
-    InventoryItemOut
+    InventoryItemOut,
+    TransactionEntry
 )
