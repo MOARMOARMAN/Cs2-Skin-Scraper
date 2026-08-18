@@ -78,7 +78,7 @@ export default function AddTransactionsForm({ updateBalance }: AddTransactionsFo
     return (
         <>
             <p>Transaction Type</p>
-            {TransactionTypeForm}
+            <TransactionTypeForm typeValue={transactionType} updateType={setTransactionType}/>
             <p>Transaction Value</p>
             <input value={transactionValue} onChange={(event) => setTransactionValue(event.target.value)}/>
             <p>Transaction Details</p>

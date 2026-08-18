@@ -71,7 +71,10 @@ def get_transaction_balance():
 
 @app.post("/transactions")
 def add_transaction_entry(transaction: TransactionEntry):
-    insert_transaction_transactions_table_db(transaction.transaction_type, transaction.transaction_value, transaction.transaction_details, INVENTORY_DB)
+    transaction_value = transaction.transaction_value
+    if (transaction.transaction_type == "Withdraw" or transaction.transaction_type == "Purchase"):
+        transaction_value *= -1
+    insert_transaction_transactions_table_db(transaction.transaction_type, transaction_value, transaction.transaction_details, INVENTORY_DB)
     return {"status": "added"}
 
 @app.delete("/transactions/{transaction_id}")

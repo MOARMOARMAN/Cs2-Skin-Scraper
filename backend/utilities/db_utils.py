@@ -424,7 +424,7 @@ def insert_transaction_transactions_table_db(transaction_type: str, change_amoun
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
-            prev_value = conn.execute("SELECT current_balance FROM transactions ORDER BY transaction_id DESC LIMIT 1").fetchone()
+            prev_value = conn.execute("SELECT current_balance FROM transactions ORDER BY id DESC LIMIT 1").fetchone()
             if prev_value is None:
                 prev_value = 0
             else:
@@ -444,7 +444,7 @@ def get_current_balance_transactions_table_db(db_name: str | Path) -> float | No
     """Returns the current balance of the transactions table."""
     with closing(sqlite3.connect(db_name, timeout=60)) as conn:
         conn.execute("PRAGMA synchronous=NORMAL;")
-        current_balance = conn.execute("SELECT current_balance FROM transactions ORDER BY transaction_id DESC LIMIT 1").fetchone()
+        current_balance = conn.execute("SELECT current_balance FROM transactions ORDER BY id DESC LIMIT 1").fetchone()
         if current_balance is None:
             logger.warning("Cannot retrieve current balance from transactions table as there are no transactions")
             return None
