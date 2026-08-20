@@ -25,7 +25,7 @@ interface AddTransactionsFormProps {
 }
 
 interface TransactionTypeFormProps {
-    typeValue: TransactionTypes | "";
+    typeValue: string | "";
     updateType: (typeValue: TransactionTypes) => void;
 }
 
