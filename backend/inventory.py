@@ -1,13 +1,19 @@
+
 from .utilities import (
     INVENTORY_DB,
     create_inventory_skins_table_db,
+    create_transactions_table_db,
     remove_inventory_skins_table_db,
     add_inventory_skins_table_db,
+    insert_transaction_transactions_table_db,
     load_all_inventory_skins_table_db,
+    get_current_balance_transactions_table_db,
     get_price_float_buckets_skin_data_db,
+    remove_transaction_transactions_table_db,
     SKIN_DATA_DB,
     InventoryItemOut,
-    InventoryItemIn
+    InventoryItemIn,
+    TransactionEntry
 )
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -54,6 +60,27 @@ def add_inventory_item(item: InventoryItemIn):
 def delete_inventory_item(item_id: int):
     delete_state = remove_inventory_skins_table_db(item_id, INVENTORY_DB)
     if delete_state:
+        return {"status": "deleted"}
+    else:
+        return {"status": "not deleted"}
+
+@app.get("/transactions/balance")
+def get_transaction_balance():
+    transaction_balance = get_current_balance_transactions_table_db(INVENTORY_DB)
+    return transaction_balance
+
+@app.post("/transactions")
+def add_transaction_entry(transaction: TransactionEntry):
+    transaction_value = transaction.transaction_value
+    if (transaction.transaction_type == "Withdraw" or transaction.transaction_type == "Purchase"):
+        transaction_value *= -1
+    insert_transaction_transactions_table_db(transaction.transaction_type, transaction_value, transaction.transaction_details, INVENTORY_DB)
+    return {"status": "added"}
+
+@app.delete("/transactions/{transaction_id}")
+def remove_transaction_entry(transaction_id: int):
+    remove_state = remove_transaction_transactions_table_db(transaction_id, INVENTORY_DB)
+    if remove_state:
         return {"status": "deleted"}
     else:
         return {"status": "not deleted"}

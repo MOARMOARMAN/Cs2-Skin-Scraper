@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
 import {
-    getInventory, type Skin
+    type Skin
 } from '../api/inventory';
 
 interface AddInventoryDisplayProps {

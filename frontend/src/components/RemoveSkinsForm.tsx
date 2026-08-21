@@ -4,10 +4,11 @@ import {
 } from '../api/inventory'
 
 interface RemoveSkinsFormProps {
-    onSkinRemoved: () => void;
+    updateSkinList: () => Promise<void>;
+    updateBalance: () => Promise<void>;
 }
 
-export default function removeSkinsForm({ onSkinRemoved }: RemoveSkinsFormProps) {
+export default function RemoveSkinsForm({ updateSkinList, updateBalance }: RemoveSkinsFormProps) {
     const [removeID, setRemoveID] = useState('');
     const [stateText, setStateText] = useState('');
 
@@ -16,7 +17,8 @@ export default function removeSkinsForm({ onSkinRemoved }: RemoveSkinsFormProps)
         const deleteState = await delSkin(toRemoveID);
         if (deleteState.status == "deleted") {
             setStateText(`Successfully deleted ${toRemoveID} from inventory`);
-            onSkinRemoved();
+            updateSkinList();
+            updateBalance();
         } else if (deleteState.status == "not deleted") {
             setStateText(`Failed to delete ${toRemoveID} from inventory. Likely Invalid ID.`)
         }

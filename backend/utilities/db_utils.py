@@ -404,4 +404,51 @@ def load_all_inventory_skins_table_db(db_name: str | Path) -> list:
             else:
                 logger.error(f"Database error loading inventory: {e}")
                 raise
-    
+
+def create_transactions_table_db(db_name: str | Path) -> None:
+    """Creates transactions table in inventory.db"""
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        conn.execute("PRAGMA journal_mode=WAL;")
+        with conn:
+            conn.execute("""CREATE TABLE IF NOT EXISTS transactions (
+                id INTEGER PRIMARY KEY,
+                transaction_type TEXT,
+                current_balance REAL,
+                transaction_details TEXT,
+                transaction_date TEXT DEFAULT CURRENT_DATE
+            )""")
+
+def insert_transaction_transactions_table_db(transaction_type: str, change_amount: float, transaction_details: str, db_name: str | Path) -> None:
+    """Inserts a transaction into the transactions table"""
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        with conn:
+            prev_value = conn.execute("SELECT current_balance FROM transactions ORDER BY id DESC LIMIT 1").fetchone()
+            if prev_value is None:
+                prev_value = 0
+            else:
+                prev_value = prev_value[0]
+            cur_value = prev_value + change_amount
+            conn.execute("INSERT INTO transactions (transaction_type, current_balance, transaction_details) VALUES (?, ?, ?)", (transaction_type, cur_value, transaction_details))
+
+def remove_transaction_transactions_table_db(transaction_id: int, db_name: str | Path) -> bool:
+    """Removes a transaction from the transactions table and returns true or false based on if it removed successfully"""
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        with conn:
+            row_count = conn.execute("DELETE FROM transactions WHERE id=?", (transaction_id,)).rowcount
+            return row_count > 0
+
+def get_current_balance_transactions_table_db(db_name: str | Path) -> float | None:
+    """Returns the current balance of the transactions table."""
+    with closing(sqlite3.connect(db_name, timeout=60)) as conn:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        current_balance = conn.execute("SELECT current_balance FROM transactions ORDER BY id DESC LIMIT 1").fetchone()
+        if current_balance is None:
+            logger.warning("Cannot retrieve current balance from transactions table as there are no transactions")
+            return None
+        else:
+            return current_balance[0]
+
+            

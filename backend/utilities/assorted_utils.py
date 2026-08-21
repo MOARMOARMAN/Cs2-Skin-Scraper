@@ -72,8 +72,7 @@ headers = {
     "Referer": "https://steamcommunity.com/market/listings/730/G1802208A0A3004",
     "Content-Type": "application/json; charset=utf-8",
     # THE SECRET HANDSHAKE
-    "x-valve-action-type": "8cnlIgBs66uLKD68o1fzpLlHFSHv52c4l9_ohRpMLzk:Search",
-    "x-valve-request-type": "routeAction",
+    "x-valve-request-type": "queryAction",
     # MAPPING BROWSER ID
     "User-Agent": user_agent,
     "sec-fetch-mode": "cors",
@@ -129,17 +128,16 @@ def post_with_retry(session: requests.Session, url: str, json_payload: dict, loc
 # Helper to retry transient network errors on GET requests
 @retry(
     stop=stop_after_attempt(5),
-    wait=wait_exponential_jitter(initial=1, max=10),
+    wait=wait_exponential_jitter(initial=60, max=1500),
     retry=retry_if_exception(is_retryable_error),
 )
-def get_with_retry(session: requests.Session | None, url: str, local_headers: dict | None = None, timeout: int = 10) -> requests.Response:
+def get_with_retry(session: requests.Session | None, url: str, parameters: dict | None = None, local_headers: dict | None = None, timeout: int = 10) -> requests.Response:
     """GET with retries for transient network errors.
-
     If `session` is provided it will be used, otherwise `requests` module is used.
     Raises the last requests exception when retries are exhausted.
     """
     sess = session if session is not None else requests
-    resp = sess.get(url, headers=local_headers, timeout=timeout)
+    resp = sess.get(url, headers=local_headers, params=parameters, timeout=timeout)
     if resp.status_code == 429 or resp.status_code > 500:
         logger.warning(f"GET to {url} returned {resp.status_code}; raising to retry")
         resp.raise_for_status()

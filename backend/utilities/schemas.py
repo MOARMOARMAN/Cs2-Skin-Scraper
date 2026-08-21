@@ -13,3 +13,8 @@ class InventoryItemOut(BaseModel):
     recorded_at: str
     expected_sale_price: float
     profit: float
+
+class TransactionEntry(BaseModel):
+    transaction_type: str
+    transaction_value: float
+    transaction_details: str

@@ -14,15 +14,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import TYPE_CHECKING
+import json
 import logging
 import time
 import random
+
 from .utilities import (
     write_listings_db, 
     write_to_historical_db,
     del_missing_ID_listing_db, 
     load_data_listings_db,
     post_with_retry, 
+    get_with_retry,
     wears, 
     headers, 
     listingData,
@@ -47,13 +50,15 @@ def scout(search_name: str, wear: int, min_float: float, max_float: float, max_p
     Payload = [{
         "appid":730,
         "strItemName": scout_code, # Unique identifier, will have to calculate later
-        "filters":{"Exterior":[f"WearCategory{wear}"]}, # Set these using the inputs
+        "filters":{}, # Set these using the inputs
         "accessoryFilters":{},
-        "propertyFilters":{"2": {
-            "property_id": 2,
-            "float_max": max_float,
-            "float_min": min_float
-        }},
+        "propertyFilters":{
+            "2": {
+                "property_id": 2,
+                "float_min": min_float,
+                "float_max": max_float
+            }
+        },
         "price":{"eCurrency":20, "unMax":max_price * 400},
         "start": 0,
     }]
@@ -65,14 +70,23 @@ def scout(search_name: str, wear: int, min_float: float, max_float: float, max_p
         f"&category_Exterior=WearCategory{wear}"
         f"&appid=730"
     )
+    params= {
+        "q": "QueryListingsForItem",
+        "qp": json.dumps(Payload)
+    }
     try:
-        scout_r = post_with_retry(scraper_session, local_headers["Referer"], Payload, local_headers, cookies) # type: ignore
+        scout_r = get_with_retry(
+            scraper_session,
+            parameters=params,
+            url="https://steamcommunity.com/market/actions",
+            local_headers=local_headers
+        )
     except Exception as e:
         logger.error(f"Initial scout request failed for {search_name}: {e}")
         return None
 
     if scout_r.status_code == 200:
-        total_listings = scout_r.json().get('total_count', 0)
+        total_listings = scout_r.json().get('data').get('total_count', 0)
         logger.info(f"Total Listings: {total_listings}. Scanning top: {total_listings} items for {search_name} {min_float}-{max_float}")
     else:
         logger.error(f"Unexpected status code {scout_r.status_code} for {search_name}")
@@ -85,35 +99,45 @@ def scout(search_name: str, wear: int, min_float: float, max_float: float, max_p
         available_skins = {}
         valid_skins = {}
         Payload[0]['start'] = offset
+        params= {
+            "q": "QueryListingsForItem",
+            "qp": json.dumps(Payload)
+        }
         try:
-            r = post_with_retry(
+            r = get_with_retry(
                 scraper_session,
-                local_headers["Referer"], 
-                Payload, # type: ignore
-                local_headers,
-                cookies,
+                parameters=params,
+                url="https://steamcommunity.com/market/actions",
+                local_headers=local_headers
             )
         except Exception as e:
             scan_complete = False
             logger.error(f"Request failed at offset {offset} for {search_name}: {e}")
             time.sleep(random.uniform(5, 10))
             continue
-        data = r.json()
-        if not data['listings']:
+        data = r.json().get("data")
+        if not data:
             scan_complete = False
             continue
-        for mkt_pos, item in enumerate(data['listings']):
+        listings = data.get("listings")
+        if not listings:
+            scan_complete = False
+            continue
+        for mkt_pos, item in enumerate(listings):
             listingID = item['listingid']
             price = item['unPrice'] + item['unFee']
             if price:
                 price = float(price)
             else:
+                logger.warning("Skipping skin / missing price.")
                 continue
             asset = item.get('asset')
             if not asset:
+                logger.warning("Skipping skin / missing asset.")
                 continue
             properties = asset.get('asset_properties')
             if not properties:
+                logger.warning("Skipping skin / missing properties.")
                 continue
             float_val = 1
             for prop in properties:

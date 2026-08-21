@@ -9,10 +9,11 @@ import {
 } from '../utils/validation';
 
 interface AddSkinFormProps {
-    onSkinAdded: () => Promise<void>;
+    updateSkinList: () => Promise<void>;
+    updateBalance: () => Promise<void>;
 }
 
-export default function addSkinForm({ onSkinAdded }: AddSkinFormProps) {
+export default function AddSkinForm({ updateSkinList, updateBalance }: AddSkinFormProps) {
     const [skinName, setSkinName] = useState('');
     const [floatValue, setFloatValue] = useState('');
     const [purchasePrice, setPurchasePrice] = useState('');
@@ -40,7 +41,8 @@ export default function addSkinForm({ onSkinAdded }: AddSkinFormProps) {
         const addState = await addSkin(skin); 
         if (addState.status == 'added') {
             setStateText(`Added ${trimmedName} to the inventory successfully`);
-            onSkinAdded();
+            updateSkinList();
+            updateBalance();
         }
     }
 
