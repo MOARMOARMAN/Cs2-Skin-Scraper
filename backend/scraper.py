@@ -165,7 +165,7 @@ def scout(search_name: str, wear: int, min_float: float, max_float: float, max_p
     return (existing_listing_ids, scan_complete)
 
 
-def scouting_loop(skin_name: str, minimum_float: float, maximum_float: float, maximum_price: float):
+def scouting_loop(skin_name: str, minimum_float: float, maximum_float: float, maximum_price: float) -> None:
     logger.info(f"Scouting Loop for {skin_name} has been started")
     previous_ids = set()
     wlevel = what_wear(maximum_float)

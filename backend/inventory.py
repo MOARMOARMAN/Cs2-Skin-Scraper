@@ -52,12 +52,12 @@ def get_inventory():
     return result
 
 @app.post("/inventory")
-def add_inventory_item(item: InventoryItemIn):
+def add_inventory_item(item: InventoryItemIn) -> dict[str, str]:
     add_inventory_skins_table_db(item.skin_name, item.float_val, item.purchase_price, INVENTORY_DB)
     return {"status": "added"}
 
 @app.delete("/inventory/{item_id}")
-def delete_inventory_item(item_id: int):
+def delete_inventory_item(item_id: int) -> dict[str, str]:
     delete_state = remove_inventory_skins_table_db(item_id, INVENTORY_DB)
     if delete_state:
         return {"status": "deleted"}
@@ -65,12 +65,12 @@ def delete_inventory_item(item_id: int):
         return {"status": "not deleted"}
 
 @app.get("/transactions/balance")
-def get_transaction_balance():
+def get_transaction_balance() -> float | None:
     transaction_balance = get_current_balance_transactions_table_db(INVENTORY_DB)
     return transaction_balance
 
 @app.post("/transactions")
-def add_transaction_entry(transaction: TransactionEntry):
+def add_transaction_entry(transaction: TransactionEntry) -> dict[str, str]:
     transaction_value = transaction.transaction_value
     if (transaction.transaction_type == "Withdraw" or transaction.transaction_type == "Purchase"):
         transaction_value *= -1
@@ -78,7 +78,7 @@ def add_transaction_entry(transaction: TransactionEntry):
     return {"status": "added"}
 
 @app.delete("/transactions/{transaction_id}")
-def remove_transaction_entry(transaction_id: int):
+def remove_transaction_entry(transaction_id: int) -> dict[str, str]:
     remove_state = remove_transaction_transactions_table_db(transaction_id, INVENTORY_DB)
     if remove_state:
         return {"status": "deleted"}

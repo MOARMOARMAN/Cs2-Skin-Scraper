@@ -86,6 +86,7 @@ headers = {
 }
 
 def what_wear(float_val: float) -> int:
+    """Returns an integer representing the wear level (0=FN, 1=MW, 2=FT, 3=WW, 4=BS) based on the given float value."""
     if float_val < 0.07:
         return 0
     elif float_val < 0.15:
@@ -98,6 +99,7 @@ def what_wear(float_val: float) -> int:
         return 4
 
 def is_retryable_error(exception) -> bool:
+    """Checks if the given exception is a transient network error that should be retried."""
     if isinstance(exception, requests.exceptions.HTTPError):
         return exception.response.status_code == 429 or exception.response.status_code >= 500   
     return isinstance(exception, requests.exceptions.RequestException)
@@ -146,7 +148,8 @@ def get_with_retry(session: requests.Session | None, url: str, parameters: dict 
         resp = requests.Response()
     return resp
 
-def setup_session_cookies() -> list | None:
+def setup_session_cookies() -> tuple[requests.Session, dict[str, str]] | None:
+    """Sets up a requests Session and initializes cookies for accessing the Steam Community Market."""
     try:
         scraper_session = requests.Session()
         try:
@@ -171,16 +174,18 @@ def setup_session_cookies() -> list | None:
             "timezoneName":"Asia%2FShanghai"
         }
         scraper_session.cookies.update(cookies)
-        return [scraper_session, cookies]
+        return (scraper_session, cookies)
     except Exception as e:
         logger.error("Steam session setup failure within setup_session_cookies")
         return None
 
 def get_skin_code(search_name: str) -> str:
+    """Fetches the unique skin code from the Steam market URL for a given search name."""
     response = get_with_retry(None, url=f"https://steamcommunity.com/market/listings/730/{search_name}", local_headers=headers)
     return response.url.split("/")[-1]
 
 def price_conversion(salePriceText: str, price: float) -> float:
+    """Converts a given price to a standardized currency based on the detected currency in salePriceText."""
     if "CA" in salePriceText:
         converted_price = round(price * CURRENCY_EXCHANGE_RATE["CAD"] / 100, 2)
     if "HK" in salePriceText:
@@ -192,6 +197,7 @@ def price_conversion(salePriceText: str, price: float) -> float:
     return converted_price
 
 def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_code: str|None = None) -> float | str:
+    """Checks the current lowest Steam Market price for a specific skin and wear level."""
     session_cookies = setup_session_cookies()
     if not session_cookies:
         logger.error("Session setup failed and resulted in empty session and cookies")
@@ -247,6 +253,7 @@ def price_check(skin_name: str, wlevel: int, get_skin_code_db: Callable, scout_c
     return return_subtotal
 
 def discord_notification(message: str) -> None:
+    """Sends a notification message to the configured Discord webhook."""
     try:
         webhook_payload = {
             "content": message
@@ -256,17 +263,21 @@ def discord_notification(message: str) -> None:
         logger.error(f"Discord Notification failed because of: {e}")
 
 def get_exchange_rate(base: str, quote: str) -> float:
+    """Fetches the current exchange rate between a base and quote currency using the Frankfurter API."""
     return get_with_retry(None, url=f"https://api.frankfurter.dev/v2/rate/{base}/{quote}").json().get("rate")
 
 def initialise_currency_exchange_rates(cad_rates: dict[str, float]) -> None:
+    """Initializes the global currency exchange rates dictionary."""
     global CURRENCY_EXCHANGE_RATE
 
 def update_currency_exchange_rates(new_rates: dict[str, float]) -> None:
+    """Updates the global currency exchange rates dictionary with new rate values."""
     global CURRENCY_EXCHANGE_RATE
     CURRENCY_EXCHANGE_RATE.clear()
     CURRENCY_EXCHANGE_RATE.update(new_rates)
 
 def seconds_to_time(seconds: float) -> str:
+    """Converts a duration in seconds to a human-readable string formatted in hours, minutes, and seconds."""
     s = seconds % 60
     m = int((seconds % 3600) // 60)
     h = int(seconds // 3600)
